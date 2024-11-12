@@ -1,0 +1,62 @@
+;
+; cxadc-win.inf
+;
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = System
+ClassGuid   = {4d36e97d-e325-11ce-bfc1-08002be10318}
+Provider    = %ManufacturerName%
+CatalogFile = cxadc-win.cat
+DriverVer   = 11/15/2024,0.0.0.1 ; set to date in debug builds
+PnpLockdown = 1
+
+[DestinationDirs]
+DefaultDestDir = 13
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+cxadc-win.sys  = 1,,
+
+;*****************************************
+; Install Section
+;*****************************************
+
+[Manufacturer]
+%ManufacturerName% = Standard,NT$ARCH$.10.0...16299
+
+[Standard.NT$ARCH$.10.0...16299]
+%cxadc-win.DeviceDesc% = cxadc-win_Device, PCI\VEN_14F1&DEV_8800
+
+[cxadc-win_Device.NT]
+CopyFiles = File_Copy
+
+[File_Copy]
+cxadc-win.sys
+
+;-------------- Service installation
+[cxadc-win_Device.NT.Services]
+AddService = cxadc-win,%SPSVCINST_ASSOCSERVICE%, cxadc-win_Service_Inst
+
+; -------------- cxadc-win driver install sections
+[cxadc-win_Service_Inst]
+DisplayName    = %cxadc-win.SVCDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %13%\cxadc-win.sys
+
+[cxadc-win_Device.NT.Wdf]
+KmdfService = cxadc-win, cxadc-win_wdfsect
+
+[cxadc-win_wdfsect]
+KmdfLibraryVersion = $KMDFVERSION$
+
+[Strings]
+SPSVCINST_ASSOCSERVICE = 0x00000002
+ManufacturerName = "Jitterbug"
+DiskName = "cxadc-win drivers"
+cxadc-win.DeviceDesc = "cxadc-win device"
+cxadc-win.SVCDESC = "cxadc-win service"
