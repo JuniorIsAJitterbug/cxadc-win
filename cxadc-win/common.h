@@ -79,7 +79,7 @@ typedef struct _DEVICE_CONTEXT
     PMDL user_mdl;
 
     DMA_DATA dma_risc_instr;
-    DMA_DATA dma_risc_page[CX_VBI_BUF_COUNT + 1];
+    DMA_DATA dma_risc_page[CX_VBI_BUF_COUNT];
 } DEVICE_CONTEXT, *PDEVICE_CONTEXT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(DEVICE_CONTEXT, cx_device_get_ctx)
