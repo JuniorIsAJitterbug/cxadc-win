@@ -2,7 +2,7 @@
 /*
  * cxadc-win - CX2388x ADC DMA driver for Windows
  *
- * Copyright (C) 2024 Jitterbug
+ * Copyright (C) 2024-2025 Jitterbug <jitterbug@posteo.co.uk>
  *
  * Based on the Linux version created by
  * Copyright (C) 2005-2007 Hew How Chee <how_chee@yahoo.com>

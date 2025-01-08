@@ -2,7 +2,7 @@
 /*
  * cxadc-win-tool - Example tool for using the cxadc-win driver
  *
- * Copyright (C) 2024 Jitterbug
+ * Copyright (C) 2024-2025 Jitterbug <jitterbug@posteo.co.uk>
  */
 
 using LibUsbDotNet;
