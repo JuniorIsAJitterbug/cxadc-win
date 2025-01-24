@@ -23,6 +23,9 @@ Parameter       | WMI Property   | Range  | Default
 `sixdb`         | `EnableSixDB`  | `0-1`  | `0`
 `center_offset` | `CenterOffset` | `0-63` | `0`
 
+Device values are stored in the registry at the following location  
+`HKLM\SYSTEM\CurrentControlSet\Enum\PCI\VEN_14F1&DEV_8800&SUBSYS_XXXXXXXX&REV_XX\X&XXXXXXXX&X&XXXXXX\DeviceParameters`  
+
 ### Configure clockgen (Optional)
 > [!IMPORTANT]  
 > [Additional steps](#clockgen-optional) are required to configure clockgen  

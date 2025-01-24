@@ -45,6 +45,9 @@
     <ClInclude Include="public.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="registry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="wmi.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -63,6 +66,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ioctl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="registry.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="wmi.c">

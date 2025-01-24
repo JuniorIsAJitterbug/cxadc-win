@@ -17,6 +17,7 @@
 
 #include "cx2388x.h"
 #include "control.h"
+#include "registry.h"
 #include "wmi.h"
 #include "ioctl.h"
 
@@ -560,12 +561,20 @@ VOID cx_init_config(
     _Inout_ PDEVICE_CONTEXT dev_ctx
 )
 {
+    ULONG value;
+
+    // init with reg or default values
     dev_ctx->config = (DEVICE_CONFIG) {
-        .vmux = CX_CTRL_CONFIG_VMUX_DEFAULT,
-        .level = CX_CTRL_CONFIG_LEVEL_DEFAULT,
-        .tenbit = CX_CTRL_CONFIG_TENBIT_DEFAULT,
-        .sixdb = CX_CTRL_CONFIG_SIXDB_DEFAULT,
-        .center_offset = CX_CTRL_CONFIG_CENTER_OFFSET_DEFAULT
+        .vmux = NT_SUCCESS(cx_reg_get_value(dev_ctx->dev, CX_CTRL_CONFIG_VMUX_REG_KEY, &value)) ?
+            value : CX_CTRL_CONFIG_VMUX_DEFAULT,
+        .level = NT_SUCCESS(cx_reg_get_value(dev_ctx->dev, CX_CTRL_CONFIG_LEVEL_REG_KEY, &value)) ?
+            value : CX_CTRL_CONFIG_LEVEL_DEFAULT,
+        .tenbit = (NT_SUCCESS(cx_reg_get_value(dev_ctx->dev, CX_CTRL_CONFIG_TENBIT_REG_KEY, &value)) ?
+            value : CX_CTRL_CONFIG_TENBIT_DEFAULT) ? TRUE : FALSE,
+        .sixdb = (NT_SUCCESS(cx_reg_get_value(dev_ctx->dev, CX_CTRL_CONFIG_SIXDB_REG_KEY, &value)) ?
+            value : CX_CTRL_CONFIG_SIXDB_DEFAULT) ? TRUE : FALSE,
+        .center_offset = NT_SUCCESS(cx_reg_get_value(dev_ctx->dev, CX_CTRL_CONFIG_CENTER_OFFSET_REG_KEY, &value)) ?
+            value : CX_CTRL_CONFIG_CENTER_OFFSET_DEFAULT
     };
 }
 

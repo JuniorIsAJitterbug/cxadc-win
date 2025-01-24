@@ -24,6 +24,7 @@
     <ClCompile Include="cxadc_win.c" />
     <ClCompile Include="ioctl.c" />
     <ClCompile Include="precompsrc.c" />
+    <ClCompile Include="registry.c" />
     <ClCompile Include="wmi.c" />
   </ItemGroup>
   <ItemGroup>
@@ -34,6 +35,7 @@
     <ClInclude Include="ioctl.h" />
     <ClInclude Include="precomp.h" />
     <ClInclude Include="public.h" />
+    <ClInclude Include="registry.h" />
     <ClInclude Include="trace.h" />
     <ClInclude Include="wmi.h" />
   </ItemGroup>
