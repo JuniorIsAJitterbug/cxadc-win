@@ -12,14 +12,16 @@ This was made for use with the [decode](https://github.com/oyvindln/vhs-decode) 
 `cxadc-win-tool get <device>`  
 `cxadc-win-tool set <device> <parameter> <value>`  
 
+Configuration is also possible via WMI via the `CxadcWin_DeviceConfig` class.  
+
 See [cxadc-linux3](https://github.com/happycube/cxadc-linux3) for parameter descriptions.  
-Parameter       | Range | Default 
-----------------|--------|--------
-`vmux`          | `0-2`  | `2`
-`level`         | `0-31` | `16`
-`tenbit`        | `0-1`  | `0`
-`sixdb`         | `0-1`  | `0`
-`center_offset` | `0-63` | `0`
+Parameter       | WMI Property   | Range  | Default 
+----------------|----------------|--------|--------
+`vmux`          | `VideoMux`     | `0-2`  | `2`
+`level`         | `Level`        | `0-31` | `16`
+`tenbit`        | `EnableTenbit` | `0-1`  | `0`
+`sixdb`         | `EnableSixDB`  | `0-1`  | `0`
+`center_offset` | `CenterOffset` | `0-63` | `0`
 
 ### Configure clockgen (Optional)
 > [!IMPORTANT]  
@@ -56,6 +58,22 @@ cxadc-win-tool clockgen cx set 1 3       # set clock 1 to 40 MHz
 cxadc-win-tool clockgen audio set 48000  # set audio sample rate to 48000 (recommended)
 
 cxadc-win-tool status                    # show all device config
+```
+
+You can also view and configure the cards via WMI.
+```
+PS> $CxCard0 = Get-CimInstance -Namespace "root/WMI" -ClassName CxadcWin_DeviceConfig |
+  ? InstanceName -Eq (Get-CimInstance -Namespace "root/WMI" CxadcWin_DevicePath |
+    ? Path -Eq "\\.\cxadc0").InstanceName
+PS> $CxCard1 = Get-CimInstance -Namespace "root/WMI" -ClassName CxadcWin_DeviceConfig |
+  ? InstanceName -Eq (Get-CimInstance -Namespace "root/WMI" CxadcWin_DevicePath |
+    ? Path -Eq "\\.\cxadc1").InstanceName
+PS> Set-CimInstance -CimInstance $CxCard0 -Property @{VideoMux=1;Level=0}
+PS> Set-CimInstance -CimInstance $CxCard1 -Property @{VideoMux=1;Level=0;EnableTenbit=$True}
+
+PS> Get-CimInstance -Namespace "root/WMI" -ClassName CxadcWin_DeviceState
+PS> Get-CimInstance -Namespace "root/WMI" -ClassName CxadcWin_DeviceConfig
+PS> Get-CimInstance -Namespace "root/WMI" -ClassName CxadcWin_DevicePath
 ```
 
 ## Download

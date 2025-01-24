@@ -45,6 +45,12 @@
     <ClInclude Include="public.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="wmi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="control.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cxadc_win.c">
@@ -59,5 +65,16 @@
     <ClCompile Include="ioctl.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="wmi.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="control.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Mofcomp Include="cxadc-win.mof">
+      <Filter>Driver Files</Filter>
+    </Mofcomp>
   </ItemGroup>
 </Project>

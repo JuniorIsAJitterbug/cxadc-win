@@ -1,0 +1,40 @@
+#pragma autorecover
+#pragma namespace("\\\\.\\Root\\WMI")
+
+[WMI, Dynamic, Provider("WMIProv"), Locale("MS\\0x409"), Description("Cxadc-Win Device State"), guid("{1F539677-2EA1-432E-A3BC-42D73BB9DA5C}")]
+class CxadcWin_DeviceState
+{
+  [key, read] string InstanceName;
+  [read] boolean Active;
+
+  [WmiDataId(1), read] sint32 LastGpCount;
+  [WmiDataId(2), read] sint32 InitialPage;
+  [WmiDataId(3), read] uint32 OverUnderflowCount;
+  [WmiDataId(4), read] sint32 ReaderCount;
+  [WmiDataId(5), read] boolean IsCapturing;
+
+  [WmiMethodId(1), Implemented] void ResetOverUnderflowCount([Out] uint32 PreviousValue);
+};
+
+[WMI, Dynamic, Provider("WMIProv"), Locale("MS\\0x409"), Description("Cxadc-Win Device Config"), guid("{E333ADBB-4FD1-4D13-A61A-144EADC2DC4D}")]
+class CxadcWin_DeviceConfig
+{
+  [key, read] string InstanceName;
+  [read] boolean Active;
+
+  [WmiDataId(1), read, write] sint32 VideoMux;
+  [WmiDataId(2), read, write] sint32 Level;
+  [WmiDataId(3), read, write] boolean EnableTenbit;
+  [WmiDataId(4), read, write] boolean EnableSixDB;
+  [WmiDataId(5), read, write] sint32 CenterOffset;
+};
+
+
+[WMI, Dynamic, Provider("WMIProv"), Locale("MS\\0x409"), Description("Cxadc-Win Device Path"), guid("{C5DE3644-CB5A-4A18-9F42-47348AC8FC68}")]
+class CxadcWin_DevicePath
+{
+  [key, read] string InstanceName;
+  [read] boolean Active;
+
+  [WmiDataId(1), read] string Path;
+};

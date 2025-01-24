@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/*
+ * cxadc-win - CX2388x ADC DMA driver for Windows
+ *
+ * Copyright (C) 2024-2025 Jitterbug <jitterbug@posteo.co.uk>
+ *
+ */
+
+#ifdef APSTUDIO_INVOKED
+#error this file is not editable by Visual C++
+#endif //APSTUDIO_INVOKED
+
+CxadcWinWMI MOFDATA "cxadc-win.bmf"

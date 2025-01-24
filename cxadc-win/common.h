@@ -20,6 +20,9 @@
 #include <evntrace.h>
 #include <Ntstrsafe.h>
 
+#define SYMLINK_PATH            L"\\DosDevices\\cxadc"
+#define WIN32_PATH              L"\\\\.\\cxadc"
+
 #define CX_CDT_BUF_LEN          2048
 #define CX_CDT_BUF_COUNT        8
 #define CX_VBI_BUF_SIZE         (1024 * 1024 * 64)
@@ -35,15 +38,14 @@ typedef struct _DMA_DATA
     PHYSICAL_ADDRESS la;
 } DMA_DATA, *PDMA_DATA;
 
-typedef struct _DEVICE_ATTRS
+typedef struct _DEVICE_CONFIG
 {
     LONG vmux;
     LONG level;
-    LONG tenbit;
-    LONG sixdb;
-    LONG crystal;
+    BOOLEAN tenbit;
+    BOOLEAN sixdb;
     LONG center_offset;
-} DEVICE_ATTRS, *PDEVICE_ATTRS;
+} DEVICE_CONFIG, *PDEVICE_CONFIG;
 
 typedef struct _DEVICE_STATE
 {
@@ -60,7 +62,6 @@ typedef struct _DEVICE_CONTEXT
 {
     WDFDEVICE dev;
     ULONG dev_idx;
-    UNICODE_STRING symlink_path;
     ULONG bus_number;
     ULONG dev_addr;
 
@@ -69,7 +70,7 @@ typedef struct _DEVICE_CONTEXT
     WDFQUEUE read_queue;
     KEVENT isr_event;
 
-    DEVICE_ATTRS attrs;
+    DEVICE_CONFIG config;
     DEVICE_STATE state;
 
     WDFDMAENABLER dma_enabler;

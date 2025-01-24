@@ -15,8 +15,6 @@
 
 #include "common.h"
 
-#define SYMLINK_PATH L"\\DosDevices\\cxadc"
-
 #define VENDOR_ID    0x14F1
 #define DEVICE_ID    0x8800
 
@@ -40,7 +38,7 @@ NTSTATUS cx_create_device(_Inout_ PWDFDEVICE_INIT);
 NTSTATUS cx_init_device_ctx(_Inout_ PDEVICE_CONTEXT dev_ctx);
 NTSTATUS cx_init_dma(_In_ PDEVICE_CONTEXT dev_ctx);
 NTSTATUS cx_init_queue(_In_ PDEVICE_CONTEXT dev_ctx);
-VOID cx_init_attrs(_Inout_ PDEVICE_CONTEXT dev_ctx);
+VOID cx_init_config(_Inout_ PDEVICE_CONTEXT dev_ctx);
 VOID cx_init_state(_Inout_ PDEVICE_CONTEXT dev_ctx);
 
 NTSTATUS cx_check_dev_info(_In_ PDEVICE_CONTEXT dev_ctx);

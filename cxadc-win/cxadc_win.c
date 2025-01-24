@@ -16,6 +16,8 @@
 #include "cxadc_win.tmh"
 
 #include "cx2388x.h"
+#include "control.h"
+#include "wmi.h"
 #include "ioctl.h"
 
 #ifdef ALLOC_PRAGMA
@@ -155,6 +157,14 @@ NTSTATUS cx_evt_device_add(
     if (!NT_SUCCESS(status))
     {
         TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_init_device_ctx failed with status %!STATUS!", status);
+        return status;
+    }
+
+    status = cx_wmi_register(dev_ctx);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_wmi_register failed with status %!STATUS!", status);
         return status;
     }
 
@@ -385,11 +395,10 @@ NTSTATUS cx_init_device_ctx(
     dev_ctx->state.ouflow_count = 0;
 
     // create symlink
-    DECLARE_UNICODE_STRING_SIZE(symlink_path, sizeof(SYMLINK_PATH) + 3);
+    DECLARE_UNICODE_STRING_SIZE(symlink_path, 128);
     RtlUnicodeStringPrintf(&symlink_path, L"%ws%d", SYMLINK_PATH, dev_ctx->dev_idx);
-    dev_ctx->symlink_path = symlink_path;
 
-    status = WdfDeviceCreateSymbolicLink(dev_ctx->dev, &dev_ctx->symlink_path);
+    status = WdfDeviceCreateSymbolicLink(dev_ctx->dev, &symlink_path);
 
     if (!NT_SUCCESS(status))
     {
@@ -398,7 +407,7 @@ NTSTATUS cx_init_device_ctx(
         return status;
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "created symlink %wZ", &dev_ctx->symlink_path);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "created symlink %wZ", &symlink_path);
 
     // init dma
     status = cx_init_dma(dev_ctx);
@@ -418,8 +427,8 @@ NTSTATUS cx_init_device_ctx(
         return status;
     }
 
-    // init attrs
-    cx_init_attrs(dev_ctx);
+    // init config
+    cx_init_config(dev_ctx);
 
     // init state
     cx_init_state(dev_ctx);
@@ -547,16 +556,16 @@ NTSTATUS cx_init_queue(
 }
 
 _inline
-VOID cx_init_attrs(
+VOID cx_init_config(
     _Inout_ PDEVICE_CONTEXT dev_ctx
 )
 {
-    dev_ctx->attrs = (DEVICE_ATTRS) {
-        .vmux = CX_IOCTL_VMUX_DEFAULT,
-        .level = CX_IOCTL_LEVEL_DEFAULT,
-        .tenbit = CX_IOCTL_TENBIT_DEFAULT,
-        .sixdb = CX_IOCTL_SIXDB_DEFAULT,
-        .center_offset = CX_IOCTL_CENTER_OFFSET_DEFAULT
+    dev_ctx->config = (DEVICE_CONFIG) {
+        .vmux = CX_CTRL_CONFIG_VMUX_DEFAULT,
+        .level = CX_CTRL_CONFIG_LEVEL_DEFAULT,
+        .tenbit = CX_CTRL_CONFIG_TENBIT_DEFAULT,
+        .sixdb = CX_CTRL_CONFIG_SIXDB_DEFAULT,
+        .center_offset = CX_CTRL_CONFIG_CENTER_OFFSET_DEFAULT
     };
 }
 

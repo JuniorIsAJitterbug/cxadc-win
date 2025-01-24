@@ -15,6 +15,7 @@
 #include "ioctl.tmh"
 
 #include "ioctl.h"
+#include "control.h"
 #include "cx2388x.h"
 
 #ifdef ALLOC_PRAGMA
@@ -153,7 +154,7 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        *(PULONG)out_buf = dev_ctx->attrs.vmux;
+        *(PULONG)out_buf = dev_ctx->config.vmux;
         break;
     }
 
@@ -165,7 +166,7 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        *(PULONG)out_buf = dev_ctx->attrs.level;
+        *(PULONG)out_buf = dev_ctx->config.level;
         break;
     }
 
@@ -177,7 +178,7 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        *(PULONG)out_buf = dev_ctx->attrs.tenbit;
+        *(PULONG)out_buf = dev_ctx->config.tenbit;
         break;
     }
 
@@ -189,7 +190,7 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        *(PULONG)out_buf = dev_ctx->attrs.sixdb;
+        *(PULONG)out_buf = dev_ctx->config.sixdb;
         break;
     }
 
@@ -201,7 +202,7 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        *(PULONG)out_buf = dev_ctx->attrs.center_offset;
+        *(PULONG)out_buf = dev_ctx->config.center_offset;
         break;
     }
 
@@ -253,123 +254,67 @@ VOID cx_evt_io_ctrl(
 
     case CX_IOCTL_RESET_OUFLOW_COUNT:
     {
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "resetting over/underflow count (current: %d)", dev_ctx->state.ouflow_count);
-        dev_ctx->state.ouflow_count = 0;
+        cx_ctrl_reset_ouflow_count(dev_ctx);
         break;
     }
 
     case CX_IOCTL_SET_VMUX:
     {
-        if (in_buf == NULL || in_len != sizeof(LONG))
+        if (in_buf == NULL || in_len != sizeof(ULONG))
         {
             status = STATUS_INVALID_PARAMETER;
             break;
         }
 
-        LONG value = *(PLONG)in_buf;
-
-        if (value < CX_IOCTL_VMUX_MIN || value > CX_IOCTL_VMUX_MAX)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid vmux %d", value);
-            status = STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting vmux to %d", value);
-        dev_ctx->attrs.vmux = value;
-        cx_set_vmux(dev_ctx);
+        cx_ctrl_set_vmux(dev_ctx, *(PULONG)in_buf);
         break;
     }
 
     case CX_IOCTL_SET_LEVEL:
     {
-        if (in_buf == NULL || in_len != sizeof(LONG))
+        if (in_buf == NULL || in_len != sizeof(ULONG))
         {
             status = STATUS_INVALID_PARAMETER;
             break;
         }
 
-        LONG value = *(PLONG)in_buf;
-
-        if (value < CX_IOCTL_LEVEL_MIN || value > CX_IOCTL_LEVEL_MAX)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid level %d", value);
-            status = STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting level to %d", value);
-        dev_ctx->attrs.level = value;
-        cx_set_level(dev_ctx);
+        cx_ctrl_set_level(dev_ctx, *(PULONG)in_buf);
         break;
     }
 
     case CX_IOCTL_SET_TENBIT:
     {
-        if (in_buf == NULL || in_len != sizeof(LONG))
+        if (in_buf == NULL || in_len != sizeof(ULONG))
         {
             status = STATUS_INVALID_PARAMETER;
             break;
         }
 
-        LONG value = *(PLONG)in_buf;
-
-        if (value < CX_IOCTL_TENBIT_MIN || value > CX_IOCTL_TENBIT_MAX)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid tenbit %d", value);
-            status = STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting tenbit to %d", value);
-        dev_ctx->attrs.tenbit = value;
-        cx_set_tenbit(dev_ctx);
+        cx_ctrl_set_tenbit(dev_ctx, *(PULONG)in_buf ? TRUE : FALSE);
         break;
     }
 
     case CX_IOCTL_SET_SIXDB:
     {
-        if (in_buf == NULL || in_len != sizeof(LONG))
+        if (in_buf == NULL || in_len != sizeof(ULONG))
         {
             status = STATUS_INVALID_PARAMETER;
             break;
         }
 
-        LONG value = *(PLONG)in_buf;
-
-        if (value < CX_IOCTL_SIXDB_MIN || value > CX_IOCTL_SIXDB_MAX)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid sixdb %d", value);
-            status = STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting sixdb to %d", value);
-        dev_ctx->attrs.sixdb = value;
-        cx_set_level(dev_ctx);
+        cx_ctrl_set_sixdb(dev_ctx, *(PULONG)in_buf ? TRUE : FALSE);
         break;
     }
 
     case CX_IOCTL_SET_CENTER_OFFSET:
     {
-        if (in_buf == NULL || in_len != sizeof(LONG))
+        if (in_buf == NULL || in_len != sizeof(ULONG))
         {
             status = STATUS_INVALID_PARAMETER;
             break;
         }
 
-        LONG value = *(PLONG)in_buf;
-
-        if (value < CX_IOCTL_CENTER_OFFSET_MIN || value > CX_IOCTL_CENTER_OFFSET_MAX)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid center_offset %d", value);
-            status = STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting center_center to %d", value);
-        dev_ctx->attrs.center_offset = value;
-        cx_set_center_offset(dev_ctx);
+        cx_ctrl_set_center_offset(dev_ctx, *(PULONG)in_buf);
         break;
     }
 

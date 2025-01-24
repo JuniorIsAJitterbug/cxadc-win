@@ -78,28 +78,3 @@ DEFINE_GUID(GUID_DEVINTERFACE_CXADCWIN,
 
 #define CX_IOCTL_MUNMAP \
     CTL_CODE(FILE_DEVICE_UNKNOWN, 0xA01, METHOD_BUFFERED, FILE_WRITE_DATA)
-
-// vmux 0-3
-#define CX_IOCTL_VMUX_DEFAULT           2
-#define CX_IOCTL_VMUX_MIN               0
-#define CX_IOCTL_VMUX_MAX               3
-
-// level 0-31
-#define CX_IOCTL_LEVEL_DEFAULT          16
-#define CX_IOCTL_LEVEL_MIN              0
-#define CX_IOCTL_LEVEL_MAX              31
-
-// tenbit 0-1
-#define CX_IOCTL_TENBIT_DEFAULT         0
-#define CX_IOCTL_TENBIT_MIN             0
-#define CX_IOCTL_TENBIT_MAX             1
-
-// sixdb 0-1
-#define CX_IOCTL_SIXDB_DEFAULT          0
-#define CX_IOCTL_SIXDB_MIN              0
-#define CX_IOCTL_SIXDB_MAX              1
-
-// center_offset 0-63
-#define CX_IOCTL_CENTER_OFFSET_DEFAULT  0
-#define CX_IOCTL_CENTER_OFFSET_MIN      0
-#define CX_IOCTL_CENTER_OFFSET_MAX      63

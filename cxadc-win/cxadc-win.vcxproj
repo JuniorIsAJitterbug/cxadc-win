@@ -19,19 +19,23 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="control.c" />
     <ClCompile Include="cx2388x.c" />
     <ClCompile Include="cxadc_win.c" />
     <ClCompile Include="ioctl.c" />
     <ClCompile Include="precompsrc.c" />
+    <ClCompile Include="wmi.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h" />
+    <ClInclude Include="control.h" />
     <ClInclude Include="cx2388x.h" />
     <ClInclude Include="cxadc_win.h" />
     <ClInclude Include="ioctl.h" />
     <ClInclude Include="precomp.h" />
     <ClInclude Include="public.h" />
     <ClInclude Include="trace.h" />
+    <ClInclude Include="wmi.h" />
   </ItemGroup>
   <ItemGroup>
     <Inf Include="cxadc-win.inf" />
@@ -158,6 +162,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <FilesToPackage Include="$(TargetPath)" />
+  </ItemGroup>
+  <ItemGroup>
+    <Mofcomp Include="cxadc-win.mof" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="cxadc-win.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -585,7 +585,7 @@ VOID cx_set_vmux(
             .fmt = 1,
             .svid = 1,
             .agcen = 1,
-            .yadc_sel = dev_ctx->attrs.vmux,
+            .yadc_sel = dev_ctx->config.vmux,
             .svid_c_sel = 1,
         }.dword);
 }
@@ -598,10 +598,10 @@ VOID cx_set_level(
         (CX_VIDEO_AGC_GAIN_ADJUST_4) {
             .high_acc_val = 0x00,
             .low_acc_val = 0xFF,
-            .init_vga_val = dev_ctx->attrs.level,
+            .init_vga_val = dev_ctx->config.level,
             .vga_en = 0x00,
             .slice_ref_en = 0x00,
-            .init_6db_val = dev_ctx->attrs.sixdb
+            .init_6db_val = dev_ctx->config.sixdb
         }.dword);
 }
 
@@ -613,7 +613,7 @@ VOID cx_set_tenbit(
         (CX_VIDEO_CAPTURE_CONTROL) {
             .capture_even = 1,
             .capture_odd = 1,
-            .raw16 = dev_ctx->attrs.tenbit,
+            .raw16 = dev_ctx->config.tenbit,
             .cap_raw_all = 1
         }.dword);
 }
@@ -624,7 +624,7 @@ VOID cx_set_center_offset(
 {
     cx_write(dev_ctx, CX_VIDEO_AGC_SYNC_TIP_ADJUST_3_ADDR,
         (CX_VIDEO_AGC_SYNC_TIP_ADJUST_3) {
-            .acc_max = dev_ctx->attrs.center_offset,
+            .acc_max = dev_ctx->config.center_offset,
             .acc_min = 0xFF,
             .low_stip_th = 0x1E48
         }.dword);
