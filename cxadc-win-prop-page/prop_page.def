@@ -1,0 +1,6 @@
+LIBRARY     cxadc-win-prop-page.dll
+HEAPSIZE    8192
+
+EXPORTS
+    DllMain
+    cx_prop_page_provider

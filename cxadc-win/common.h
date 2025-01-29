@@ -38,26 +38,6 @@ typedef struct _DMA_DATA
     PHYSICAL_ADDRESS la;
 } DMA_DATA, *PDMA_DATA;
 
-typedef struct _DEVICE_CONFIG
-{
-    LONG vmux;
-    LONG level;
-    BOOLEAN tenbit;
-    BOOLEAN sixdb;
-    LONG center_offset;
-} DEVICE_CONFIG, *PDEVICE_CONFIG;
-
-typedef struct _DEVICE_STATE
-{
-    LONG last_gp_cnt;
-    LONG initial_page;
-    
-    ULONG ouflow_count;
-
-    LONG reader_count;
-    BOOLEAN is_capturing;
-} DEVICE_STATE, *PDEVICE_STATE;
-
 typedef struct _DEVICE_CONTEXT
 {
     WDFDEVICE dev;

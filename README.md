@@ -5,11 +5,11 @@
 
 This was made for use with the [decode](https://github.com/oyvindln/vhs-decode) projects, see [here](https://github.com/oyvindln/vhs-decode/wiki/CX-Cards) for more information on these cards.  
 
-![example capture](assets/example_usage_241201.png)  
+![ffplay](assets/ffplay.gif)
 
 ## Usage
 ### Configure
-The device can be configured via `cxadc-win-tool` or WMI.  
+The device can be configured via `cxadc-win-tool`, WMI or Device Manager.  
 ```
 cxadc-win-tool scan
 cxadc-win-tool get <device>

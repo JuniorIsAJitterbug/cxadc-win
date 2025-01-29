@@ -13,8 +13,30 @@
 
 #pragma once
 
+#include <initguid.h>
+
 DEFINE_GUID(GUID_DEVINTERFACE_CXADCWIN,
     0x13EF40B0, 0x05FF, 0x4173, 0xB6, 0x13, 0x31, 0x41, 0xAD, 0x2E, 0x37, 0x62);
+
+typedef struct _DEVICE_CONFIG
+{
+    LONG vmux;
+    LONG level;
+    BOOLEAN tenbit;
+    BOOLEAN sixdb;
+    LONG center_offset;
+} DEVICE_CONFIG, *PDEVICE_CONFIG;
+
+typedef struct _DEVICE_STATE
+{
+    LONG last_gp_cnt;
+    LONG initial_page;
+    
+    ULONG ouflow_count;
+
+    LONG reader_count;
+    BOOLEAN is_capturing;
+} DEVICE_STATE, *PDEVICE_STATE;
 
 #define CX_IOCTL_GET_CONFIG \
     CTL_CODE(FILE_DEVICE_UNKNOWN, 0x700, METHOD_BUFFERED, FILE_READ_DATA)
@@ -84,3 +106,41 @@ DEFINE_GUID(GUID_DEVINTERFACE_CXADCWIN,
 
 #define CX_IOCTL_MUNMAP \
     CTL_CODE(FILE_DEVICE_UNKNOWN, 0xA01, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+// state
+#define CX_CTRL_STATE_RESET_OUFLOW_WMI_ID       1
+
+// vmux
+#define CX_CTRL_CONFIG_VMUX_REG_KEY             L"vmux"
+#define CX_CTRL_CONFIG_VMUX_WMI_ID              1
+#define CX_CTRL_CONFIG_VMUX_DEFAULT             2
+#define CX_CTRL_CONFIG_VMUX_MIN                 0
+#define CX_CTRL_CONFIG_VMUX_MAX                 3
+
+// level
+#define CX_CTRL_CONFIG_LEVEL_REG_KEY            L"level"
+#define CX_CTRL_CONFIG_LEVEL_WMI_ID             2
+#define CX_CTRL_CONFIG_LEVEL_DEFAULT            16
+#define CX_CTRL_CONFIG_LEVEL_MIN                0
+#define CX_CTRL_CONFIG_LEVEL_MAX                31
+
+// tenbit
+#define CX_CTRL_CONFIG_TENBIT_REG_KEY           L"tenbit"
+#define CX_CTRL_CONFIG_TENBIT_WMI_ID            3
+#define CX_CTRL_CONFIG_TENBIT_DEFAULT           0
+#define CX_CTRL_CONFIG_TENBIT_MIN               0
+#define CX_CTRL_CONFIG_TENBIT_MAX               1
+
+// sixdb
+#define CX_CTRL_CONFIG_SIXDB_REG_KEY            L"sixdb"
+#define CX_CTRL_CONFIG_SIXDB_WMI_ID             4
+#define CX_CTRL_CONFIG_SIXDB_DEFAULT            0
+#define CX_CTRL_CONFIG_SIXDB_MIN                0
+#define CX_CTRL_CONFIG_SIXDB_MAX                1
+
+// center offset
+#define CX_CTRL_CONFIG_CENTER_OFFSET_REG_KEY    L"center_offset"
+#define CX_CTRL_CONFIG_CENTER_OFFSET_WMI_ID     5
+#define CX_CTRL_CONFIG_CENTER_OFFSET_DEFAULT    0
+#define CX_CTRL_CONFIG_CENTER_OFFSET_MIN        0
+#define CX_CTRL_CONFIG_CENTER_OFFSET_MAX        63

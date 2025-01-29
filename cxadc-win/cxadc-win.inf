@@ -4,8 +4,8 @@
 
 [Version]
 Signature   = "$WINDOWS NT$"
-Class       = System
-ClassGuid   = {4d36e97d-e325-11ce-bfc1-08002be10318}
+Class       = CXADC-WIN
+ClassGuid   = {A9005477-434A-42B4-A91C-3B3B82878D04}
 Provider    = %ManufacturerName%
 CatalogFile = cxadc-win.cat
 DriverVer   = ; set by stampinf
@@ -13,12 +13,31 @@ PnpLockdown = 1
 
 [DestinationDirs]
 DefaultDestDir = 13
+DriverInstallCopy = 13
+Class.InstallCopy = 11
 
 [SourceDisksNames]
 1 = %DiskName%,,,""
 
 [SourceDisksFiles]
-cxadc-win.sys  = 1,,
+cxadc-win.sys           = 1,,
+cxadc-win-prop-page.dll = 1,,
+
+;*****************************************
+; Class Section
+;*****************************************
+[ClassInstall32]
+Addreg = Class.AddReg
+CopyFiles = Class.InstallCopy
+
+[Class.AddReg]
+HKR,,,0,%ClassName%
+HKR,,Icon,,-14
+HKR,,EnumPropPages32,,"cxadc-win-prop-page.dll,cx_prop_page_provider"
+
+[Class.InstallCopy]
+cxadc-win-prop-page.dll
+
 
 ;*****************************************
 ; Install Section
@@ -31,9 +50,9 @@ cxadc-win.sys  = 1,,
 %cxadc-win.DeviceDesc% = cxadc-win_Device, PCI\VEN_14F1&DEV_8800
 
 [cxadc-win_Device.NT]
-CopyFiles = File_Copy
+CopyFiles = Driver.InstallCopy
 
-[File_Copy]
+[Driver.InstallCopy]
 cxadc-win.sys
 
 ;-------------- Service installation
@@ -57,6 +76,7 @@ KmdfLibraryVersion = $KMDFVERSION$
 [Strings]
 SPSVCINST_ASSOCSERVICE = 0x00000002
 ManufacturerName = "Jitterbug"
+ClassName = "cxadc-win devices"
 DiskName = "cxadc-win drivers"
 cxadc-win.DeviceDesc = "cxadc-win device"
 cxadc-win.SVCDESC = "cxadc-win service"

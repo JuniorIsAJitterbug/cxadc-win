@@ -1,0 +1,136 @@
+// Microsoft Visual C++ generated resource script.
+//
+#pragma code_page(65001) // utf-8
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United States) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    DLG_CXADCWIN, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 250
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 208
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+DLG_CXADCWIN DIALOGEX 0, 0, 257, 215
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "cxadc-win"
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    GROUPBOX        "Information",IDC_GROUP_INFO,7,7,243,57
+    LTEXT           "Path:",IDC_LABEL_INFO_PATH,16,19,64,8,0,WS_EX_TRANSPARENT
+    EDITTEXT        IDC_EDIT_INFO_PATH,138,19,64,8,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER | NOT WS_TABSTOP
+    LTEXT           "Capture State:",IDC_LABEL_INFO_CAPTURE,16,34,64,8,0,WS_EX_TRANSPARENT
+    EDITTEXT        IDC_EDIT_INFO_CAPTURE,138,34,64,8,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER | NOT WS_TABSTOP
+    LTEXT           "Over/underflows:",IDC_LABEL_INFO_OUFLOWS,16,49,64,8,0,WS_EX_TRANSPARENT
+    EDITTEXT        IDC_EDIT_INFO_OUFLOWS,138,49,64,8,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER | NOT WS_TABSTOP
+    GROUPBOX        "Configuration",IDC_GROUP_CONFIG,7,71,243,128
+    LTEXT           "Input:",IDC_LABEL_CONFIG_VMUX,16,83,50,8
+    CONTROL         "VMUX 0",IDC_RADIO_CONFIG_VMUX_0,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,16,95,100,10
+    CONTROL         "VMUX 1 (RCA/BNC)",IDC_RADIO_CONFIG_VMUX_1,"Button",BS_AUTORADIOBUTTON,16,110,90,10
+    CONTROL         "VMUX 2 (S-Video)",IDC_RADIO_CONFIG_VMUX_2,"Button",BS_AUTORADIOBUTTON,16,125,100,10
+    CONTROL         "VMUX 3",IDC_RADIO_CONFIG_VMUX_3,"Button",BS_AUTORADIOBUTTON | WS_GROUP,16,140,100,10
+    LTEXT           "Data mode:",IDC_LABEL_CONFIG_DATAMODE,16,155,60,10,0,WS_EX_TRANSPARENT
+    CONTROL         "8-bit",IDC_RADIO_CONFIG_8BIT,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,16,167,100,10
+    CONTROL         "10-bit",IDC_RADIO_CONFIG_10BIT,"Button",BS_AUTORADIOBUTTON | WS_GROUP,16,182,100,10
+    LTEXT           "Level:",IDC_LABEL_CONFIG_LEVEL,138,83,64,8
+    COMBOBOX        IDC_COMBO_CONFIG_LEVEL,138,93,32,96,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Enable +6dB Gain",IDC_CHECK_CONFIG_SIXDB,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,138,110,78,10
+    LTEXT           "Center Offset:",IDC_LABEL_CONFIG_CENTER_OFFSET,138,155,50,8
+    COMBOBOX        IDC_COMBO_CONFIG_CENTER_OFFSET,138,165,32,96,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT_ERROR_MESSAGE,7,7,243,8, ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER | NOT WS_TABSTOP
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_PROPPAGE_MEDIUM AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+DLG_CXADCWIN_CONFIG AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+DLG_CXADCWIN AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+#endif    // English (United States) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
