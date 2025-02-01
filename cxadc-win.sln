@@ -10,8 +10,10 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9875028E-5349-451B-A770-733DC59AF2A5}"
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\build.yml = .github\workflows\build.yml
-		README.md = README.md
+		assets\cxcvbs.gif = assets\cxcvbs.gif
 		assets\example_usage_241201.png = assets\example_usage_241201.png
+		assets\gnuradio.gif = assets\gnuradio.gif
+		README.md = README.md
 	EndProjectSection
 EndProject
 Global
