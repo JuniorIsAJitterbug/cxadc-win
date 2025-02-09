@@ -122,6 +122,30 @@ VOID cx_evt_io_ctrl(
 
     switch (ctrl_code)
     {
+    case CX_IOCTL_GET_CONFIG:
+    {
+        if (out_buf == NULL || out_len < sizeof(DEVICE_CONFIG))
+        {
+            status = STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        *(PDEVICE_CONFIG)out_buf = dev_ctx->config;
+        break;
+    }
+
+    case CX_IOCTL_GET_STATE:
+    {
+        if (out_buf == NULL || out_len < sizeof(DEVICE_STATE))
+        {
+            status = STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        *(PDEVICE_STATE)out_buf = dev_ctx->state;
+        break;
+    }
+
     case CX_IOCTL_GET_CAPTURE_STATE:
     {
         if (out_buf == NULL || out_len < sizeof(ULONG))
@@ -227,6 +251,21 @@ VOID cx_evt_io_ctrl(
         }
 
         *(PULONG)out_buf = dev_ctx->dev_addr;
+        break;
+    }
+
+    case CX_IOCTL_GET_WIN32_PATH:
+    {
+        DECLARE_UNICODE_STRING_SIZE(symlink_path, 128);
+        RtlUnicodeStringPrintf(&symlink_path, L"%ws%d", WIN32_PATH, dev_ctx->dev_idx);
+
+        if (out_buf == NULL || out_len < symlink_path.Length)
+        {
+            status = STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        RtlCopyMemory(out_buf, symlink_path.Buffer, symlink_path.Length);
         break;
     }
 
