@@ -40,26 +40,25 @@
 #pragma alloc_text (PAGE, cx_read_device_prop)
 #endif
 
-UCHAR dev_count = 0;
-
 NTSTATUS DriverEntry(
     _In_    PDRIVER_OBJECT  driver_obj,
     _In_    PUNICODE_STRING reg_path
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    WDF_DRIVER_CONFIG cfg;
-    WDF_OBJECT_ATTRIBUTES attrs;
 
     WPP_INIT_TRACING(driver_obj, reg_path);
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "cxadc-win entry");
 
-    WDF_OBJECT_ATTRIBUTES_INIT(&attrs);
+    WDF_OBJECT_ATTRIBUTES attrs;
+    WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&attrs, DRIVER_CONTEXT);
     attrs.EvtCleanupCallback = cx_evt_driver_ctx_cleanup;
 
+    WDF_DRIVER_CONFIG cfg;
     WDF_DRIVER_CONFIG_INIT(&cfg, cx_evt_device_add);
 
-    status = WdfDriverCreate(driver_obj, reg_path, &attrs, &cfg, WDF_NO_HANDLE);
+    WDFDRIVER driver;
+    status = WdfDriverCreate(driver_obj, reg_path, &attrs, &cfg, &driver);
 
     if (!NT_SUCCESS(status))
     {
@@ -199,7 +198,9 @@ NTSTATUS cx_evt_device_prepare_hardware(
     PAGED_CODE();
 
     // ensure we stick to arbitrary device count
-    if (dev_count >= MAXUCHAR)
+    PDRIVER_CONTEXT driver_ctx = cx_driver_get_ctx(WdfGetDriver());
+
+    if (driver_ctx->dev_count >= MAXUCHAR)
     {
         TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "too many devices");
         return STATUS_DEVICE_CONFIGURATION_ERROR;
@@ -392,8 +393,10 @@ NTSTATUS cx_init_device_ctx(
     // device is 32-bit aligned
     WdfDeviceSetAlignmentRequirement(dev_ctx->dev, FILE_LONG_ALIGNMENT);
 
-    dev_ctx->dev_idx = dev_count++;
-    dev_ctx->state.ouflow_count = 0;
+    // set device idx and increment device count
+    PDRIVER_CONTEXT driver_ctx = cx_driver_get_ctx(WdfGetDriver());
+    dev_ctx->dev_idx = driver_ctx->dev_count;
+    InterlockedIncrement(&driver_ctx->dev_count);
 
     // create symlink
     DECLARE_UNICODE_STRING_SIZE(symlink_path, 128);

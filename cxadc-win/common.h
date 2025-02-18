@@ -30,6 +30,13 @@
 #define CX_RISC_INSTR_BUF_SIZE  (CX_VBI_BUF_SIZE / CX_CDT_BUF_LEN) * 8 + PAGE_SIZE
 #define READ_TIMEOUT            5000
 
+typedef struct _DRIVER_CONTEXT
+{
+    LONG dev_count;
+} DRIVER_CONTEXT, *PDRIVER_CONTEXT;
+
+WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(DRIVER_CONTEXT, cx_driver_get_ctx)
+
 typedef struct _DMA_DATA
 {
     WDFCOMMONBUFFER buf;
@@ -41,7 +48,7 @@ typedef struct _DMA_DATA
 typedef struct _DEVICE_CONTEXT
 {
     WDFDEVICE dev;
-    ULONG dev_idx;
+    LONG dev_idx;
     ULONG bus_number;
     ULONG dev_addr;
 
