@@ -11,9 +11,15 @@
  * Copyright (C) 2020-2022 Tony Anderson <tandersn@cs.washington.edu>
  */
 
+#pragma once
+
 #include <ntddk.h>
+#include <wdf.h>
+#include <wdfobject.h>
 #include <initguid.h>
 #include <wdmguid.h>
+#include <ntstrsafe.h>
 
 #include "trace.h"
 #include "public.h"
+#include "common.h"

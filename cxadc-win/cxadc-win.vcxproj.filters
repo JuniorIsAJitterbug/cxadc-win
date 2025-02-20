@@ -36,7 +36,7 @@
     <ClInclude Include="trace.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="precomp.h">
+    <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="common.h">
@@ -62,7 +62,7 @@
     <ClCompile Include="cx2388x.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="precompsrc.c">
+    <ClCompile Include="pch.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ioctl.c">

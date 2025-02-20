@@ -13,8 +13,6 @@
 
 #pragma once
 
-#include "common.h"
-
 EVT_WDF_DEVICE_FILE_CREATE cx_evt_file_create;
 EVT_WDF_FILE_CLOSE cx_evt_file_close;
 EVT_WDF_FILE_CLEANUP cx_evt_file_cleanup;

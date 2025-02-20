@@ -11,11 +11,10 @@
  * Copyright (C) 2020-2022 Tony Anderson <tandersn@cs.washington.edu>
  */
 
-#include "precomp.h"
+#include "pch.h"
 #include "wmi.tmh"
-
-#include <wmidata.h>
 #include "wmi.h"
+
 #include "control.h"
 
 _Use_decl_annotations_

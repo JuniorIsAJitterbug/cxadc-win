@@ -13,8 +13,6 @@
 
 #pragma once
 
-#include "common.h"
-
 __inline ULONG cx_read(_Inout_ PDEVICE_CONTEXT dev_ctx, _In_ ULONG off);
 __inline VOID cx_write(_Inout_ PDEVICE_CONTEXT dev_ctx, _In_ ULONG off, _In_ ULONG val);
 __inline VOID cx_write_buf8(_Inout_ PDEVICE_CONTEXT dev_ctx, _In_ ULONG off, _In_ PUCHAR buf, _In_ ULONG count);

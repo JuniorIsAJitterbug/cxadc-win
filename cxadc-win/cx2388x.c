@@ -11,9 +11,8 @@
  * Copyright (C) 2020-2022 Tony Anderson <tandersn@cs.washington.edu>
  */
 
-#include "precomp.h"
+#include "pch.h"
 #include "cx2388x.tmh"
-
 #include "cx2388x.h"
 
 __inline

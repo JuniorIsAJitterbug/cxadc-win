@@ -13,13 +13,6 @@
 
 #pragma once
 
-#include <ntddk.h>
-#include <wdf.h>
-#include <initguid.h>
-#include <wdfobject.h>
-#include <evntrace.h>
-#include <Ntstrsafe.h>
-
 #define SYMLINK_PATH            L"\\DosDevices\\cxadc"
 #define WIN32_PATH              L"\\\\.\\cxadc"
 

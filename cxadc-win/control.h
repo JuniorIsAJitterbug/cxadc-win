@@ -13,8 +13,6 @@
 
 #pragma once
 
-#include "common.h"
-
 ULONG cx_ctrl_reset_ouflow_count(_In_ PDEVICE_CONTEXT dev_ctx);
 NTSTATUS cx_ctrl_set_vmux(_In_ PDEVICE_CONTEXT dev_ctx, _In_ ULONG value);
 NTSTATUS cx_ctrl_set_level(_In_ PDEVICE_CONTEXT dev_ctx, _In_ ULONG value);

@@ -11,10 +11,10 @@
  * Copyright (C) 2020-2022 Tony Anderson <tandersn@cs.washington.edu>
  */
 
-#include "precomp.h"
+#include "pch.h"
 #include "ioctl.tmh"
-
 #include "ioctl.h"
+
 #include "control.h"
 #include "cx2388x.h"
 

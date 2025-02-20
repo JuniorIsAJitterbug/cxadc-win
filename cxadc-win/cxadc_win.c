@@ -11,12 +11,11 @@
  * Copyright (C) 2020-2022 Tony Anderson <tandersn@cs.washington.edu>
  */
 
-#include "precomp.h"
-#include "cxadc_win.h"
+#include "pch.h"
 #include "cxadc_win.tmh"
+#include "cxadc_win.h"
 
 #include "cx2388x.h"
-#include "control.h"
 #include "registry.h"
 #include "wmi.h"
 #include "ioctl.h"

@@ -13,8 +13,6 @@
 
 #pragma once
 
-#include "common.h"
-
 #define VENDOR_ID    0x14F1
 #define DEVICE_ID    0x8800
 

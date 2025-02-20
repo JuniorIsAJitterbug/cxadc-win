@@ -13,8 +13,6 @@
 
 #pragma once
 
-#include "common.h"
-
 #define MOF_RESOURCE_NAME L"CxadcWinWMI"
 
 DEFINE_GUID(GUID_WMI_CXADCWIN_STATE,

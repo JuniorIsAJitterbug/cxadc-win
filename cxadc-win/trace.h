@@ -13,8 +13,6 @@
 
 #pragma once
 
-#include <evntrace.h>
-
 #define WPP_CHECK_FOR_NULL_STRING  //to prevent exceptions due to NULL strings
 
 // EBC6EBEE-D896-4C53-B6DC-B732CB13E892

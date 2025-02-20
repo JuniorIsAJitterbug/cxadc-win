@@ -23,7 +23,10 @@
     <ClCompile Include="cx2388x.c" />
     <ClCompile Include="cxadc_win.c" />
     <ClCompile Include="ioctl.c" />
-    <ClCompile Include="precompsrc.c" />
+    <ClCompile Include="pch.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="registry.c" />
     <ClCompile Include="wmi.c" />
   </ItemGroup>
@@ -33,7 +36,7 @@
     <ClInclude Include="cx2388x.h" />
     <ClInclude Include="cxadc_win.h" />
     <ClInclude Include="ioctl.h" />
-    <ClInclude Include="precomp.h" />
+    <ClInclude Include="pch.h" />
     <ClInclude Include="public.h" />
     <ClInclude Include="registry.h" />
     <ClInclude Include="trace.h" />
@@ -119,6 +122,9 @@
       <WppTraceFunction>TraceEvents(LEVEL, FLAGS, MSG, ...)</WppTraceFunction>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <DisableSpecificWarnings>4201;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
@@ -141,6 +147,9 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <WholeProgramOptimization>true</WholeProgramOptimization>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
@@ -148,6 +157,9 @@
     <PreBuildEvent>
       <Command>xcopy /y $(SolutionDir)$(Platform)\$(Configuration)\cxadc-win-prop-page.dll $(SolutionDir)$(Platform)\$(Configuration)\cxadc-win\</Command>
     </PreBuildEvent>
+    <Link>
+      <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
