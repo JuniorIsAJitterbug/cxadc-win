@@ -36,8 +36,11 @@ VOID cx_evt_file_create(
     PAGED_CODE();
 
     PFILE_CONTEXT file_ctx = cx_file_get_ctx(file_obj);
-    file_ctx->read_offset = 0;
-    file_ctx->mmap_data = (MMAP_DATA){ 0 };
+
+    *file_ctx = (FILE_CONTEXT){
+        .read_offset = 0,
+        .ptr = NULL
+    };
 
     WdfRequestComplete(req, status);
 }
@@ -74,13 +77,61 @@ VOID cx_evt_file_cleanup(
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfFileObjectGetDevice(file_obj));
     PFILE_CONTEXT file_ctx = cx_file_get_ctx(file_obj);
 
-    if (file_ctx->mmap_data.ptr != NULL)
+    if (file_ctx->ptr != NULL)
     {
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "munmap addr %p", file_ctx->mmap_data.ptr);
+        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "munmap addr %p", file_ctx->ptr);
 
-        MmUnmapLockedPages(file_ctx->mmap_data.ptr, dev_ctx->user_mdl);
-        file_ctx->mmap_data.ptr = NULL;
+        MmUnmapLockedPages(file_ctx->ptr, dev_ctx->user_mdl);
+        file_ctx->ptr = NULL;
     }
+}
+
+_Use_decl_annotations_
+NTSTATUS cx_evt_set_output(WDFREQUEST req, PVOID buf, size_t buf_len)
+{
+    WDFMEMORY mem = WDF_NO_HANDLE;
+    NTSTATUS status = WdfRequestRetrieveOutputMemory(req, &mem);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputMemory failed with status %!STATUS!", status);
+        return status;
+    }
+
+    status = WdfMemoryCopyFromBuffer(mem, 0, buf, buf_len);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfMemoryCopyFromBuffer failed with status %!STATUS!", status);
+        return status;
+    }
+
+    WdfRequestSetInformation(req, buf_len);
+    return status;
+}
+
+_Use_decl_annotations_
+NTSTATUS cx_evt_get_input(WDFREQUEST req, PVOID buf, size_t buf_len)
+{
+    WDFMEMORY mem = WDF_NO_HANDLE;
+    NTSTATUS status = WdfRequestRetrieveInputMemory(req, &mem);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveInputMemory failed with status %!STATUS!", status);
+        return status;
+    }
+
+    status = WdfMemoryCopyToBuffer(mem, 0, buf, buf_len);
+
+    if (!NT_SUCCESS(status))
+    {
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfMemoryCopyToBuffer failed with status %!STATUS!", status);
+        return status;
+    }
+
+    WdfRequestSetInformation(req, buf_len);
+    return status;
 }
 
 _Use_decl_annotations_
@@ -92,336 +143,233 @@ VOID cx_evt_io_ctrl(
     ULONG ctrl_code
 )
 {
+    UNREFERENCED_PARAMETER(out_len);
+    UNREFERENCED_PARAMETER(in_len);
+
     NTSTATUS status = STATUS_SUCCESS;
-    PUCHAR out_buf = NULL, in_buf = NULL;
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfIoQueueGetDevice(queue));
-    PFILE_CONTEXT file_ctx = cx_file_get_ctx(WdfRequestGetFileObject(req));
-
-    if (out_len)
-    {
-        status = WdfRequestRetrieveOutputBuffer(req, out_len, &out_buf, NULL);
-
-        if (!NT_SUCCESS(status) || out_buf == NULL)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveOutputBuffer failed with status %!STATUS!", status);
-            WdfRequestComplete(req, status);
-            return;
-        }
-    }
-
-    if (in_len)
-    {
-        status = WdfRequestRetrieveInputBuffer(req, in_len, &in_buf, NULL);
-
-        if (!NT_SUCCESS(status) || in_buf == NULL)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRequestRetrieveInputBuffer failed with status %!STATUS!", status);
-            WdfRequestComplete(req, status);
-            return;
-        }
-    }
 
     switch (ctrl_code)
     {
-    case CX_IOCTL_GET_CONFIG:
-    {
-        if (out_buf == NULL || out_len < sizeof(DEVICE_CONFIG))
-        {
-            status = STATUS_BUFFER_TOO_SMALL;
+        case CX_IOCTL_GET_CONFIG:
+            status = cx_evt_set_output(req, &dev_ctx->config, sizeof(DEVICE_CONFIG));
             break;
-        }
 
-        *(PDEVICE_CONFIG)out_buf = dev_ctx->config;
-        break;
-    }
-
-    case CX_IOCTL_GET_STATE:
-    {
-        if (out_buf == NULL || out_len < sizeof(DEVICE_STATE))
-        {
-            status = STATUS_BUFFER_TOO_SMALL;
+        case CX_IOCTL_GET_STATE:
+            status = cx_evt_set_output(req, &dev_ctx->state, sizeof(DEVICE_STATE));
             break;
-        }
 
-        *(PDEVICE_STATE)out_buf = dev_ctx->state;
-        break;
-    }
-
-    case CX_IOCTL_GET_CAPTURE_STATE:
-    {
-        if (out_buf == NULL || out_len < sizeof(ULONG))
-        {
-            status = STATUS_BUFFER_TOO_SMALL;
+        case CX_IOCTL_GET_CAPTURE_STATE:
+            status = cx_evt_set_output(req, &dev_ctx->state.is_capturing, sizeof(BOOLEAN));
             break;
-        }
 
-        *(PULONG)out_buf = dev_ctx->state.is_capturing;
-        break;
-    }
-
-    case CX_IOCTL_GET_OUFLOW_COUNT:
-    {
-        if (out_buf == NULL || out_len < sizeof(ULONG))
-        {
-            status = STATUS_BUFFER_TOO_SMALL;
+        case CX_IOCTL_GET_OUFLOW_COUNT:
+            status = cx_evt_set_output(req, &dev_ctx->state.ouflow_count, sizeof(ULONG));
             break;
-        }
 
-        *(PULONG)out_buf = dev_ctx->state.ouflow_count;
-        break;
-    }
-
-    case CX_IOCTL_GET_VMUX:
-    {
-        if (out_buf == NULL || out_len < sizeof(ULONG))
-        {
-            status = STATUS_BUFFER_TOO_SMALL;
+        case CX_IOCTL_GET_VMUX:
+            status = cx_evt_set_output(req, &dev_ctx->config.vmux, sizeof(ULONG));
             break;
-        }
 
-        *(PULONG)out_buf = dev_ctx->config.vmux;
-        break;
-    }
-
-    case CX_IOCTL_GET_LEVEL:
-    {
-        if (out_buf == NULL || out_len < sizeof(ULONG))
-        {
-            status = STATUS_BUFFER_TOO_SMALL;
+        case CX_IOCTL_GET_LEVEL:
+            status = cx_evt_set_output(req, &dev_ctx->config.level, sizeof(ULONG));
             break;
-        }
 
-        *(PULONG)out_buf = dev_ctx->config.level;
-        break;
-    }
-
-    case CX_IOCTL_GET_TENBIT:
-    {
-        if (out_buf == NULL || out_len < sizeof(ULONG))
-        {
-            status = STATUS_BUFFER_TOO_SMALL;
+        case CX_IOCTL_GET_TENBIT:
+            status = cx_evt_set_output(req, &dev_ctx->config.tenbit, sizeof(BOOLEAN));
             break;
-        }
 
-        *(PULONG)out_buf = dev_ctx->config.tenbit;
-        break;
-    }
-
-    case CX_IOCTL_GET_SIXDB:
-    {
-        if (out_buf == NULL || out_len < sizeof(ULONG))
-        {
-            status = STATUS_BUFFER_TOO_SMALL;
+        case CX_IOCTL_GET_SIXDB:
+            status = cx_evt_set_output(req, &dev_ctx->config.sixdb, sizeof(BOOLEAN));
             break;
-        }
 
-        *(PULONG)out_buf = dev_ctx->config.sixdb;
-        break;
-    }
-
-    case CX_IOCTL_GET_CENTER_OFFSET:
-    {
-        if (out_buf == NULL || out_len < sizeof(ULONG))
-        {
-            status = STATUS_BUFFER_TOO_SMALL;
+        case CX_IOCTL_GET_CENTER_OFFSET:
+            status = cx_evt_set_output(req, &dev_ctx->config.center_offset, sizeof(ULONG));
             break;
-        }
 
-        *(PULONG)out_buf = dev_ctx->config.center_offset;
-        break;
-    }
-
-    case CX_IOCTL_GET_BUS_NUMBER:
-    {
-        if (out_buf == NULL || out_len < sizeof(ULONG))
-        {
-            status = STATUS_BUFFER_TOO_SMALL;
+        case CX_IOCTL_GET_BUS_NUMBER:
+            status = cx_evt_set_output(req, &dev_ctx->bus_number, sizeof(ULONG));
             break;
-        }
 
-        *(PULONG)out_buf = dev_ctx->bus_number;
-        break;
-    }
-
-    case CX_IOCTL_GET_DEVICE_ADDRESS:
-    {
-        if (out_buf == NULL || out_len < sizeof(ULONG))
-        {
-            status = STATUS_BUFFER_TOO_SMALL;
+        case CX_IOCTL_GET_DEVICE_ADDRESS:
+            status = cx_evt_set_output(req, &dev_ctx->dev_addr, sizeof(ULONG));
             break;
-        }
 
-        *(PULONG)out_buf = dev_ctx->dev_addr;
-        break;
-    }
-
-    case CX_IOCTL_GET_WIN32_PATH:
-    {
-        DECLARE_UNICODE_STRING_SIZE(symlink_path, 128);
-        RtlUnicodeStringPrintf(&symlink_path, L"%ws%d", WIN32_PATH, dev_ctx->dev_idx);
-
-        if (out_buf == NULL || out_len < symlink_path.Length)
+        case CX_IOCTL_GET_WIN32_PATH:
         {
-            status = STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
+            DECLARE_UNICODE_STRING_SIZE(symlink_path, 128);
+            status = RtlUnicodeStringPrintf(&symlink_path, L"%ws%d", WIN32_PATH, dev_ctx->dev_idx);
 
-        RtlCopyMemory(out_buf, symlink_path.Buffer, symlink_path.Length);
-        break;
-    }
-
-    case CX_IOCTL_GET_REGISTER:
-    {
-        if (out_buf == NULL || in_buf == NULL || in_len < sizeof(ULONG) || out_len != sizeof(ULONG))
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid data for get register %lld / %lld", in_len, out_len);
-            status = STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        ULONG address = *(PULONG)in_buf;
-
-        if (address < CX_REGISTER_BASE || address > CX_REGISTER_END)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "address %08X out of range", address);
-            status = STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *(PULONG)out_buf = cx_read(&dev_ctx->mmio, address);
-        break;
-    }
-
-    case CX_IOCTL_RESET_OUFLOW_COUNT:
-    {
-        cx_ctrl_reset_ouflow_count(dev_ctx);
-        break;
-    }
-
-    case CX_IOCTL_SET_VMUX:
-    {
-        if (in_buf == NULL || in_len != sizeof(ULONG))
-        {
-            status = STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        cx_ctrl_set_vmux(dev_ctx, *(PULONG)in_buf);
-        break;
-    }
-
-    case CX_IOCTL_SET_LEVEL:
-    {
-        if (in_buf == NULL || in_len != sizeof(ULONG))
-        {
-            status = STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        cx_ctrl_set_level(dev_ctx, *(PULONG)in_buf);
-        break;
-    }
-
-    case CX_IOCTL_SET_TENBIT:
-    {
-        if (in_buf == NULL || in_len != sizeof(ULONG))
-        {
-            status = STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        cx_ctrl_set_tenbit(dev_ctx, *(PULONG)in_buf ? TRUE : FALSE);
-        break;
-    }
-
-    case CX_IOCTL_SET_SIXDB:
-    {
-        if (in_buf == NULL || in_len != sizeof(ULONG))
-        {
-            status = STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        cx_ctrl_set_sixdb(dev_ctx, *(PULONG)in_buf ? TRUE : FALSE);
-        break;
-    }
-
-    case CX_IOCTL_SET_CENTER_OFFSET:
-    {
-        if (in_buf == NULL || in_len != sizeof(ULONG))
-        {
-            status = STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        cx_ctrl_set_center_offset(dev_ctx, *(PULONG)in_buf);
-        break;
-    }
-
-    case CX_IOCTL_SET_REGISTER:
-    {
-        if (in_buf == NULL || in_len != sizeof(SET_REGISTER_DATA))
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid data for set register %lld", in_len);
-            status = STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        SET_REGISTER_DATA data = *(PSET_REGISTER_DATA)in_buf;
-
-        if (data.addr < CX_REGISTER_BASE || data.addr  > CX_REGISTER_END)
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "address %08X out of range", data.addr);
-            status = STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "writing %08X to %08X", data.val, data.addr);
-        cx_write(&dev_ctx->mmio, data.addr, data.val);
-        break;
-    }
-
-    case CX_IOCTL_MMAP:
-    {
-        if (out_buf == NULL || out_len != sizeof(MMAP_DATA))
-        {
-            status = STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (file_ctx->mmap_data.ptr == NULL)
-        {
-            file_ctx->mmap_data = (MMAP_DATA)
+            if (!NT_SUCCESS(status))
             {
-                .ptr = MmMapLockedPagesSpecifyCache(dev_ctx->user_mdl, UserMode, MmNonCached, NULL, FALSE, NormalPagePriority)
+                TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "RtlUnicodeStringPrintf failed with status %!STATUS!", status);
+                break;
             };
+
+            status = cx_evt_set_output(req, symlink_path.Buffer, symlink_path.Length);
+            break;
         }
 
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "mmap addr %p", file_ctx->mmap_data.ptr);
-
-        *(PMMAP_DATA)out_buf = file_ctx->mmap_data;
-        break;
-    }
-
-    case CX_IOCTL_MUNMAP:
-    {
-        if (file_ctx->mmap_data.ptr != NULL)
+        case CX_IOCTL_GET_REGISTER:
         {
-            TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "munmap addr %p", file_ctx->mmap_data.ptr);
+            ULONG value = 0;
+            status = cx_evt_get_input(req, &value, sizeof(ULONG));
 
-            MmUnmapLockedPages(file_ctx->mmap_data.ptr, dev_ctx->user_mdl);
-            file_ctx->mmap_data.ptr = NULL;
+            if (!NT_SUCCESS(status))
+            {
+                TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_evt_copy_from failed with status %!STATUS!", status);
+                break;
+            }
+
+            if (value < CX_REGISTER_BASE || value > CX_REGISTER_END)
+            {
+                TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "address %08X out of range", value);
+                status = STATUS_INVALID_PARAMETER;
+                break;
+            }
+
+            ULONG reg_val = cx_read(&dev_ctx->mmio, value);
+            status = cx_evt_set_output(req, &reg_val, sizeof(ULONG));
+            break;
         }
 
-        break;
+        case CX_IOCTL_RESET_OUFLOW_COUNT:
+            cx_ctrl_reset_ouflow_count(dev_ctx);
+            break;
+
+        case CX_IOCTL_SET_VMUX:
+        {
+            ULONG value = 0;
+            status = cx_evt_get_input(req, &value, sizeof(ULONG));
+
+            if (!NT_SUCCESS(status))
+            {
+                TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_evt_copy_from failed with status %!STATUS!", status);
+                break;
+            }
+
+            status = cx_ctrl_set_vmux(dev_ctx, value);
+            break;
+        }
+
+        case CX_IOCTL_SET_LEVEL:
+        {
+            ULONG value = 0;
+            status = cx_evt_get_input(req, &value, sizeof(ULONG));
+
+            if (!NT_SUCCESS(status))
+            {
+                TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_evt_copy_from failed with status %!STATUS!", status);
+                break;
+            }
+
+            status = cx_ctrl_set_level(dev_ctx, value);
+            break;
+        }
+
+        case CX_IOCTL_SET_TENBIT:
+        {
+            ULONG value = 0;
+            status = cx_evt_get_input(req, &value, sizeof(ULONG));
+
+            if (!NT_SUCCESS(status))
+            {
+                TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_evt_copy_from failed with status %!STATUS!", status);
+                break;
+            }
+
+            status = cx_ctrl_set_tenbit(dev_ctx, value ? TRUE : FALSE);
+            break;
+        }
+
+        case CX_IOCTL_SET_SIXDB:
+        {
+            ULONG value = 0;
+            status = cx_evt_get_input(req, &value, sizeof(ULONG));
+
+            if (!NT_SUCCESS(status))
+            {
+                TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_evt_copy_from failed with status %!STATUS!", status);
+                break;
+            }
+
+            status = cx_ctrl_set_sixdb(dev_ctx, value ? TRUE : FALSE);
+            break;
+        }
+
+        case CX_IOCTL_SET_CENTER_OFFSET:
+        {
+            ULONG value = 0;
+            status = cx_evt_get_input(req, &value, sizeof(ULONG));
+
+            if (!NT_SUCCESS(status))
+            {
+                TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_evt_copy_from failed with status %!STATUS!", status);
+                break;
+            }
+
+            status = cx_ctrl_set_center_offset(dev_ctx, value);
+            break;
+        }
+
+        case CX_IOCTL_SET_REGISTER:
+        {
+            SET_REGISTER_DATA data = { 0 };
+            status = cx_evt_get_input(req, &data, sizeof(SET_REGISTER_DATA));
+
+            if (!NT_SUCCESS(status))
+            {
+                TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_evt_copy_from failed with status %!STATUS!", status);
+                break;
+            }
+
+            if (data.addr < CX_REGISTER_BASE || data.addr  > CX_REGISTER_END)
+            {
+                TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "address %08X out of range", data.addr);
+                status = STATUS_INVALID_PARAMETER;
+                break;
+            }
+
+            TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "writing %08X to %08X", data.val, data.addr);
+            cx_write(&dev_ctx->mmio, data.addr, data.val);
+            break;
+        }
+
+        case CX_IOCTL_MMAP:
+        {
+            PFILE_CONTEXT file_ctx = cx_file_get_ctx(WdfRequestGetFileObject(req));
+
+            if (file_ctx->ptr == NULL)
+            {
+                file_ctx->ptr = MmMapLockedPagesSpecifyCache(dev_ctx->user_mdl, UserMode, MmNonCached, NULL, FALSE, NormalPagePriority);
+            }
+
+            TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "mmap addr %p", file_ctx->ptr);
+
+            status = cx_evt_set_output(req, &file_ctx->ptr, sizeof(UINT_PTR));
+            break;
+        }
+
+        case CX_IOCTL_MUNMAP:
+        {
+            PFILE_CONTEXT file_ctx = cx_file_get_ctx(WdfRequestGetFileObject(req));
+
+            if (file_ctx->ptr != NULL)
+            {
+                TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "munmap addr %p", file_ctx->ptr);
+
+                MmUnmapLockedPages(file_ctx->ptr, dev_ctx->user_mdl);
+                file_ctx->ptr = NULL;
+            }
+
+            break;
+        }
+
+        default:
+            status = STATUS_INVALID_DEVICE_REQUEST;
+            break;
     }
 
-    default:
-        status = STATUS_INVALID_DEVICE_REQUEST;
-        break;
-    }
-
-    WdfRequestSetInformation(req, (ULONG_PTR)out_len);
     WdfRequestComplete(req, status);
 }
 

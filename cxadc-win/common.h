@@ -74,15 +74,10 @@ typedef struct _DEVICE_CONTEXT
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(DEVICE_CONTEXT, cx_device_get_ctx)
 
-typedef struct _MMAP_DATA
-{
-    PVOID ptr;
-} MMAP_DATA, *PMMAP_DATA;
-
 typedef struct _FILE_CONTEXT
 {
     size_t read_offset;
-    MMAP_DATA mmap_data;
-} FILE_CONTEXT, *PFILE_CONTEXT;
+    PUINT_PTR ptr;
+} FILE_CONTEXT, * PFILE_CONTEXT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(FILE_CONTEXT, cx_file_get_ctx)
