@@ -23,7 +23,7 @@ ULONG cx_ctrl_reset_ouflow_count(
     PDEVICE_CONTEXT dev_ctx
 )
 {
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "resetting over/underflow count (current: %d)", dev_ctx->state.ouflow_count);
+    TRACE_INFO("resetting over/underflow count (current: %d)", dev_ctx->state.ouflow_count);
     ULONG cur = dev_ctx->state.ouflow_count;
     dev_ctx->state.ouflow_count = 0;
 
@@ -36,21 +36,18 @@ NTSTATUS cx_ctrl_set_vmux(
     ULONG value
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-
     if (value > CX_CTRL_CONFIG_VMUX_MAX)
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid vmux %d", value);
+        TRACE_ERROR("invalid vmux %d", value);
         return STATUS_INVALID_PARAMETER;
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting vmux to %d", value);
+    TRACE_INFO("setting vmux to %d (currently %d)", value, dev_ctx->config.vmux);
 
     InterlockedExchange((PLONG)&dev_ctx->config.vmux, value);
-    status = cx_reg_set_value(dev_ctx->dev, CX_CTRL_CONFIG_VMUX_REG_KEY, value);
     cx_set_vmux(&dev_ctx->mmio, value);
 
-    return status;
+    return cx_reg_set_value(dev_ctx->dev, CX_CTRL_CONFIG_VMUX_REG_KEY, value);
 }
 
 _Use_decl_annotations_
@@ -59,21 +56,18 @@ NTSTATUS cx_ctrl_set_level(
     ULONG value
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-
     if (value > CX_CTRL_CONFIG_LEVEL_MAX)
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid level %d", value);
+        TRACE_ERROR("invalid level %d", value);
         return STATUS_INVALID_PARAMETER;
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting level to %d", value);
+    TRACE_INFO("setting level to %d (currently %d)", value, dev_ctx->config.level);
 
     InterlockedExchange((PLONG)&dev_ctx->config.level, value);
-    status = cx_reg_set_value(dev_ctx->dev, CX_CTRL_CONFIG_LEVEL_REG_KEY, value);
     cx_set_level(&dev_ctx->mmio, value, dev_ctx->config.sixdb);
 
-    return status;
+    return cx_reg_set_value(dev_ctx->dev, CX_CTRL_CONFIG_LEVEL_REG_KEY, value);
 }
 
 _Use_decl_annotations_
@@ -82,14 +76,12 @@ NTSTATUS cx_ctrl_set_tenbit(
     BOOLEAN value
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting tenbit to %d", value);
+    TRACE_INFO("setting tenbit to %d (currently %d)", value, dev_ctx->config.tenbit);
 
     InterlockedExchange8((PCHAR)&dev_ctx->config.tenbit, value);
-    status = cx_reg_set_value(dev_ctx->dev, CX_CTRL_CONFIG_TENBIT_REG_KEY, value);
     cx_set_tenbit(&dev_ctx->mmio, value);
 
-    return status;
+    return cx_reg_set_value(dev_ctx->dev, CX_CTRL_CONFIG_TENBIT_REG_KEY, value);
 }
 
 _Use_decl_annotations_
@@ -98,14 +90,12 @@ NTSTATUS cx_ctrl_set_sixdb(
     BOOLEAN value
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting sixdb to %d", value);
+    TRACE_INFO("setting sixdb to %d (currently %d)", value, dev_ctx->config.sixdb);
 
     InterlockedExchange8((PCHAR)&dev_ctx->config.sixdb, value);
-    status = cx_reg_set_value(dev_ctx->dev, CX_CTRL_CONFIG_SIXDB_REG_KEY, value);
     cx_set_level(&dev_ctx->mmio, dev_ctx->config.level, value ? TRUE : FALSE);
 
-    return status;
+    return cx_reg_set_value(dev_ctx->dev, CX_CTRL_CONFIG_SIXDB_REG_KEY, value);
 }
 
 _Use_decl_annotations_
@@ -114,19 +104,16 @@ NTSTATUS cx_ctrl_set_center_offset(
     ULONG value
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-
     if (value > CX_CTRL_CONFIG_CENTER_OFFSET_MAX)
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "invalid center_offset %d", value);
+        TRACE_ERROR("invalid center_offset %d", value);
         return STATUS_INVALID_PARAMETER;
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting center_offset to %d", value);
+    TRACE_INFO("setting center_offset to %d (currently %d)", value, dev_ctx->config.center_offset);
 
     InterlockedExchange((PLONG)&dev_ctx->config.center_offset, value);
-    status = cx_reg_set_value(dev_ctx->dev, CX_CTRL_CONFIG_CENTER_OFFSET_REG_KEY, value);
     cx_set_center_offset(&dev_ctx->mmio, value);
 
-    return status;
+    return cx_reg_set_value(dev_ctx->dev, CX_CTRL_CONFIG_CENTER_OFFSET_REG_KEY, value);
 }

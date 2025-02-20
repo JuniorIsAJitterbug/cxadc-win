@@ -119,7 +119,6 @@
       <WppScanConfigurationData Condition="'%(ClCompile.ScanConfigurationData)' == ''">trace.h</WppScanConfigurationData>
       <WppKernelMode>true</WppKernelMode>
       <TreatWarningAsError>false</TreatWarningAsError>
-      <WppTraceFunction>TraceEvents(LEVEL, FLAGS, MSG, ...)</WppTraceFunction>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <DisableSpecificWarnings>4201;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -139,7 +138,6 @@
       <WppRecorderEnabled>true</WppRecorderEnabled>
       <WppScanConfigurationData Condition="'%(ClCompile.ScanConfigurationData)' == ''">trace.h</WppScanConfigurationData>
       <WppKernelMode>true</WppKernelMode>
-      <WppTraceFunction>TraceEvents(LEVEL, FLAGS, MSG, ...)</WppTraceFunction>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <DisableSpecificWarnings>4201;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <Optimization>MaxSpeed</Optimization>

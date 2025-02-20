@@ -14,8 +14,8 @@
 #pragma once
 
 
-NTSTATUS cx_init(_Inout_ PDEVICE_CONTEXT dev_ctx);
-NTSTATUS cx_disable(_Inout_ PMMIO mmio);
+VOID cx_init(_Inout_ PDEVICE_CONTEXT dev_ctx);
+VOID cx_disable(_Inout_ PMMIO mmio);
 VOID cx_reset(_Inout_ PMMIO mmio);
 VOID cx_init_cdt(_Inout_ PMMIO mmio);
 VOID cx_init_risc(_Inout_ PRISC risc);

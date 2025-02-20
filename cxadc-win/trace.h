@@ -13,13 +13,102 @@
 
 #pragma once
 
-#define WPP_CHECK_FOR_NULL_STRING  //to prevent exceptions due to NULL strings
-
- // EBC6EBEE-D896-4C53-B6DC-B732CB13E892
+// EBC6EBEE-D896-4C53-B6DC-B732CB13E892
 #define WPP_CONTROL_GUIDS \
-    WPP_DEFINE_CONTROL_GUID(cx_trace_guid, (EBC6EBEE, D896, 4C53, B6DC, B732CB13E892),\
-        WPP_DEFINE_BIT(DBG_GENERAL)             /* bit  0 = 0x00000001 */ \
-        )
+    WPP_DEFINE_CONTROL_GUID(cx_trace_guid, (EBC6EBEE, D896, 4C53, B6DC, B732CB13E892), \
+        WPP_DEFINE_BIT(GENERAL)     \
+        WPP_DEFINE_BIT(IOCTL))
 
-#define WPP_LEVEL_FLAGS_LOGGER(lvl,flags) WPP_LEVEL_LOGGER(flags)
-#define WPP_LEVEL_FLAGS_ENABLED(lvl, flags) (WPP_LEVEL_ENABLED(flags) && WPP_CONTROL(WPP_BIT_ ## flags).Level  >= lvl)
+#define WPP_LEVEL_FLAGS_LOGGER(lvl, flags)  \
+    WPP_LEVEL_LOGGER(flags)
+
+#define WPP_LEVEL_FLAGS_ENABLED(lvl, flags) \
+    (WPP_LEVEL_ENABLED(flags) && WPP_CONTROL(WPP_BIT_ ## flags).Level  >= lvl)
+
+
+// TRACE_INFO
+// log info
+//
+// begin_wpp config
+// FUNC TRACE_INFO{LEVEL = TRACE_LEVEL_INFORMATION, FLAGS = GENERAL}(MSG, ...);
+// USEPREFIX (TRACE_INFO, "%!STDPREFIX!:%!SPACE!");
+// end_wpp
+
+
+// TRACE_ERROR
+// log err
+//
+// begin_wpp config
+// FUNC TRACE_ERROR{LEVEL = TRACE_LEVEL_ERROR, FLAGS = GENERAL}(MSG, ...);
+// USEPREFIX (TRACE_ERROR, "%!STDPREFIX! ERROR in %!FUNC! [%!FILE! @ %!LINE!]:%!SPACE!");
+// end_wpp
+
+
+// TRACE_STATUS_ERROR
+// log status err
+//
+// begin_wpp config
+// FUNC TRACE_STATUS_ERROR{LEVEL = TRACE_LEVEL_ERROR, FLAGS = GENERAL} (STATUS, MSG, ...);
+// USEPREFIX (TRACE_STATUS_ERROR, "%!STDPREFIX! ERROR in %!FUNC! [%!FILE! @ %!LINE!]:%!SPACE!");
+// USESUFFIX (TRACE_STATUS_ERROR, ", status=%!STATUS!", STATUS);
+// end_wpp
+#define WPP_RECORDER_LEVEL_FLAGS_STATUS_ARGS(LEVEL, FLAGS, STATUS)      \
+    WPP_RECORDER_LEVEL_FLAGS_ARGS(LEVEL, FLAGS)
+
+#define WPP_RECORDER_LEVEL_FLAGS_STATUS_FILTER(LEVEL, FLAGS, STATUS)    \
+    WPP_RECORDER_LEVEL_FLAGS_FILTER(LEVEL, FLAGS)
+
+
+// RETURN_NTSTATUS_IF_FAILED
+// log err and return status if !NT_SUCCESS
+//
+// begin_wpp config
+// FUNC RETURN_NTSTATUS_IF_FAILED{LEVEL = TRACE_LEVEL_ERROR, FLAGS = GENERAL} (RET_STATUS);
+// USEPREFIX (RETURN_NTSTATUS_IF_FAILED, "%!STDPREFIX! ERROR in %!FUNC! [%!FILE! @ %!LINE!]: ");
+// USESUFFIX (RETURN_NTSTATUS_IF_FAILED, " status=%!STATUS!", __status);
+// end_wpp
+#define WPP_LEVEL_FLAGS_RET_STATUS_PRE(LEVEL, FLAGS, RET_STATUS)    \
+    do {                                                            \
+        NTSTATUS __status = (RET_STATUS);                           \
+        if (!NT_SUCCESS(__status))                                  \
+        {
+
+#define WPP_LEVEL_FLAGS_RET_STATUS_POST(LEVEL, FLAGS, RET_STATUS)   \
+            ;                                                       \
+            return __status;                                        \
+        }                                                           \
+    } while(0)
+
+#define WPP_RECORDER_LEVEL_FLAGS_RET_STATUS_ARGS(LEVEL, FLAGS, RET_STATUS)      \
+    WPP_RECORDER_LEVEL_FLAGS_ARGS(LEVEL, FLAGS)
+
+#define WPP_RECORDER_LEVEL_FLAGS_RET_STATUS_FILTER(LEVEL, FLAGS, RET_STATUS)    \
+    WPP_RECORDER_LEVEL_FLAGS_FILTER(LEVEL, FLAGS)
+
+
+// RETURN_COMPLETE_WDFREQUEST_IF_FAILED
+// log err, complete wdf req and return if !NT_SUCCESS
+//
+// begin_wpp config
+// FUNC RETURN_COMPLETE_WDFREQUEST_IF_FAILED{LEVEL = TRACE_LEVEL_ERROR, FLAGS = IOCTL} (WDF_REQ, RET_STATUS);
+// USEPREFIX (RETURN_COMPLETE_WDFREQUEST_IF_FAILED, "%!STDPREFIX! ERROR in %!FUNC! [%!FILE! @ %!LINE!]: ");
+// USESUFFIX (RETURN_COMPLETE_WDFREQUEST_IF_FAILED, " status=%!STATUS!", __status);
+// end_wpp
+#define WPP_LEVEL_FLAGS_WDF_REQ_RET_STATUS_PRE(LEVEL, FLAGS, WDF_REQ, RET_STATUS)   \
+    do {                                                                            \
+        NTSTATUS __status = (RET_STATUS);                                           \
+        if (!NT_SUCCESS(__status))                                                  \
+        {
+
+#define WPP_LEVEL_FLAGS_WDF_REQ_RET_STATUS_POST(LEVEL, FLAGS, WDF_REQ, RET_STATUS)  \
+            ;                                                                       \
+            WdfRequestComplete((WDF_REQ), __status);                                \
+            return;                                                                 \
+        }                                                                           \
+    } while(0)
+
+#define WPP_RECORDER_LEVEL_FLAGS_WDF_REQ_RET_STATUS_ARGS(LEVEL, FLAGS, WDF_REQ, RET_STATUS)   \
+    WPP_RECORDER_LEVEL_FLAGS_ARGS(LEVEL, FLAGS)
+
+#define WPP_RECORDER_LEVEL_FLAGS_WDF_REQ_RET_STATUS_FILTER(LEVEL, FLAGS, WDF_REQ, RET_STATUS) \
+    WPP_RECORDER_LEVEL_FLAGS_FILTER(LEVEL, FLAGS)

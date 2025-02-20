@@ -45,11 +45,6 @@ NTSTATUS DriverEntry(
     PUNICODE_STRING reg_path
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-
-    WPP_INIT_TRACING(driver_obj, reg_path);
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "cxadc-win entry");
-
     WDF_OBJECT_ATTRIBUTES attrs;
     WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&attrs, DRIVER_CONTEXT);
     attrs.EvtCleanupCallback = cx_evt_driver_ctx_cleanup;
@@ -58,16 +53,12 @@ NTSTATUS DriverEntry(
     WDF_DRIVER_CONFIG_INIT(&cfg, cx_evt_device_add);
 
     WDFDRIVER driver = WDF_NO_HANDLE;
-    status = WdfDriverCreate(driver_obj, reg_path, &attrs, &cfg, &driver);
+    RETURN_NTSTATUS_IF_FAILED(WdfDriverCreate(driver_obj, reg_path, &attrs, &cfg, &driver));
 
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfDriverCreate failed with status %!STATUS!", status);
-        WPP_CLEANUP(driver_obj);
-        return status;
-    }
+    WPP_INIT_TRACING(driver_obj, reg_path);
+    TRACE_INFO("cxadc-win entry");
 
-    return status;
+    return STATUS_SUCCESS;
 }
 
 _Use_decl_annotations_
@@ -76,8 +67,6 @@ NTSTATUS cx_evt_device_add(
     PWDFDEVICE_INIT dev_init
 )
 {
-    NTSTATUS status;
-
     UNREFERENCED_PARAMETER(driver);
     PAGED_CODE();
 
@@ -105,72 +94,28 @@ NTSTATUS cx_evt_device_add(
     dev_attrs.EvtCleanupCallback = cx_evt_device_cleanup;
 
     WDFDEVICE dev = WDF_NO_HANDLE;
-    status = WdfDeviceCreate(&dev_init, &dev_attrs, &dev);
+    RETURN_NTSTATUS_IF_FAILED(WdfDeviceCreate(&dev_init, &dev_attrs, &dev));
+    RETURN_NTSTATUS_IF_FAILED(WdfDeviceCreateDeviceInterface(dev, (LPGUID)&GUID_DEVINTERFACE_CXADCWIN, NULL));
 
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfDeviceCreate failed with status %!STATUS!", status);
-        return status;
-    }
-
-    status = WdfDeviceCreateDeviceInterface(dev, (LPGUID)&GUID_DEVINTERFACE_CXADCWIN, NULL);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfDeviceCreateDeviceInterface failed with status %!STATUS!", status);
-        return status;
-    }
+    // check valid pci id
+    RETURN_NTSTATUS_IF_FAILED(cx_check_dev_info(dev));
 
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(dev);
     dev_ctx->dev = dev;
 
-    status = cx_check_dev_info(dev_ctx);
+    RETURN_NTSTATUS_IF_FAILED(cx_read_device_prop(dev_ctx, DevicePropertyBusNumber, &dev_ctx->bus_number));
+    RETURN_NTSTATUS_IF_FAILED(cx_read_device_prop(dev_ctx, DevicePropertyAddress, &dev_ctx->dev_addr));
 
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_check_dev_info failed with status %!STATUS!", status);
-        return status;
-    }
-
-    status = cx_read_device_prop(dev_ctx, DevicePropertyBusNumber, &dev_ctx->bus_number);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_read_device_prop(DevicePropertyBusNumber) failed with status %!STATUS!", status);
-        return status;
-    }
-
-    status = cx_read_device_prop(dev_ctx, DevicePropertyAddress, &dev_ctx->dev_addr);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_read_device_prop(DevicePropertyAddress) failed with status %!STATUS!", status);
-        return status;
-    }
-
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "add device %02x:%02d.%01d PDO(0x%p) FDO(0x%p) ctx(0x%p)",
+    TRACE_INFO("add device %02x:%02d.%01d PDO(0x%p) FDO(0x%p) ctx(0x%p)",
         dev_ctx->bus_number, (dev_ctx->dev_addr >> 16) & 0x0000FFFF, dev_ctx->dev_addr & 0x0000FFFF,
         WdfDeviceWdmGetPhysicalDevice(dev),
         WdfDeviceWdmGetDeviceObject(dev),
         dev_ctx);
 
-    status = cx_init_device_ctx(dev_ctx);
+    RETURN_NTSTATUS_IF_FAILED(cx_init_device_ctx(dev_ctx));
+    RETURN_NTSTATUS_IF_FAILED(cx_wmi_register(dev_ctx));
 
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_init_device_ctx failed with status %!STATUS!", status);
-        return status;
-    }
-
-    status = cx_wmi_register(dev_ctx);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_wmi_register failed with status %!STATUS!", status);
-        return status;
-    }
-
-    return status;
+    return STATUS_SUCCESS;
 }
 
 _Use_decl_annotations_
@@ -189,7 +134,7 @@ VOID cx_evt_driver_ctx_cleanup(
 )
 {
     PAGED_CODE();
-    WPP_CLEANUP(driver_obj);
+    WPP_CLEANUP(WdfDriverWdmGetDriverObject((WDFDRIVER)driver_obj));
 }
 
 _Use_decl_annotations_
@@ -199,7 +144,6 @@ NTSTATUS cx_evt_device_prepare_hardware(
     WDFCMRESLIST res_trans
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     PAGED_CODE();
 
     // ensure we stick to arbitrary device count
@@ -207,7 +151,7 @@ NTSTATUS cx_evt_device_prepare_hardware(
 
     if (driver_ctx->dev_count >= MAXUCHAR)
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "too many devices");
+        TRACE_ERROR("too many devices (%d)", driver_ctx->dev_count);
         return STATUS_DEVICE_CONFIGURATION_ERROR;
     }
 
@@ -225,25 +169,19 @@ NTSTATUS cx_evt_device_prepare_hardware(
         switch (desc->Type)
         {
             case CmResourceTypeMemory:
-                status = cx_init_mmio(dev_ctx, desc);
+                RETURN_NTSTATUS_IF_FAILED(cx_init_mmio(dev_ctx, desc));
                 break;
 
             case CmResourceTypeInterrupt:
-                status = cx_init_interrupt(dev_ctx, desc, WdfCmResourceListGetDescriptor(res, i));
+                RETURN_NTSTATUS_IF_FAILED(cx_init_interrupt(dev_ctx, desc, WdfCmResourceListGetDescriptor(res, i)));
                 break;
 
             default:
                 break;
         }
-
-        if (!NT_SUCCESS(status))
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_evt_device_prepare_hardware failed with status %!STATUS!", status);
-            return status;
-        }
     }
 
-    return status;
+    return STATUS_SUCCESS;
 }
 
 _Use_decl_annotations_
@@ -256,20 +194,20 @@ NTSTATUS cx_init_mmio(
 
     dev_ctx->mmio.base = MmMapIoSpaceEx(desc->u.Memory.Start, desc->u.Memory.Length, PAGE_NOCACHE | PAGE_READWRITE);
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "mmio created %I64X->%I64X (%08X)",
-        desc->u.Memory.Start.QuadPart,
-        desc->u.Memory.Start.QuadPart + desc->u.Memory.Length,
-        desc->u.Memory.Length);
-
     if (!dev_ctx->mmio.base)
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "MmMapIoSpaceEx failed to create %I64X->%I64X (%08X)",
+        TRACE_ERROR("MmMapIoSpaceEx failed to create %I64X->%I64X (%08X)",
             desc->u.Memory.Start.QuadPart,
             desc->u.Memory.Start.QuadPart + desc->u.Memory.Length,
             desc->u.Memory.Length);
 
         return STATUS_INSUFFICIENT_RESOURCES;
     }
+
+    TRACE_INFO("mmio created %I64X->%I64X (%08X)",
+        desc->u.Memory.Start.QuadPart,
+        desc->u.Memory.Start.QuadPart + desc->u.Memory.Length,
+        desc->u.Memory.Length);
 
     dev_ctx->mmio.len = desc->u.Memory.Length;
 
@@ -278,7 +216,7 @@ NTSTATUS cx_init_mmio(
 
     if (!dev_ctx->user_mdl)
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "IoAllocateMdl failed");
+        TRACE_ERROR("IoAllocateMdl failed");
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
@@ -296,11 +234,7 @@ NTSTATUS cx_init_interrupt(
 {
     PAGED_CODE();
 
-    NTSTATUS status;
-
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "intrs lvl 0x%08X vec 0x%08X",
-        desc->u.Interrupt.Level,
-        desc->u.Interrupt.Vector);
+    TRACE_INFO("intrs lvl 0x%08X vec 0x%08X", desc->u.Interrupt.Level, desc->u.Interrupt.Vector);
 
     WDF_INTERRUPT_CONFIG intr_cfg;
     WDF_INTERRUPT_CONFIG_INIT(&intr_cfg, cx_evt_isr, cx_evt_dpc);
@@ -308,14 +242,8 @@ NTSTATUS cx_init_interrupt(
     intr_cfg.InterruptRaw = desc_raw;
     intr_cfg.EvtInterruptEnable = cx_evt_intr_enable;
     intr_cfg.EvtInterruptDisable = cx_evt_intr_disable;
-    status = WdfInterruptCreate(dev_ctx->dev, &intr_cfg, WDF_NO_OBJECT_ATTRIBUTES, &dev_ctx->intr);
 
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfInterruptCreate failed with status %!STATUS!", status);
-    }
-
-    return status;
+    return WdfInterruptCreate(dev_ctx->dev, &intr_cfg, WDF_NO_OBJECT_ATTRIBUTES, &dev_ctx->intr);
 }
 
 _Use_decl_annotations_
@@ -324,8 +252,6 @@ NTSTATUS cx_evt_device_release_hardware(
     WDFCMRESLIST res_trans
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-
     UNREFERENCED_PARAMETER(res_trans);
     PAGED_CODE();
 
@@ -337,7 +263,7 @@ NTSTATUS cx_evt_device_release_hardware(
         dev_ctx->mmio.base = NULL;
     }
 
-    return status;
+    return STATUS_SUCCESS;
 }
 
 _Use_decl_annotations_
@@ -346,16 +272,12 @@ NTSTATUS cx_evt_device_d0_entry(
     WDF_POWER_DEVICE_STATE prev_state
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-
     UNREFERENCED_PARAMETER(prev_state);
     PAGED_CODE();
 
-    PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(dev);
+    cx_init(cx_device_get_ctx(dev));
 
-    cx_init(dev_ctx);
-
-    return status;
+    return STATUS_SUCCESS;
 }
 
 _Use_decl_annotations_
@@ -364,8 +286,6 @@ NTSTATUS cx_evt_device_d0_exit(
     WDF_POWER_DEVICE_STATE target_state
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-
     PAGED_CODE();
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(dev);
 
@@ -390,7 +310,7 @@ NTSTATUS cx_evt_device_d0_exit(
             break;
     }
 
-    return status;
+    return STATUS_SUCCESS;
 }
 
 _Use_decl_annotations_
@@ -398,8 +318,6 @@ NTSTATUS cx_init_device_ctx(
     PDEVICE_CONTEXT dev_ctx
 )
 {
-    NTSTATUS status;
-
     PAGED_CODE();
 
     // set device idx and increment device count
@@ -409,47 +327,22 @@ NTSTATUS cx_init_device_ctx(
 
     // create symlink
     DECLARE_UNICODE_STRING_SIZE(symlink_path, 128);
-    RtlUnicodeStringPrintf(&symlink_path, L"%ws%d", SYMLINK_PATH, dev_ctx->dev_idx);
+    RETURN_NTSTATUS_IF_FAILED(RtlUnicodeStringPrintf(&symlink_path, L"%ws%d", SYMLINK_PATH, dev_ctx->dev_idx));
+    RETURN_NTSTATUS_IF_FAILED(WdfDeviceCreateSymbolicLink(dev_ctx->dev, &symlink_path));
+    TRACE_INFO("created symlink %wZ", &symlink_path);
 
-    status = WdfDeviceCreateSymbolicLink(dev_ctx->dev, &symlink_path);
+    // init device
+    RETURN_NTSTATUS_IF_FAILED(cx_init_dma(dev_ctx));
+    RETURN_NTSTATUS_IF_FAILED(cx_init_queue(dev_ctx));
 
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL,
-            "WdfDeviceCreateSymbolicLink failed with status %!STATUS!", status);
-        return status;
-    }
-
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "created symlink %wZ", &symlink_path);
-
-    // init dma
-    status = cx_init_dma(dev_ctx);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_init_dma failed with status %!STATUS!", status);
-        return status;
-    }
-
-    // init queue
-    status = cx_init_queue(dev_ctx);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_init_queue failed with status %!STATUS!", status);
-        return status;
-    }
-
-    // init config
+    // init ctx data
     cx_init_config(dev_ctx);
-
-    // init state
     cx_init_state(dev_ctx);
 
     // init interrupt event
     KeInitializeEvent(&dev_ctx->isr_event, NotificationEvent, FALSE);
 
-    return status;
+    return STATUS_SUCCESS;
 }
 
 _Use_decl_annotations_
@@ -457,7 +350,6 @@ NTSTATUS cx_init_dma(
     PDEVICE_CONTEXT dev_ctx
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     PAGED_CODE();
 
     // device is 32-bit aligned
@@ -467,23 +359,11 @@ NTSTATUS cx_init_dma(
     WDF_DMA_ENABLER_CONFIG_INIT(&dma_cfg, WdfDmaProfilePacket, CX_VBI_BUF_SIZE);
     dma_cfg.WdmDmaVersionOverride = 3;
 
-    status = WdfDmaEnablerCreate(dev_ctx->dev, &dma_cfg, WDF_NO_OBJECT_ATTRIBUTES, &dev_ctx->dma_enabler);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfDmaEnablerCreate failed with status %!STATUS!", status);
-        return status;
-    }
+    RETURN_NTSTATUS_IF_FAILED(WdfDmaEnablerCreate(dev_ctx->dev, &dma_cfg, WDF_NO_OBJECT_ATTRIBUTES, &dev_ctx->dma_enabler));
 
     // risc instructions
     WDFCOMMONBUFFER instr_buf = WDF_NO_HANDLE;
-    status = WdfCommonBufferCreate(dev_ctx->dma_enabler, CX_RISC_INSTR_BUF_SIZE, WDF_NO_OBJECT_ATTRIBUTES, &instr_buf);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfCommonBufferCreate failed with status %!STATUS!", status);
-        return status;
-    }
+    RETURN_NTSTATUS_IF_FAILED(WdfCommonBufferCreate(dev_ctx->dma_enabler, CX_RISC_INSTR_BUF_SIZE, WDF_NO_OBJECT_ATTRIBUTES, &instr_buf));
 
     dev_ctx->risc.instructions = (DMA_DATA){
         .buf = instr_buf,
@@ -494,7 +374,7 @@ NTSTATUS cx_init_dma(
 
     RtlZeroMemory(dev_ctx->risc.instructions.va, dev_ctx->risc.instructions.len);
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "created risc instr dma 0x%p, (%I64X) (%u kbytes)",
+    TRACE_INFO("created risc instr dma 0x%p (%I64X) (%u kbytes)",
         dev_ctx->risc.instructions.va,
         dev_ctx->risc.instructions.la.QuadPart,
         (ULONG)(WdfCommonBufferGetLength(dev_ctx->risc.instructions.buf) / 1024));
@@ -503,13 +383,7 @@ NTSTATUS cx_init_dma(
     for (ULONG i = 0; i < CX_VBI_BUF_COUNT; i++)
     {
         WDFCOMMONBUFFER page_buf = WDF_NO_HANDLE;
-        status = WdfCommonBufferCreate(dev_ctx->dma_enabler, PAGE_SIZE, WDF_NO_OBJECT_ATTRIBUTES, &page_buf);
-
-        if (!NT_SUCCESS(status))
-        {
-            TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfCommonBufferCreate failed with status %!STATUS!", status);
-            return status;
-        }
+        RETURN_NTSTATUS_IF_FAILED(WdfCommonBufferCreate(dev_ctx->dma_enabler, PAGE_SIZE, WDF_NO_OBJECT_ATTRIBUTES, &page_buf));
 
         dev_ctx->risc.page[i] = (DMA_DATA){
             .buf = page_buf,
@@ -521,8 +395,8 @@ NTSTATUS cx_init_dma(
         RtlZeroMemory(dev_ctx->risc.page[i].va, dev_ctx->risc.page[i].len);
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "created %d data pages", CX_VBI_BUF_COUNT);
-    return status;
+    TRACE_INFO("created %d data pages", CX_VBI_BUF_COUNT);
+    return STATUS_SUCCESS;
 }
 
 _Use_decl_annotations_
@@ -530,7 +404,6 @@ NTSTATUS cx_init_queue(
     PDEVICE_CONTEXT dev_ctx
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     PAGED_CODE();
 
     WDF_IO_QUEUE_CONFIG queue_cfg;
@@ -538,44 +411,16 @@ NTSTATUS cx_init_queue(
     // control queue
     WDF_IO_QUEUE_CONFIG_INIT(&queue_cfg, WdfIoQueueDispatchSequential);
     queue_cfg.EvtIoDeviceControl = cx_evt_io_ctrl;
-    status = WdfIoQueueCreate(dev_ctx->dev, &queue_cfg, WDF_NO_OBJECT_ATTRIBUTES, &dev_ctx->control_queue);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfIoQueueCreate (control) failed with status %!STATUS!", status);
-        return status;
-    }
-
-    status = WdfDeviceConfigureRequestDispatching(dev_ctx->dev, dev_ctx->control_queue, WdfRequestTypeDeviceControl);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL,
-            "WdfDeviceConfigureRequestDispatching (WdfRequestTypeDeviceControl) failed with status %!STATUS!", status);
-        return status;
-    }
+    RETURN_NTSTATUS_IF_FAILED(WdfIoQueueCreate(dev_ctx->dev, &queue_cfg, WDF_NO_OBJECT_ATTRIBUTES, &dev_ctx->control_queue));
+    RETURN_NTSTATUS_IF_FAILED(WdfDeviceConfigureRequestDispatching(dev_ctx->dev, dev_ctx->control_queue, WdfRequestTypeDeviceControl));
 
     // read queue
     WDF_IO_QUEUE_CONFIG_INIT(&queue_cfg, WdfIoQueueDispatchSequential);
     queue_cfg.EvtIoRead = cx_evt_io_read;
-    status = WdfIoQueueCreate(dev_ctx->dev, &queue_cfg, WDF_NO_OBJECT_ATTRIBUTES, &dev_ctx->read_queue);
+    RETURN_NTSTATUS_IF_FAILED(WdfIoQueueCreate(dev_ctx->dev, &queue_cfg, WDF_NO_OBJECT_ATTRIBUTES, &dev_ctx->read_queue));
+    RETURN_NTSTATUS_IF_FAILED(WdfDeviceConfigureRequestDispatching(dev_ctx->dev, dev_ctx->read_queue, WdfRequestTypeRead));
 
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfIoQueueCreate (read) failed with status %!STATUS!", status);
-        return status;
-    }
-
-    status = WdfDeviceConfigureRequestDispatching(dev_ctx->dev, dev_ctx->read_queue, WdfRequestTypeRead);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL,
-            "WdfDeviceConfigureRequestDispatching (WdfRequestTypeRead) failed with status %!STATUS!", status);
-        return status;
-    }
-
-    return status;
+    return STATUS_SUCCESS;
 }
 
 _Use_decl_annotations_
@@ -610,27 +455,20 @@ VOID cx_init_state(
 
 _Use_decl_annotations_
 NTSTATUS cx_check_dev_info(
-    PDEVICE_CONTEXT dev_ctx
+    WDFDEVICE dev
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     PAGED_CODE();
 
     BUS_INTERFACE_STANDARD bus = { 0 };
 
-    status = WdfFdoQueryForInterface(
-        dev_ctx->dev,
+    RETURN_NTSTATUS_IF_FAILED(WdfFdoQueryForInterface(
+        dev,
         &GUID_BUS_INTERFACE_STANDARD,
         (PINTERFACE)&bus,
         sizeof(BUS_INTERFACE_STANDARD),
         1,
-        NULL);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfFdoQueryForInterface failed with status %!STATUS!", status);
-        return status;
-    }
+        NULL));
 
     UCHAR buf[256];
     RtlZeroMemory(buf, sizeof(buf));
@@ -641,14 +479,14 @@ NTSTATUS cx_check_dev_info(
 
     if (pci_config->VendorID != VENDOR_ID || pci_config->DeviceID != DEVICE_ID)
     {
-        TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "unknown vendor/device id %04X:%04X",
+        TRACE_ERROR("unknown vendor/device id %04X:%04X",
             pci_config->VendorID,
             pci_config->DeviceID);
 
         return STATUS_UNSUCCESSFUL;
     }
 
-    return status;
+    return STATUS_SUCCESS;
 }
 
 _Use_decl_annotations_
@@ -658,18 +496,8 @@ NTSTATUS cx_read_device_prop(
     PULONG value
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     PAGED_CODE();
 
     ULONG len;
-
-    status = WdfDeviceQueryProperty(dev_ctx->dev, prop, sizeof(ULONG), value, &len);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfDeviceQueryProperty failed with status %!STATUS!", status);
-        return status;
-    }
-
-    return status;
+    return WdfDeviceQueryProperty(dev_ctx->dev, prop, sizeof(ULONG), value, &len);
 }

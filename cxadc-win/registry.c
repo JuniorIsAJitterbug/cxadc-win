@@ -22,24 +22,17 @@ NTSTATUS cx_reg_get_value(
     PULONG value
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     WDFKEY key = WDF_NO_HANDLE;
     *value = 0;
 
-    status = WdfDeviceOpenRegistryKey(dev, PLUGPLAY_REGKEY_DEVICE, STANDARD_RIGHTS_ALL, WDF_NO_OBJECT_ATTRIBUTES, &key);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfDeviceOpenRegistryKey failed with status %!STATUS!", status);
-        return status;
-    }
+    RETURN_NTSTATUS_IF_FAILED(WdfDeviceOpenRegistryKey(dev, PLUGPLAY_REGKEY_DEVICE, STANDARD_RIGHTS_ALL, WDF_NO_OBJECT_ATTRIBUTES, &key));
 
     DECLARE_UNICODE_STRING_SIZE(key_uc, 128);
-    status = RtlUnicodeStringCopyString(&key_uc, key_cwstr);
+    NTSTATUS status = RtlUnicodeStringCopyString(&key_uc, key_cwstr);
 
     if (!NT_SUCCESS(status))
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "RtlUnicodeStringCopyString failed with status %!STATUS!", status);
+        TRACE_STATUS_ERROR(status, "RtlUnicodeStringCopyString");
         WdfRegistryClose(key);
         return status;
     }
@@ -48,7 +41,7 @@ NTSTATUS cx_reg_get_value(
 
     if (!NT_SUCCESS(status))
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfDeviceOpenRegistryKey failed with status %!STATUS!", status);
+        TRACE_STATUS_ERROR(status, "WdfRegistryQueryULong");
     }
 
     WdfRegistryClose(key);
@@ -62,23 +55,16 @@ NTSTATUS cx_reg_set_value(
     ULONG value
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     WDFKEY key = WDF_NO_HANDLE;
 
-    status = WdfDeviceOpenRegistryKey(dev, PLUGPLAY_REGKEY_DEVICE, STANDARD_RIGHTS_ALL, WDF_NO_OBJECT_ATTRIBUTES, &key);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfDeviceOpenRegistryKey failed with status %!STATUS!", status);
-        return status;
-    }
+    RETURN_NTSTATUS_IF_FAILED(WdfDeviceOpenRegistryKey(dev, PLUGPLAY_REGKEY_DEVICE, STANDARD_RIGHTS_ALL, WDF_NO_OBJECT_ATTRIBUTES, &key));
 
     DECLARE_UNICODE_STRING_SIZE(key_uc, 128);
-    status = RtlUnicodeStringCopyString(&key_uc, key_cwstr);
+    NTSTATUS status = RtlUnicodeStringCopyString(&key_uc, key_cwstr);
 
     if (!NT_SUCCESS(status))
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "RtlUnicodeStringCopyString failed with status %!STATUS!", status);
+        TRACE_STATUS_ERROR(status, "RtlUnicodeStringCopyString");
         WdfRegistryClose(key);
         return status;
     }
@@ -87,7 +73,7 @@ NTSTATUS cx_reg_set_value(
 
     if (!NT_SUCCESS(status))
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfRegistryAssignULong failed with status %!STATUS!", status);
+        TRACE_STATUS_ERROR(status, "WdfRegistryAssignULong");
     }
 
     WdfRegistryClose(key);

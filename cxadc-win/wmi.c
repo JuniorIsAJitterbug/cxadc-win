@@ -22,16 +22,9 @@ NTSTATUS cx_wmi_register(
     PDEVICE_CONTEXT dev_ctx
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     DECLARE_CONST_UNICODE_STRING(mof_resource_name, MOF_RESOURCE_NAME);
 
-    status = WdfDeviceAssignMofResourceName(dev_ctx->dev, &mof_resource_name);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfDeviceAssignMofResourceName failed with status %!STATUS!", status);
-        return status;
-    }
+    RETURN_NTSTATUS_IF_FAILED(WdfDeviceAssignMofResourceName(dev_ctx->dev, &mof_resource_name));
 
     WDF_WMI_PROVIDER_CONFIG provider_cfg;
     WDF_WMI_INSTANCE_CONFIG instance_cfg;
@@ -45,13 +38,7 @@ NTSTATUS cx_wmi_register(
     instance_cfg.EvtWmiInstanceQueryInstance = cx_wmi_state_query;
     instance_cfg.EvtWmiInstanceExecuteMethod = cx_wmi_state_exe;
 
-    status = WdfWmiInstanceCreate(dev_ctx->dev, &instance_cfg, WDF_NO_OBJECT_ATTRIBUTES, WDF_NO_HANDLE);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfWmiInstanceCreate (state) failed with status %!STATUS!", status);
-        return status;
-    }
+    RETURN_NTSTATUS_IF_FAILED(WdfWmiInstanceCreate(dev_ctx->dev, &instance_cfg, WDF_NO_OBJECT_ATTRIBUTES, WDF_NO_HANDLE));
 
     // config
     WDF_WMI_PROVIDER_CONFIG_INIT(&provider_cfg, &GUID_WMI_CXADCWIN_CONFIG);
@@ -63,13 +50,7 @@ NTSTATUS cx_wmi_register(
     instance_cfg.EvtWmiInstanceSetInstance = cx_wmi_config_set;
     instance_cfg.EvtWmiInstanceSetItem = cx_wmi_config_set_item;
 
-    status = WdfWmiInstanceCreate(dev_ctx->dev, &instance_cfg, WDF_NO_OBJECT_ATTRIBUTES, WDF_NO_HANDLE);
-
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfWmiInstanceCreate (config) failed with status %!STATUS!", status);
-        return status;
-    }
+    RETURN_NTSTATUS_IF_FAILED(WdfWmiInstanceCreate(dev_ctx->dev, &instance_cfg, WDF_NO_OBJECT_ATTRIBUTES, WDF_NO_HANDLE));
 
     // path
     WDF_WMI_PROVIDER_CONFIG_INIT(&provider_cfg, &GUID_WMI_CXADCWIN_PATH);
@@ -79,15 +60,9 @@ NTSTATUS cx_wmi_register(
     instance_cfg.Register = TRUE;
     instance_cfg.EvtWmiInstanceQueryInstance = cx_wmi_path_query;
 
-    status = WdfWmiInstanceCreate(dev_ctx->dev, &instance_cfg, WDF_NO_OBJECT_ATTRIBUTES, WDF_NO_HANDLE);
+    RETURN_NTSTATUS_IF_FAILED(WdfWmiInstanceCreate(dev_ctx->dev, &instance_cfg, WDF_NO_OBJECT_ATTRIBUTES, WDF_NO_HANDLE));
 
-    if (!NT_SUCCESS(status))
-    {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfWmiInstanceCreate (path) failed with status %!STATUS!", status);
-        return status;
-    }
-
-    return status;
+    return STATUS_SUCCESS;
 }
 
 _Use_decl_annotations_
@@ -183,7 +158,6 @@ NTSTATUS cx_wmi_config_set(
     PVOID in_buf
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfWmiInstanceGetDevice(instance));
 
     if (in_buf_size < sizeof(dev_ctx->config))
@@ -193,37 +167,13 @@ NTSTATUS cx_wmi_config_set(
 
     DEVICE_CONFIG config = *(PDEVICE_CONFIG)in_buf;
 
-    status = cx_ctrl_set_vmux(dev_ctx, config.vmux);
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
+    RETURN_NTSTATUS_IF_FAILED(cx_ctrl_set_vmux(dev_ctx, config.vmux));
+    RETURN_NTSTATUS_IF_FAILED(cx_ctrl_set_level(dev_ctx, config.level));
+    RETURN_NTSTATUS_IF_FAILED(cx_ctrl_set_tenbit(dev_ctx, config.tenbit));
+    RETURN_NTSTATUS_IF_FAILED(cx_ctrl_set_sixdb(dev_ctx, config.sixdb));
+    RETURN_NTSTATUS_IF_FAILED(cx_ctrl_set_center_offset(dev_ctx, config.center_offset));
 
-    status = cx_ctrl_set_level(dev_ctx, config.level);
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
-
-    status = cx_ctrl_set_tenbit(dev_ctx, config.tenbit);
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
-
-    status = cx_ctrl_set_sixdb(dev_ctx, config.sixdb);
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
-
-    status = cx_ctrl_set_center_offset(dev_ctx, config.center_offset);
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
-
-    return status;
+    return STATUS_SUCCESS;
 }
 
 _Use_decl_annotations_
@@ -234,7 +184,6 @@ NTSTATUS cx_wmi_config_set_item(
     PVOID in_buf
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfWmiInstanceGetDevice(instance));
 
     if (in_buf_size != sizeof(ULONG))
@@ -247,31 +196,23 @@ NTSTATUS cx_wmi_config_set_item(
     switch (id)
     {
         case CX_CTRL_CONFIG_VMUX_WMI_ID:
-            status = cx_ctrl_set_vmux(dev_ctx, value);
-            break;
+            return cx_ctrl_set_vmux(dev_ctx, value);
 
         case CX_CTRL_CONFIG_LEVEL_WMI_ID:
-            status = cx_ctrl_set_level(dev_ctx, value);
-            break;
+            return cx_ctrl_set_level(dev_ctx, value);
 
         case CX_CTRL_CONFIG_TENBIT_WMI_ID:
-            status = cx_ctrl_set_tenbit(dev_ctx, value ? TRUE : FALSE);
-            break;
+            return cx_ctrl_set_tenbit(dev_ctx, value ? TRUE : FALSE);
 
         case CX_CTRL_CONFIG_SIXDB_WMI_ID:
-            status = cx_ctrl_set_sixdb(dev_ctx, value ? TRUE : FALSE);
-            break;
+            return cx_ctrl_set_sixdb(dev_ctx, value ? TRUE : FALSE);
 
         case CX_CTRL_CONFIG_CENTER_OFFSET_WMI_ID:
-            status = cx_ctrl_set_center_offset(dev_ctx, value);
-            break;
+            return cx_ctrl_set_center_offset(dev_ctx, value);
 
         default:
-            status = STATUS_WMI_ITEMID_NOT_FOUND;
-            break;
+            return STATUS_WMI_ITEMID_NOT_FOUND;
     }
-
-    return status;
 }
 
 _Use_decl_annotations_
@@ -285,7 +226,7 @@ NTSTATUS cx_wmi_path_query(
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfWmiInstanceGetDevice(instance));
 
     DECLARE_UNICODE_STRING_SIZE(symlink_path, 128);
-    RtlUnicodeStringPrintf(&symlink_path, L"%ws%d", WIN32_PATH, dev_ctx->dev_idx);
+    RETURN_NTSTATUS_IF_FAILED(RtlUnicodeStringPrintf(&symlink_path, L"%ws%d", WIN32_PATH, dev_ctx->dev_idx));
 
     ULONG size = symlink_path.Length + sizeof(USHORT);
 
@@ -296,6 +237,7 @@ NTSTATUS cx_wmi_path_query(
 
     *buf_used = size;
     RtlZeroMemory(out_buf, out_buf_size);
+    RETURN_NTSTATUS_IF_FAILED(WDF_WMI_BUFFER_APPEND_STRING((PUCHAR)out_buf, size, &symlink_path, &size));
 
-    return WDF_WMI_BUFFER_APPEND_STRING((PUCHAR)out_buf, size, &symlink_path, &size);
+    return STATUS_SUCCESS;
 }

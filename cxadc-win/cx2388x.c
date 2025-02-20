@@ -16,12 +16,10 @@
 #include "cx2388x.h"
 
 _Use_decl_annotations_
-NTSTATUS cx_init(
+VOID cx_init(
     PDEVICE_CONTEXT dev_ctx
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-
     // the following values & comments are from the Linux driver
     // I don't fully understand what each value is doing, nor if/why they are required
 
@@ -152,8 +150,6 @@ NTSTATUS cx_init(
     cx_set_tenbit(&dev_ctx->mmio, dev_ctx->config.tenbit);
     cx_set_level(&dev_ctx->mmio, dev_ctx->config.level, dev_ctx->config.sixdb);
     cx_set_center_offset(&dev_ctx->mmio, dev_ctx->config.center_offset);
-
-    return status;
 }
 
 _Use_decl_annotations_
@@ -164,8 +160,7 @@ VOID cx_init_cdt(
     ULONG cdt_ptr = CX_SRAM_CDT_BASE;
     ULONG buf_ptr = CX_SRAM_CDT_BUF_BASE;
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "init cdt table (%d * %d)",
-        CX_CDT_BUF_COUNT, CX_CDT_BUF_LEN);
+    TRACE_INFO("init cdt table (%d * %d)", CX_CDT_BUF_COUNT, CX_CDT_BUF_LEN);
 
     // set cluster buffer location
     for (ULONG i = 0; i < CX_CDT_BUF_COUNT; i++)
@@ -206,7 +201,7 @@ VOID cx_init_risc(
 {
     PCX_RISC_INSTRUCTIONS dma_instr_ptr = (PCX_RISC_INSTRUCTIONS)risc->instructions.va;
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "dma phys addr %08X", risc->instructions.la.LowPart);
+    TRACE_INFO("dma phys addr %08X", risc->instructions.la.LowPart);
 
     // the following comments are from the Linux driver, as they explain the logic sufficiently
 
@@ -269,8 +264,7 @@ VOID cx_init_risc(
         .jump_address = risc->instructions.la.LowPart + 4
     };
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "filled risc instr dma, total size %lu kbyte",
-        sizeof(CX_RISC_INSTRUCTIONS) / 1024);
+    TRACE_INFO("filled risc instr dma, total size %lu kbyte", sizeof(CX_RISC_INSTRUCTIONS) / 1024);
 
 }
 
@@ -293,12 +287,10 @@ VOID cx_init_cmds(
 }
 
 _Use_decl_annotations_
-NTSTATUS cx_disable(
+VOID cx_disable(
     PMMIO mmio
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-
     // setting all bits to 0/1 so just write entire dword
 
     // turn off interrupt
@@ -310,8 +302,6 @@ NTSTATUS cx_disable(
 
     // disable risc
     cx_write(mmio, CX_DMAC_DEVICE_CONTROL_2_ADDR, 0);
-
-    return status;
 }
 
 _Use_decl_annotations_
@@ -406,9 +396,7 @@ BOOLEAN cx_evt_isr(
     if (!mstat.vbi_risci1 && mstat.dword)
     {
         // unexpected interrupts?
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "intr stat 0x%0X masked 0x%0X",
-            cx_read(&dev_ctx->mmio, CX_DMAC_VIDEO_INTERRUPT_STATUS_ADDR),
-            mstat.dword);
+        TRACE_ERROR("intr stat 0x%0X masked 0x%0X", cx_read(&dev_ctx->mmio, CX_DMAC_VIDEO_INTERRUPT_STATUS_ADDR), mstat.dword);
     }
 
     if (mstat.vbi_risci1)
@@ -457,17 +445,16 @@ NTSTATUS cx_evt_intr_enable(
 {
     UNREFERENCED_PARAMETER(dev);
 
-    NTSTATUS status = STATUS_SUCCESS;
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfInterruptGetDevice(intr));
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "enabling interrupts");
+    TRACE_INFO("enabling interrupts");
 
     cx_write(&dev_ctx->mmio, CX_MISC_PCI_INTERRUPT_MASK_ADDR,
         (CX_MISC_PCI_INTERRUPT_MASK){
             .vid_int = 1
         }.dword);
 
-    return status;
+    return STATUS_SUCCESS;
 }
 
 _Use_decl_annotations_
@@ -478,13 +465,12 @@ NTSTATUS cx_evt_intr_disable(
 {
     UNREFERENCED_PARAMETER(dev);
 
-    NTSTATUS status = STATUS_SUCCESS;
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfInterruptGetDevice(intr));
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "disabling interrupts");
+    TRACE_INFO("disabling interrupts");
     cx_write(&dev_ctx->mmio, CX_MISC_PCI_INTERRUPT_MASK_ADDR, 0);
 
-    return status;
+    return STATUS_SUCCESS;
 }
 
 _Use_decl_annotations_
@@ -494,11 +480,10 @@ VOID cx_start_capture(
 {
     if (dev_ctx->state.is_capturing)
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "already capturing");
         return;
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "starting capture");
+    TRACE_INFO("starting capture");
 
     // enable fifo and risc
     cx_write(&dev_ctx->mmio, CX_DMAC_DEVICE_CONTROL_2_ADDR,
@@ -530,8 +515,12 @@ VOID cx_stop_capture(
     PDEVICE_CONTEXT dev_ctx
 )
 {
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "stopping capture");
+    if (dev_ctx->state.is_capturing)
+    {
+        TRACE_INFO("stopping capture");
+    }
 
+    // attempt stop anyway
     InterlockedExchange((PLONG)&dev_ctx->state.is_capturing, FALSE);
 
     // turn off interrupt
