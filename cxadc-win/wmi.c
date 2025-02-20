@@ -129,25 +129,25 @@ NTSTATUS cx_wmi_state_exe(
 
     switch (method_id)
     {
-    case CX_CTRL_STATE_RESET_OUFLOW_WMI_ID:
-    {
-        if (out_buf_size != sizeof(ULONG))
+        case CX_CTRL_STATE_RESET_OUFLOW_WMI_ID:
         {
-            return STATUS_BUFFER_TOO_SMALL;
+            if (out_buf_size != sizeof(ULONG))
+            {
+                return STATUS_BUFFER_TOO_SMALL;
+            }
+
+            *buf_used = sizeof(ULONG);
+
+            ULONG value = cx_ctrl_reset_ouflow_count(dev_ctx);
+
+            RtlZeroMemory(buf, out_buf_size);
+            RtlCopyMemory(buf, &value, sizeof(ULONG));
+
+            break;
         }
 
-        *buf_used = sizeof(ULONG);
-
-        ULONG value = cx_ctrl_reset_ouflow_count(dev_ctx);
-
-        RtlZeroMemory(buf, out_buf_size);
-        RtlCopyMemory(buf, &value, sizeof(ULONG));
-
-        break;
-    }
-
-    default:
-        return STATUS_INVALID_PARAMETER;
+        default:
+            return STATUS_INVALID_PARAMETER;
     }
 
     return STATUS_SUCCESS;
@@ -246,29 +246,29 @@ NTSTATUS cx_wmi_config_set_item(
 
     switch (id)
     {
-    case CX_CTRL_CONFIG_VMUX_WMI_ID:
-        status = cx_ctrl_set_vmux(dev_ctx, value);
-        break;
+        case CX_CTRL_CONFIG_VMUX_WMI_ID:
+            status = cx_ctrl_set_vmux(dev_ctx, value);
+            break;
 
-    case CX_CTRL_CONFIG_LEVEL_WMI_ID:
-        status = cx_ctrl_set_level(dev_ctx, value);
-        break;
+        case CX_CTRL_CONFIG_LEVEL_WMI_ID:
+            status = cx_ctrl_set_level(dev_ctx, value);
+            break;
 
-    case CX_CTRL_CONFIG_TENBIT_WMI_ID:
-        status = cx_ctrl_set_tenbit(dev_ctx, value ? TRUE : FALSE);
-        break;
+        case CX_CTRL_CONFIG_TENBIT_WMI_ID:
+            status = cx_ctrl_set_tenbit(dev_ctx, value ? TRUE : FALSE);
+            break;
 
-    case CX_CTRL_CONFIG_SIXDB_WMI_ID:
-        status = cx_ctrl_set_sixdb(dev_ctx, value ? TRUE : FALSE);
-        break;
+        case CX_CTRL_CONFIG_SIXDB_WMI_ID:
+            status = cx_ctrl_set_sixdb(dev_ctx, value ? TRUE : FALSE);
+            break;
 
-    case CX_CTRL_CONFIG_CENTER_OFFSET_WMI_ID:
-        status = cx_ctrl_set_center_offset(dev_ctx, value);
-        break;
+        case CX_CTRL_CONFIG_CENTER_OFFSET_WMI_ID:
+            status = cx_ctrl_set_center_offset(dev_ctx, value);
+            break;
 
-    default:
-        status = STATUS_WMI_ITEMID_NOT_FOUND;
-        break;
+        default:
+            status = STATUS_WMI_ITEMID_NOT_FOUND;
+            break;
     }
 
     return status;

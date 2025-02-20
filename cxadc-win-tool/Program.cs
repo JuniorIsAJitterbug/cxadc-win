@@ -381,7 +381,7 @@ statusCommand.SetHandler(() =>
         {
             Console.WriteLine("{0,-15} {1,-8}", "audio", clockgen.GetAudioRate());
 
-            for (uint i = 0; i < 2; i++)            
+            for (uint i = 0; i < 2; i++)
             {
                 Console.WriteLine("{0,-15} {1,-8}", $"clock {i}", $"{clockgen.GetClock(i):0.000}");
             }

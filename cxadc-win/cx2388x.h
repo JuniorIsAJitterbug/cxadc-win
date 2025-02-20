@@ -125,7 +125,7 @@ typedef union
     };
 
     ULONG dword;
-} CX_MISC_PCI_INTERRUPT_MASK, *PCX_MISC_PCI_INTERRUPT_MASK;
+} CX_MISC_PCI_INTERRUPT_MASK, * PCX_MISC_PCI_INTERRUPT_MASK;
 
 typedef union
 {
@@ -155,7 +155,7 @@ typedef union
     };
 
     ULONG dword;
-} CX_DMAC_VIDEO_INTERRUPT, *PCX_DMAC_VIDEO_INTERRUPT;
+} CX_DMAC_VIDEO_INTERRUPT, * PCX_DMAC_VIDEO_INTERRUPT;
 
 typedef union
 {
@@ -163,7 +163,7 @@ typedef union
     {
         ULONG                       : 2;
         ULONG dma_ptr2              : 22;
-        ULONG                       : 8; 
+        ULONG                       : 8;
     };
 
     ULONG dword;
@@ -212,7 +212,7 @@ typedef union
     };
 
     ULONG dword;
-} CX_VIDEO_DEVICE_STATUS, *PCX_VIDEO_DEVICE_STATUS;
+} CX_VIDEO_DEVICE_STATUS, * PCX_VIDEO_DEVICE_STATUS;
 
 typedef union
 {
@@ -507,7 +507,7 @@ typedef union
     };
 
     ULONG dword;
-} CX_VIDEO_GP_COUNTER, *PCX_VIDEO_GP_COUNTER;
+} CX_VIDEO_GP_COUNTER, * PCX_VIDEO_GP_COUNTER;
 
 typedef union
 {
@@ -558,7 +558,7 @@ typedef union
         ULONG mode                  : 1;
         ULONG db2                   : 8;
         ULONG db1                   : 8;
-        ULONG db0                   : 8; 
+        ULONG db0                   : 8;
     };
 
     ULONG dword;
@@ -582,7 +582,7 @@ typedef struct _CX_RISC_INSTR_WRITE
     ULONG opcode                    : 4;
 
     ULONG pci_target_address;
-} CX_RISC_INSTR_WRITE, *PCX_RISC_INSTR_WRITE;
+} CX_RISC_INSTR_WRITE, * PCX_RISC_INSTR_WRITE;
 
 typedef struct _CX_RISC_INSTR_SYNC
 {
@@ -595,7 +595,7 @@ typedef struct _CX_RISC_INSTR_SYNC
     ULONG irq2                      : 1;
     ULONG                           : 2;
     ULONG opcode                    : 4;
-} CX_RISC_INSTR_SYNC, *PCX_RISC_INSTR_SYNC;
+} CX_RISC_INSTR_SYNC, * PCX_RISC_INSTR_SYNC;
 
 typedef struct _CX_RISC_INSTR_JUMP
 {
@@ -609,14 +609,14 @@ typedef struct _CX_RISC_INSTR_JUMP
     ULONG opcode                    : 4;
 
     ULONG jump_address;
-} CX_RISC_INSTR_JUMP, *PCX_RISC_INSTR_JUMP;
+} CX_RISC_INSTR_JUMP, * PCX_RISC_INSTR_JUMP;
 
 typedef struct _CX_RISC_INSTRUCTIONS
 {
     CX_RISC_INSTR_SYNC sync_instr;
     CX_RISC_INSTR_WRITE write_instr[CX_VBI_BUF_COUNT * (PAGE_SIZE / CX_CDT_BUF_LEN)];
     CX_RISC_INSTR_JUMP jump_instr;
-} CX_RISC_INSTRUCTIONS, *PCX_RISC_INSTRUCTIONS;
+} CX_RISC_INSTRUCTIONS, * PCX_RISC_INSTRUCTIONS;
 
 // CDT
 typedef union _CX_CDT_DESCRIPTOR
@@ -627,7 +627,7 @@ typedef union _CX_CDT_DESCRIPTOR
     };
 
     UCHAR data[0x10];
-} CX_CDT_DESCRIPTOR, *PCX_CDT_DESCRIPTOR;
+} CX_CDT_DESCRIPTOR, * PCX_CDT_DESCRIPTOR;
 
 // Channel Management Data Structure (CMDS)
 typedef union _CX_CMDS
@@ -646,4 +646,4 @@ typedef union _CX_CMDS
     };
 
     UCHAR data[0x14];
-} CX_CMDS, *PCX_CMDS;
+} CX_CMDS, * PCX_CMDS;

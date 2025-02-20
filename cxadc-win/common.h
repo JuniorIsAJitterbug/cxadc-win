@@ -26,7 +26,7 @@
 typedef struct _DRIVER_CONTEXT
 {
     LONG dev_count;
-} DRIVER_CONTEXT, *PDRIVER_CONTEXT;
+} DRIVER_CONTEXT, * PDRIVER_CONTEXT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(DRIVER_CONTEXT, cx_driver_get_ctx)
 
@@ -42,13 +42,13 @@ typedef struct _DMA_DATA
     size_t len;
     PUCHAR va;
     PHYSICAL_ADDRESS la;
-} DMA_DATA, *PDMA_DATA;
+} DMA_DATA, * PDMA_DATA;
 
 typedef struct _RISC
 {
     DMA_DATA instructions;
     DMA_DATA page[CX_VBI_BUF_COUNT];
-} RISC, *PRISC;
+} RISC, * PRISC;
 
 typedef struct _DEVICE_CONTEXT
 {
@@ -70,7 +70,7 @@ typedef struct _DEVICE_CONTEXT
     MMIO mmio;
     RISC risc;
     PMDL user_mdl;
-} DEVICE_CONTEXT, *PDEVICE_CONTEXT;
+} DEVICE_CONTEXT, * PDEVICE_CONTEXT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(DEVICE_CONTEXT, cx_device_get_ctx)
 

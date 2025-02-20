@@ -20,6 +20,8 @@ NTSTATUS cx_init(
     PDEVICE_CONTEXT dev_ctx
 )
 {
+    NTSTATUS status = STATUS_SUCCESS;
+
     // the following values & comments are from the Linux driver
     // I don't fully understand what each value is doing, nor if/why they are required
 
@@ -71,7 +73,7 @@ NTSTATUS cx_init(
         (CX_VIDEO_SAMPLE_RATE_CONVERSION){
             .src_reg_val = 0x20000
         }.dword);
-    
+
     // set PLL to 1:1
     cx_write(&dev_ctx->mmio, CX_VIDEO_PLL_ADDR,
         (CX_VIDEO_PLL){
@@ -150,6 +152,8 @@ NTSTATUS cx_init(
     cx_set_tenbit(&dev_ctx->mmio, dev_ctx->config.tenbit);
     cx_set_level(&dev_ctx->mmio, dev_ctx->config.level, dev_ctx->config.sixdb);
     cx_set_center_offset(&dev_ctx->mmio, dev_ctx->config.center_offset);
+
+    return status;
 }
 
 _Use_decl_annotations_
@@ -247,7 +251,7 @@ VOID cx_init_risc(
                 if (page_idx == (CX_VBI_BUF_COUNT - 1))
                 {
                     write_instr->cnt_ctl = 3;
-    }
+                }
 
                 // trigger IRQ1
                 if (((page_idx + 1) % CX_IRQ_PERIOD_IN_PAGES) == 0)
@@ -267,6 +271,7 @@ VOID cx_init_risc(
 
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "filled risc instr dma, total size %lu kbyte",
         sizeof(CX_RISC_INSTRUCTIONS) / 1024);
+
 }
 
 _Use_decl_annotations_
@@ -438,7 +443,7 @@ VOID cx_evt_dpc(
     // to main memory. on the other hand, if an interrupt has occurred, we are guaranteed to have the page
     // in main memory. so we only retrieve CX_VBI_GP_CNT after an interrupt has occurred and then round
     // it down to the last page that we know should have triggered an interrupt.
-    InterlockedExchange(&dev_ctx->state.last_gp_cnt,
+    InterlockedExchange((PLONG)&dev_ctx->state.last_gp_cnt,
         cx_read(&dev_ctx->mmio, CX_VIDEO_VBI_GP_COUNTER_ADDR) & ~(CX_IRQ_PERIOD_IN_PAGES - 1));
 
     KeSetEvent(&dev_ctx->isr_event, IO_NO_INCREMENT, FALSE);

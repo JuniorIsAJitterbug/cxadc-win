@@ -25,18 +25,18 @@ typedef struct _DEVICE_CONFIG
     BOOLEAN tenbit;
     BOOLEAN sixdb;
     ULONG center_offset;
-} DEVICE_CONFIG, *PDEVICE_CONFIG;
+} DEVICE_CONFIG, * PDEVICE_CONFIG;
 
 typedef struct _DEVICE_STATE
 {
     ULONG last_gp_cnt;
     ULONG initial_page;
-    
+
     ULONG ouflow_count;
 
     ULONG reader_count;
     BOOLEAN is_capturing;
-} DEVICE_STATE, *PDEVICE_STATE;
+} DEVICE_STATE, * PDEVICE_STATE;
 
 #define CX_IOCTL_GET_CONFIG \
     CTL_CODE(FILE_DEVICE_UNKNOWN, 0x700, METHOD_BUFFERED, FILE_READ_DATA)

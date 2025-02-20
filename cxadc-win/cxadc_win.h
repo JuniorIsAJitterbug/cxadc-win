@@ -32,7 +32,6 @@ NTSTATUS cx_init_interrupt(
     _In_ PCM_PARTIAL_RESOURCE_DESCRIPTOR desc_raw
 );
 
-NTSTATUS cx_create_device(_Inout_ PWDFDEVICE_INIT);
 NTSTATUS cx_init_device_ctx(_Inout_ PDEVICE_CONTEXT dev_ctx);
 NTSTATUS cx_init_dma(_In_ PDEVICE_CONTEXT dev_ctx);
 NTSTATUS cx_init_queue(_In_ PDEVICE_CONTEXT dev_ctx);

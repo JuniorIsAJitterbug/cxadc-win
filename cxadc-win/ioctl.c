@@ -407,7 +407,7 @@ VOID cx_evt_io_read(
         InterlockedIncrement((PLONG)&dev_ctx->state.reader_count);
     }
 
-    WDFMEMORY mem;
+    WDFMEMORY mem = WDF_NO_HANDLE;
     status = WdfRequestRetrieveOutputMemory(req, &mem);
 
     if (!NT_SUCCESS(status))

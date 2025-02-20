@@ -57,7 +57,7 @@ NTSTATUS DriverEntry(
     WDF_DRIVER_CONFIG cfg;
     WDF_DRIVER_CONFIG_INIT(&cfg, cx_evt_device_add);
 
-    WDFDRIVER driver;
+    WDFDRIVER driver = WDF_NO_HANDLE;
     status = WdfDriverCreate(driver_obj, reg_path, &attrs, &cfg, &driver);
 
     if (!NT_SUCCESS(status))
@@ -77,9 +77,6 @@ NTSTATUS cx_evt_device_add(
 )
 {
     NTSTATUS status;
-    WDF_PNPPOWER_EVENT_CALLBACKS pnp_callbacks;
-    WDF_OBJECT_ATTRIBUTES dev_attrs;
-    WDFDEVICE dev;
 
     UNREFERENCED_PARAMETER(driver);
     PAGED_CODE();
@@ -87,6 +84,7 @@ NTSTATUS cx_evt_device_add(
     WdfDeviceInitSetIoType(dev_init, WdfDeviceIoDirect);
 
     // pnp
+    WDF_PNPPOWER_EVENT_CALLBACKS pnp_callbacks;
     WDF_PNPPOWER_EVENT_CALLBACKS_INIT(&pnp_callbacks);
     pnp_callbacks.EvtDevicePrepareHardware = cx_evt_device_prepare_hardware;
     pnp_callbacks.EvtDeviceReleaseHardware = cx_evt_device_release_hardware;
@@ -96,14 +94,17 @@ NTSTATUS cx_evt_device_add(
 
     // file callbacks
     WDF_FILEOBJECT_CONFIG file_obj_cfg;
-    WDF_OBJECT_ATTRIBUTES file_attrs;
     WDF_FILEOBJECT_CONFIG_INIT(&file_obj_cfg, cx_evt_file_create, cx_evt_file_close, cx_evt_file_cleanup);
+
+    WDF_OBJECT_ATTRIBUTES file_attrs;
     WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&file_attrs, FILE_CONTEXT);
     WdfDeviceInitSetFileObjectConfig(dev_init, &file_obj_cfg, &file_attrs);
 
+    WDF_OBJECT_ATTRIBUTES dev_attrs;
     WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&dev_attrs, DEVICE_CONTEXT);
     dev_attrs.EvtCleanupCallback = cx_evt_device_cleanup;
 
+    WDFDEVICE dev = WDF_NO_HANDLE;
     status = WdfDeviceCreate(&dev_init, &dev_attrs, &dev);
 
     if (!NT_SUCCESS(status))
@@ -138,7 +139,7 @@ NTSTATUS cx_evt_device_add(
         TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "cx_read_device_prop(DevicePropertyBusNumber) failed with status %!STATUS!", status);
         return status;
     }
-    
+
     status = cx_read_device_prop(dev_ctx, DevicePropertyAddress, &dev_ctx->dev_addr);
 
     if (!NT_SUCCESS(status))
@@ -174,10 +175,10 @@ NTSTATUS cx_evt_device_add(
 
 _Use_decl_annotations_
 VOID cx_evt_device_cleanup(
-    WDFOBJECT driver_obj
+    WDFOBJECT device_obj
 )
 {
-    UNREFERENCED_PARAMETER(driver_obj);
+    UNREFERENCED_PARAMETER(device_obj);
     PAGED_CODE();
     // nothing to do ??
 }
@@ -211,7 +212,7 @@ NTSTATUS cx_evt_device_prepare_hardware(
     }
 
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(dev);
-    
+
     for (ULONG i = 0; i < WdfCmResourceListGetCount(res_trans); i++)
     {
         PCM_PARTIAL_RESOURCE_DESCRIPTOR desc = WdfCmResourceListGetDescriptor(res_trans, i);
@@ -223,16 +224,16 @@ NTSTATUS cx_evt_device_prepare_hardware(
 
         switch (desc->Type)
         {
-        case CmResourceTypeMemory:
-            status = cx_init_mmio(dev_ctx, desc);
-            break;
+            case CmResourceTypeMemory:
+                status = cx_init_mmio(dev_ctx, desc);
+                break;
 
-        case CmResourceTypeInterrupt:
-            status = cx_init_interrupt(dev_ctx, desc, WdfCmResourceListGetDescriptor(res, i));
-            break;
+            case CmResourceTypeInterrupt:
+                status = cx_init_interrupt(dev_ctx, desc, WdfCmResourceListGetDescriptor(res, i));
+                break;
 
-        default:
-            break;
+            default:
+                break;
         }
 
         if (!NT_SUCCESS(status))
@@ -253,10 +254,7 @@ NTSTATUS cx_init_mmio(
 {
     PAGED_CODE();
 
-    dev_ctx->mmio.base = MmMapIoSpaceEx(
-        desc->u.Memory.Start,
-        desc->u.Memory.Length,
-        PAGE_NOCACHE | PAGE_READWRITE);
+    dev_ctx->mmio.base = MmMapIoSpaceEx(desc->u.Memory.Start, desc->u.Memory.Length, PAGE_NOCACHE | PAGE_READWRITE);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "mmio created %I64X->%I64X (%08X)",
         desc->u.Memory.Start.QuadPart,
@@ -274,6 +272,8 @@ NTSTATUS cx_init_mmio(
     }
 
     dev_ctx->mmio.len = desc->u.Memory.Length;
+
+    // create mdl for user mmap
     dev_ctx->user_mdl = IoAllocateMdl((PVOID)dev_ctx->mmio.base, dev_ctx->mmio.len, FALSE, FALSE, NULL);
 
     if (!dev_ctx->user_mdl)
@@ -297,12 +297,12 @@ NTSTATUS cx_init_interrupt(
     PAGED_CODE();
 
     NTSTATUS status;
-    WDF_INTERRUPT_CONFIG intr_cfg;
 
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "intrs lvl 0x%08X vec 0x%08X",
         desc->u.Interrupt.Level,
         desc->u.Interrupt.Vector);
 
+    WDF_INTERRUPT_CONFIG intr_cfg;
     WDF_INTERRUPT_CONFIG_INIT(&intr_cfg, cx_evt_isr, cx_evt_dpc);
     intr_cfg.InterruptTranslated = desc;
     intr_cfg.InterruptRaw = desc_raw;
@@ -360,8 +360,8 @@ NTSTATUS cx_evt_device_d0_entry(
 
 _Use_decl_annotations_
 NTSTATUS cx_evt_device_d0_exit(
-    _In_ WDFDEVICE dev,
-    _In_ WDF_POWER_DEVICE_STATE target_state
+    WDFDEVICE dev,
+    WDF_POWER_DEVICE_STATE target_state
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -375,17 +375,19 @@ NTSTATUS cx_evt_device_d0_exit(
 
     switch (target_state)
     {
-    case WdfPowerDeviceD1:
-    case WdfPowerDeviceD2:
-    case WdfPowerDeviceD3:
-        break;
+        case WdfPowerDeviceD3Final:
+            cx_reset(&dev_ctx->mmio);
+            break;
 
-    case WdfPowerDevicePrepareForHibernation:
-        break;
-
-    case WdfPowerDeviceD3Final:
-        cx_reset(&dev_ctx->mmio);
-        break;
+        case WdfPowerDeviceD0:
+        case WdfPowerDeviceD1:
+        case WdfPowerDeviceD2:
+        case WdfPowerDeviceD3:
+        case WdfPowerDevicePrepareForHibernation:
+        case WdfPowerDeviceInvalid:
+        case WdfPowerDeviceMaximum:
+        default:
+            break;
     }
 
     return status;
@@ -399,7 +401,7 @@ NTSTATUS cx_init_device_ctx(
     NTSTATUS status;
 
     PAGED_CODE();
-    
+
     // device is 32-bit aligned
     WdfDeviceSetAlignmentRequirement(dev_ctx->dev, FILE_LONG_ALIGNMENT);
 
@@ -462,7 +464,6 @@ NTSTATUS cx_init_dma(
     PAGED_CODE();
 
     WDF_DMA_ENABLER_CONFIG dma_cfg;
-
     WDF_DMA_ENABLER_CONFIG_INIT(&dma_cfg, WdfDmaProfilePacket, CX_VBI_BUF_SIZE);
     dma_cfg.WdmDmaVersionOverride = 3;
 
@@ -475,8 +476,8 @@ NTSTATUS cx_init_dma(
     }
 
     // risc instructions
-    dev_ctx->risc.instructions.len = CX_RISC_INSTR_BUF_SIZE;
-    status = WdfCommonBufferCreate(dev_ctx->dma_enabler, dev_ctx->risc.instructions.len, WDF_NO_OBJECT_ATTRIBUTES, &dev_ctx->risc.instructions.buf);
+    WDFCOMMONBUFFER instr_buf = WDF_NO_HANDLE;
+    status = WdfCommonBufferCreate(dev_ctx->dma_enabler, CX_RISC_INSTR_BUF_SIZE, WDF_NO_OBJECT_ATTRIBUTES, &instr_buf);
 
     if (!NT_SUCCESS(status))
     {
@@ -484,8 +485,12 @@ NTSTATUS cx_init_dma(
         return status;
     }
 
-    dev_ctx->risc.instructions.va = WdfCommonBufferGetAlignedVirtualAddress(dev_ctx->risc.instructions.buf);
-    dev_ctx->risc.instructions.la = WdfCommonBufferGetAlignedLogicalAddress(dev_ctx->risc.instructions.buf);
+    dev_ctx->risc.instructions = (DMA_DATA){
+        .buf = instr_buf,
+        .len = CX_RISC_INSTR_BUF_SIZE,
+        .va = (PUCHAR)WdfCommonBufferGetAlignedVirtualAddress(instr_buf),
+        .la = WdfCommonBufferGetAlignedLogicalAddress(instr_buf)
+    };
 
     RtlZeroMemory(dev_ctx->risc.instructions.va, dev_ctx->risc.instructions.len);
 
@@ -497,9 +502,8 @@ NTSTATUS cx_init_dma(
     // data pages
     for (ULONG i = 0; i < CX_VBI_BUF_COUNT; i++)
     {
-        DMA_DATA dma_data;
-        dma_data.len = PAGE_SIZE;
-        status = WdfCommonBufferCreate(dev_ctx->dma_enabler, dma_data.len, WDF_NO_OBJECT_ATTRIBUTES, &dma_data.buf);
+        WDFCOMMONBUFFER page_buf = WDF_NO_HANDLE;
+        status = WdfCommonBufferCreate(dev_ctx->dma_enabler, PAGE_SIZE, WDF_NO_OBJECT_ATTRIBUTES, &page_buf);
 
         if (!NT_SUCCESS(status))
         {
@@ -507,11 +511,14 @@ NTSTATUS cx_init_dma(
             return status;
         }
 
-        dma_data.va = WdfCommonBufferGetAlignedVirtualAddress(dma_data.buf);
-        dma_data.la = WdfCommonBufferGetAlignedLogicalAddress(dma_data.buf);
+        dev_ctx->risc.page[i] = (DMA_DATA){
+            .buf = page_buf,
+            .len = PAGE_SIZE,
+            .va = WdfCommonBufferGetAlignedVirtualAddress(page_buf),
+            .la = WdfCommonBufferGetAlignedLogicalAddress(page_buf)
+        };
 
-        RtlZeroMemory(dma_data.va, dma_data.len);
-        dev_ctx->risc.page[i] = dma_data;
+        RtlZeroMemory(dev_ctx->risc.page[i].va, dev_ctx->risc.page[i].len);
     }
 
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "created %d data pages", CX_VBI_BUF_COUNT);
@@ -577,10 +584,10 @@ VOID cx_init_config(
     PDEVICE_CONTEXT dev_ctx
 )
 {
-    ULONG value;
+    ULONG value = 0;
 
     // init with reg or default values
-    dev_ctx->config = (DEVICE_CONFIG) {
+    dev_ctx->config = (DEVICE_CONFIG){
         .vmux = NT_SUCCESS(cx_reg_get_value(dev_ctx->dev, CX_CTRL_CONFIG_VMUX_REG_KEY, &value)) ?
             value : CX_CTRL_CONFIG_VMUX_DEFAULT,
         .level = NT_SUCCESS(cx_reg_get_value(dev_ctx->dev, CX_CTRL_CONFIG_LEVEL_REG_KEY, &value)) ?
@@ -600,7 +607,7 @@ VOID cx_init_state(
     PDEVICE_CONTEXT dev_ctx
 )
 {
-    dev_ctx->state = (DEVICE_STATE) { 0 };
+    dev_ctx->state = (DEVICE_STATE){ 0 };
 }
 
 _Use_decl_annotations_
@@ -611,7 +618,7 @@ NTSTATUS cx_check_dev_info(
     NTSTATUS status = STATUS_SUCCESS;
     PAGED_CODE();
 
-    BUS_INTERFACE_STANDARD bus;
+    BUS_INTERFACE_STANDARD bus = { 0 };
 
     status = WdfFdoQueryForInterface(
         dev_ctx->dev,
@@ -658,18 +665,11 @@ NTSTATUS cx_read_device_prop(
 
     ULONG len;
 
-    status = WdfDeviceQueryProperty(
-        dev_ctx->dev,
-        prop,
-        sizeof(ULONG),
-        value,
-        &len
-    );
+    status = WdfDeviceQueryProperty(dev_ctx->dev, prop, sizeof(ULONG), value, &len);
 
     if (!NT_SUCCESS(status))
     {
-        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL,
-            "WdfDeviceQueryProperty failed with status %!STATUS!", status);
+        TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "WdfDeviceQueryProperty failed with status %!STATUS!", status);
         return status;
     }
 
