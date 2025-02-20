@@ -578,7 +578,6 @@ NTSTATUS cx_init_queue(
     return status;
 }
 
-_inline
 _Use_decl_annotations_
 VOID cx_init_config(
     PDEVICE_CONTEXT dev_ctx
@@ -601,7 +600,6 @@ VOID cx_init_config(
     };
 }
 
-_inline
 _Use_decl_annotations_
 VOID cx_init_state(
     PDEVICE_CONTEXT dev_ctx

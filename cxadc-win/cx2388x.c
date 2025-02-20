@@ -635,36 +635,3 @@ VOID cx_reset_ouflow_state(
 
     cx_write(mmio, CX_VIDEO_DEVICE_STATUS_ADDR, status.dword);
 }
-
-__inline
-_Use_decl_annotations_
-ULONG cx_read(
-    PMMIO mmio,
-    ULONG off
-)
-{
-    return READ_REGISTER_ULONG(&mmio->base[off >> 2]);
-}
-
-__inline
-_Use_decl_annotations_
-VOID cx_write(
-    PMMIO mmio,
-    ULONG off,
-    ULONG val
-)
-{
-    WRITE_REGISTER_ULONG(&mmio->base[off >> 2], val);
-}
-
-__inline
-_Use_decl_annotations_
-VOID cx_write_buf(
-    PMMIO mmio,
-    ULONG off,
-    PUCHAR buf,
-    ULONG count
-)
-{
-    WRITE_REGISTER_BUFFER_UCHAR((volatile PUCHAR)&mmio->base[off >> 2], buf, count);
-}

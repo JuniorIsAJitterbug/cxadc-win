@@ -35,9 +35,35 @@ VOID cx_set_center_offset(_Inout_ PMMIO mmio, _In_ ULONG center_offset);
 BOOLEAN cx_get_ouflow_state(_Inout_ PMMIO mmio);
 VOID cx_reset_ouflow_state(_Inout_ PMMIO mmio);
 
-__inline ULONG cx_read(_Inout_ PMMIO mmio, _In_ ULONG off);
-__inline VOID cx_write(_Inout_ PMMIO mmio, _In_ ULONG off, _In_ ULONG val);
-__inline VOID cx_write_buf(_Inout_ PMMIO mmio, _In_ ULONG off, _In_reads_(count) PUCHAR buf, _In_ ULONG count);
+inline static
+ULONG cx_read(
+    _Inout_ PMMIO mmio,
+    _In_ ULONG off
+)
+{
+    return READ_REGISTER_ULONG(&mmio->base[off >> 2]);
+}
+
+inline static
+VOID cx_write(
+    _Inout_ PMMIO mmio,
+    _In_ ULONG off,
+    _In_ ULONG val
+)
+{
+    WRITE_REGISTER_ULONG(&mmio->base[off >> 2], val);
+}
+
+inline static
+VOID cx_write_buf(
+    _Inout_ PMMIO mmio,
+    _In_ ULONG off,
+    _In_reads_(count) PUCHAR buf,
+    _In_ ULONG count
+)
+{
+    WRITE_REGISTER_BUFFER_UCHAR((volatile PUCHAR)&mmio->base[off >> 2], buf, count);
+}
 
 #define CX_IRQ_PERIOD_IN_PAGES                  (0x200000 >> PAGE_SHIFT)
 

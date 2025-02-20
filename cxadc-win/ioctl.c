@@ -479,13 +479,3 @@ VOID cx_evt_io_read(
 
     WdfRequestCompleteWithInformation(req, status, req_len - count);
 }
-
-__inline
-_Use_decl_annotations_
-ULONG cx_get_page_no(
-    ULONG initial_page,
-    size_t off
-)
-{
-    return (((off % CX_VBI_BUF_SIZE) / PAGE_SIZE) + initial_page) % CX_VBI_BUF_COUNT;
-}

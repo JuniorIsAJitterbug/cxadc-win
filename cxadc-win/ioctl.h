@@ -23,7 +23,14 @@ NTSTATUS cx_evt_get_input(_In_ WDFREQUEST req, _In_reads_(buf_len) PVOID buf, _I
 VOID cx_evt_io_ctrl(_In_ WDFQUEUE queue, _In_ WDFREQUEST req, _In_ size_t out_len, _In_ size_t in_len, _In_ ULONG ctrl_code);
 VOID cx_evt_io_read(_In_ WDFQUEUE queue, _In_ WDFREQUEST req, _In_ size_t len);
 
-__inline ULONG cx_get_page_no(_In_ ULONG initial_page, _In_ size_t off);
+inline static
+ULONG cx_get_page_no(
+    _In_ ULONG initial_page,
+    _In_ size_t off
+)
+{
+    return (((off % CX_VBI_BUF_SIZE) / PAGE_SIZE) + initial_page) % CX_VBI_BUF_COUNT;
+}
 
 typedef struct _SET_REGISTER_DATA
 {
