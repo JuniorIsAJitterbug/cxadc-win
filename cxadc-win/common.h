@@ -81,7 +81,7 @@ typedef struct _MMAP_DATA
 
 typedef struct _FILE_CONTEXT
 {
-    LONG64 read_offset;
+    size_t read_offset;
     MMAP_DATA mmap_data;
 } FILE_CONTEXT, *PFILE_CONTEXT;
 

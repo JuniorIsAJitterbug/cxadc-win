@@ -20,21 +20,21 @@ DEFINE_GUID(GUID_DEVINTERFACE_CXADCWIN,
 
 typedef struct _DEVICE_CONFIG
 {
-    LONG vmux;
-    LONG level;
+    ULONG vmux;
+    ULONG level;
     BOOLEAN tenbit;
     BOOLEAN sixdb;
-    LONG center_offset;
+    ULONG center_offset;
 } DEVICE_CONFIG, *PDEVICE_CONFIG;
 
 typedef struct _DEVICE_STATE
 {
-    LONG last_gp_cnt;
-    LONG initial_page;
+    ULONG last_gp_cnt;
+    ULONG initial_page;
     
     ULONG ouflow_count;
 
-    LONG reader_count;
+    ULONG reader_count;
     BOOLEAN is_capturing;
 } DEVICE_STATE, *PDEVICE_STATE;
 

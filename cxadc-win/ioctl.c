@@ -54,7 +54,7 @@ VOID cx_evt_file_close(
 
     if (file_ctx->read_offset)
     {
-        InterlockedDecrement(&dev_ctx->state.reader_count);
+        InterlockedDecrementSizeT(&dev_ctx->state.reader_count);
 
         // stop capture if no other readers
         if (!dev_ctx->state.reader_count)
@@ -450,13 +450,13 @@ VOID cx_evt_io_read(
             TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "KeWaitForSingleObject failed with status %!STATUS!", status);
         }
 
-        InterlockedExchange(&dev_ctx->state.initial_page, dev_ctx->state.last_gp_cnt);
+        InterlockedExchange((PLONG)&dev_ctx->state.initial_page, dev_ctx->state.last_gp_cnt);
     }
 
     // new reader, increment count
     if (!file_ctx->read_offset)
     {
-        InterlockedIncrement(&dev_ctx->state.reader_count);
+        InterlockedIncrement((PLONG)&dev_ctx->state.reader_count);
     }
 
     WDFMEMORY mem;
@@ -469,17 +469,17 @@ VOID cx_evt_io_read(
         return;
     }
 
-    LONG64 count = req_len;
-    LONG64 offset = file_ctx->read_offset;
-    LONG64 tgt_off = 0;
-    LONG page_no = cx_get_page_no(dev_ctx->state.initial_page, offset);
+    size_t count = req_len;
+    size_t offset = file_ctx->read_offset;
+    size_t tgt_off = 0;
+    ULONG page_no = cx_get_page_no(dev_ctx->state.initial_page, offset);
 
     while (count && dev_ctx->state.is_capturing)
     {
         while (count > 0 && page_no != dev_ctx->state.last_gp_cnt)
         {
-            LONG64 page_off = offset % PAGE_SIZE;
-            LONG64 len = page_off ? (PAGE_SIZE - page_off) : PAGE_SIZE;
+            size_t page_off = offset % PAGE_SIZE;
+            size_t len = page_off ? (PAGE_SIZE - page_off) : PAGE_SIZE;
 
             if (len > count) {
                 len = count;
@@ -504,7 +504,7 @@ VOID cx_evt_io_read(
         // check over/underflow, increment count if set
         if (cx_get_ouflow_state(&dev_ctx->mmio))
         {
-            dev_ctx->state.ouflow_count += 1;
+            InterlockedIncrement((PLONG)&dev_ctx->state.ouflow_count);
             cx_reset_ouflow_state(&dev_ctx->mmio);
         }
 
@@ -527,7 +527,7 @@ VOID cx_evt_io_read(
 
     // our read request does not contain an offset,
     // so we keep track of it for the duration of the capture
-    InterlockedExchange64(&file_ctx->read_offset, offset);
+    InterlockedExchange64((PLONG64)&file_ctx->read_offset, offset);
 
     WdfRequestCompleteWithInformation(req, status, req_len - count);
 }

@@ -46,7 +46,7 @@ NTSTATUS cx_ctrl_set_vmux(
 
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting vmux to %d", value);
 
-    dev_ctx->config.vmux = value;
+    InterlockedExchange((PLONG)&dev_ctx->config.vmux, value);
     status = cx_reg_set_value(dev_ctx->dev, CX_CTRL_CONFIG_VMUX_REG_KEY, value);
     cx_set_vmux(&dev_ctx->mmio, value);
 
@@ -69,7 +69,7 @@ NTSTATUS cx_ctrl_set_level(
 
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting level to %d", value);
 
-    dev_ctx->config.level = value;
+    InterlockedExchange((PLONG)&dev_ctx->config.level, value);
     status = cx_reg_set_value(dev_ctx->dev, CX_CTRL_CONFIG_LEVEL_REG_KEY, value);
     cx_set_level(&dev_ctx->mmio, value, dev_ctx->config.sixdb);
 
@@ -85,7 +85,7 @@ NTSTATUS cx_ctrl_set_tenbit(
     NTSTATUS status = STATUS_SUCCESS;
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting tenbit to %d", value);
 
-    dev_ctx->config.tenbit = value;
+    InterlockedExchange8((PCHAR)&dev_ctx->config.tenbit, value);
     status = cx_reg_set_value(dev_ctx->dev, CX_CTRL_CONFIG_TENBIT_REG_KEY, value);
     cx_set_tenbit(&dev_ctx->mmio, value);
 
@@ -101,7 +101,7 @@ NTSTATUS cx_ctrl_set_sixdb(
     NTSTATUS status = STATUS_SUCCESS;
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting sixdb to %d", value);
 
-    dev_ctx->config.sixdb = value;
+    InterlockedExchange8((PCHAR)&dev_ctx->config.sixdb, value);
     status = cx_reg_set_value(dev_ctx->dev, CX_CTRL_CONFIG_SIXDB_REG_KEY, value);
     cx_set_level(&dev_ctx->mmio, dev_ctx->config.level, value ? TRUE : FALSE);
 
@@ -124,7 +124,7 @@ NTSTATUS cx_ctrl_set_center_offset(
 
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "setting center_offset to %d", value);
 
-    dev_ctx->config.center_offset = value;
+    InterlockedExchange((PLONG)&dev_ctx->config.center_offset, value);
     status = cx_reg_set_value(dev_ctx->dev, CX_CTRL_CONFIG_CENTER_OFFSET_REG_KEY, value);
     cx_set_center_offset(&dev_ctx->mmio, value);
 
