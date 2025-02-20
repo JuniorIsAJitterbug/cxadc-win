@@ -16,10 +16,11 @@
 
 #include "registry.h"
 
+_Use_decl_annotations_
 NTSTATUS cx_reg_get_value(
-    _In_ WDFDEVICE dev,
-    _In_ PCWSTR key_cwstr,
-    _Out_ PULONG value
+    WDFDEVICE dev,
+    PCWSTR key_cwstr,
+    PULONG value
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -55,10 +56,11 @@ NTSTATUS cx_reg_get_value(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_reg_set_value(
-    _In_ WDFDEVICE dev,
-    _In_ PCWSTR key_cwstr,
-    _In_ ULONG value
+    WDFDEVICE dev,
+    PCWSTR key_cwstr,
+    ULONG value
 )
 {
     NTSTATUS status = STATUS_SUCCESS;

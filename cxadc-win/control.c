@@ -18,6 +18,7 @@
 #include "cx2388x.h"
 #include "registry.h"
 
+_Use_decl_annotations_
 ULONG cx_ctrl_reset_ouflow_count(
     PDEVICE_CONTEXT dev_ctx
 )
@@ -29,6 +30,7 @@ ULONG cx_ctrl_reset_ouflow_count(
     return cur;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_ctrl_set_vmux(
     PDEVICE_CONTEXT dev_ctx,
     ULONG value
@@ -51,6 +53,7 @@ NTSTATUS cx_ctrl_set_vmux(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_ctrl_set_level(
     PDEVICE_CONTEXT dev_ctx,
     ULONG value
@@ -73,6 +76,7 @@ NTSTATUS cx_ctrl_set_level(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_ctrl_set_tenbit(
     PDEVICE_CONTEXT dev_ctx,
     BOOLEAN value
@@ -88,6 +92,7 @@ NTSTATUS cx_ctrl_set_tenbit(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_ctrl_set_sixdb(
     PDEVICE_CONTEXT dev_ctx,
     BOOLEAN value
@@ -103,6 +108,7 @@ NTSTATUS cx_ctrl_set_sixdb(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_ctrl_set_center_offset(
     PDEVICE_CONTEXT dev_ctx,
     ULONG value

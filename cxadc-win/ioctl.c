@@ -24,11 +24,11 @@
 #pragma alloc_text (PAGE, cx_evt_file_cleanup)
 #endif
 
-VOID
-cx_evt_file_create(
-    _In_ WDFDEVICE dev,
-    _In_ WDFREQUEST req,
-    _In_ WDFFILEOBJECT file_obj)
+_Use_decl_annotations_
+VOID cx_evt_file_create(
+    WDFDEVICE dev,
+    WDFREQUEST req,
+    WDFFILEOBJECT file_obj)
 {
     UNREFERENCED_PARAMETER(dev);
 
@@ -42,9 +42,9 @@ cx_evt_file_create(
     WdfRequestComplete(req, status);
 }
 
-VOID
-cx_evt_file_close(
-    _In_ WDFFILEOBJECT file_obj
+_Use_decl_annotations_
+VOID cx_evt_file_close(
+    WDFFILEOBJECT file_obj
 )
 {
     PAGED_CODE();
@@ -64,9 +64,9 @@ cx_evt_file_close(
     }
 }
 
-VOID
-cx_evt_file_cleanup(
-    _In_ WDFFILEOBJECT file_obj
+_Use_decl_annotations_
+VOID cx_evt_file_cleanup(
+    WDFFILEOBJECT file_obj
 )
 {
     PAGED_CODE();
@@ -83,12 +83,13 @@ cx_evt_file_cleanup(
     }
 }
 
+_Use_decl_annotations_
 VOID cx_evt_io_ctrl(
-    _In_ WDFQUEUE queue,
-    _In_ WDFREQUEST req,
-    _In_ size_t out_len,
-    _In_ size_t in_len,
-    _In_ ULONG ctrl_code
+    WDFQUEUE queue,
+    WDFREQUEST req,
+    size_t out_len,
+    size_t in_len,
+    ULONG ctrl_code
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -424,10 +425,11 @@ VOID cx_evt_io_ctrl(
     WdfRequestComplete(req, status);
 }
 
+_Use_decl_annotations_
 VOID cx_evt_io_read(
-    _In_ WDFQUEUE queue,
-    _In_ WDFREQUEST req,
-    _In_ size_t req_len
+    WDFQUEUE queue,
+    WDFREQUEST req,
+    size_t req_len
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -531,9 +533,10 @@ VOID cx_evt_io_read(
 }
 
 __inline
+_Use_decl_annotations_
 ULONG cx_get_page_no(
-    _In_ ULONG initial_page,
-    _In_ size_t off
+    ULONG initial_page,
+    size_t off
 )
 {
     return (((off % CX_VBI_BUF_SIZE) / PAGE_SIZE) + initial_page) % CX_VBI_BUF_COUNT;

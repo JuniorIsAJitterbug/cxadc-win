@@ -40,9 +40,10 @@
 #pragma alloc_text (PAGE, cx_read_device_prop)
 #endif
 
+_Use_decl_annotations_
 NTSTATUS DriverEntry(
-    _In_    PDRIVER_OBJECT  driver_obj,
-    _In_    PUNICODE_STRING reg_path
+    PDRIVER_OBJECT driver_obj,
+    PUNICODE_STRING reg_path
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -70,9 +71,10 @@ NTSTATUS DriverEntry(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_evt_device_add(
-    _In_    WDFDRIVER driver,
-    _Inout_ PWDFDEVICE_INIT dev_init
+    WDFDRIVER driver,
+    PWDFDEVICE_INIT dev_init
 )
 {
     NTSTATUS status;
@@ -171,8 +173,9 @@ NTSTATUS cx_evt_device_add(
     return status;
 }
 
+_Use_decl_annotations_
 VOID cx_evt_device_cleanup(
-    _In_ WDFOBJECT driver_obj
+    WDFOBJECT driver_obj
 )
 {
     UNREFERENCED_PARAMETER(driver_obj);
@@ -180,14 +183,16 @@ VOID cx_evt_device_cleanup(
     // nothing to do ??
 }
 
+_Use_decl_annotations_
 VOID cx_evt_driver_ctx_cleanup(
-    _In_ WDFOBJECT driver_obj
+    WDFOBJECT driver_obj
 )
 {
     PAGED_CODE();
     WPP_CLEANUP(driver_obj);
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_evt_device_prepare_hardware(
     WDFDEVICE dev,
     WDFCMRESLIST res,
@@ -241,9 +246,10 @@ NTSTATUS cx_evt_device_prepare_hardware(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_init_mmio(
-    _In_ PDEVICE_CONTEXT dev_ctx,
-    _In_ PCM_PARTIAL_RESOURCE_DESCRIPTOR desc
+    PDEVICE_CONTEXT dev_ctx,
+    PCM_PARTIAL_RESOURCE_DESCRIPTOR desc
 )
 {
     PAGED_CODE();
@@ -282,10 +288,11 @@ NTSTATUS cx_init_mmio(
     return STATUS_SUCCESS;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_init_interrupt(
-    _In_ PDEVICE_CONTEXT dev_ctx,
-    _In_ PCM_PARTIAL_RESOURCE_DESCRIPTOR desc,
-    _In_ PCM_PARTIAL_RESOURCE_DESCRIPTOR desc_raw
+    PDEVICE_CONTEXT dev_ctx,
+    PCM_PARTIAL_RESOURCE_DESCRIPTOR desc,
+    PCM_PARTIAL_RESOURCE_DESCRIPTOR desc_raw
 )
 {
     PAGED_CODE();
@@ -312,9 +319,10 @@ NTSTATUS cx_init_interrupt(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_evt_device_release_hardware(
-    _In_ WDFDEVICE dev,
-    _In_ WDFCMRESLIST res_trans
+    WDFDEVICE dev,
+    WDFCMRESLIST res_trans
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -333,9 +341,10 @@ NTSTATUS cx_evt_device_release_hardware(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_evt_device_d0_entry(
-    _In_ WDFDEVICE dev,
-    _In_ WDF_POWER_DEVICE_STATE prev_state
+    WDFDEVICE dev,
+    WDF_POWER_DEVICE_STATE prev_state
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -350,6 +359,7 @@ NTSTATUS cx_evt_device_d0_entry(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_evt_device_d0_exit(
     _In_ WDFDEVICE dev,
     _In_ WDF_POWER_DEVICE_STATE target_state
@@ -382,8 +392,9 @@ NTSTATUS cx_evt_device_d0_exit(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_init_device_ctx(
-    _Inout_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     NTSTATUS status;
@@ -443,8 +454,9 @@ NTSTATUS cx_init_device_ctx(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_init_dma(
-    _In_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -507,8 +519,9 @@ NTSTATUS cx_init_dma(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_init_queue(
-    _In_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -560,8 +573,9 @@ NTSTATUS cx_init_queue(
 }
 
 _inline
+_Use_decl_annotations_
 VOID cx_init_config(
-    _Inout_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     ULONG value;
@@ -582,15 +596,17 @@ VOID cx_init_config(
 }
 
 _inline
+_Use_decl_annotations_
 VOID cx_init_state(
-    _Inout_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     dev_ctx->state = (DEVICE_STATE) { 0 };
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_check_dev_info(
-    _In_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -631,10 +647,11 @@ NTSTATUS cx_check_dev_info(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_read_device_prop(
-    _In_ PDEVICE_CONTEXT dev_ctx,
-    _In_ DEVICE_REGISTRY_PROPERTY prop,
-    _Inout_ PULONG value
+    PDEVICE_CONTEXT dev_ctx,
+    DEVICE_REGISTRY_PROPERTY prop,
+    PULONG value
 )
 {
     NTSTATUS status = STATUS_SUCCESS;

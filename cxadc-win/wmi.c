@@ -18,8 +18,9 @@
 #include "wmi.h"
 #include "control.h"
 
+_Use_decl_annotations_
 NTSTATUS cx_wmi_register(
-    _In_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -90,11 +91,12 @@ NTSTATUS cx_wmi_register(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_wmi_state_query(
-    _In_ WDFWMIINSTANCE instance,
-    _In_ ULONG out_buf_size,
-    _Out_writes_bytes_to_(out_buf_size, *buf_used) PVOID out_buf,
-    _Out_ PULONG buf_used
+    WDFWMIINSTANCE instance,
+    ULONG out_buf_size,
+    PVOID out_buf,
+    PULONG buf_used
 )
 {
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfWmiInstanceGetDevice(instance));
@@ -112,15 +114,14 @@ NTSTATUS cx_wmi_state_query(
     return STATUS_SUCCESS;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_wmi_state_exe(
-    _In_ WDFWMIINSTANCE instance,
-    _In_ ULONG method_id,
-    _In_ ULONG in_buf_size,
-    _In_ ULONG out_buf_size,
-    _When_(in_buf_size >= out_buf_size, _Inout_updates_bytes_(in_buf_size))
-    _When_(in_buf_size < out_buf_size, _Inout_updates_bytes_(out_buf_size))
+    WDFWMIINSTANCE instance,
+    ULONG method_id,
+    ULONG in_buf_size,
+    ULONG out_buf_size,
     PVOID buf,
-    _Out_ PULONG buf_used
+    PULONG buf_used
 )
 {
     UNREFERENCED_PARAMETER(in_buf_size);
@@ -153,11 +154,12 @@ NTSTATUS cx_wmi_state_exe(
     return STATUS_SUCCESS;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_wmi_config_query(
-    _In_ WDFWMIINSTANCE instance,
-    _In_ ULONG out_buf_size,
-    _Out_writes_bytes_to_(out_buf_size, *buf_used) PVOID out_buf,
-    _Out_ PULONG buf_used
+    WDFWMIINSTANCE instance,
+    ULONG out_buf_size,
+    PVOID out_buf,
+    PULONG buf_used
 )
 {
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfWmiInstanceGetDevice(instance));
@@ -175,10 +177,11 @@ NTSTATUS cx_wmi_config_query(
     return STATUS_SUCCESS;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_wmi_config_set(
-    _In_ WDFWMIINSTANCE instance,
-    _In_ ULONG in_buf_size,
-    _In_reads_bytes_(in_buf_size) PVOID in_buf
+    WDFWMIINSTANCE instance,
+    ULONG in_buf_size,
+    PVOID in_buf
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -224,11 +227,12 @@ NTSTATUS cx_wmi_config_set(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_wmi_config_set_item(
-    _In_ WDFWMIINSTANCE instance,
-    _In_ ULONG id,
-    _In_ ULONG in_buf_size,
-    _In_reads_bytes_(in_buf_size) PVOID in_buf
+    WDFWMIINSTANCE instance,
+    ULONG id,
+    ULONG in_buf_size,
+    PVOID in_buf
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -271,11 +275,12 @@ NTSTATUS cx_wmi_config_set_item(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_wmi_path_query(
-    _In_ WDFWMIINSTANCE instance,
-    _In_ ULONG out_buf_size,
-    _Out_writes_bytes_to_(out_buf_size, *buf_used) PVOID out_buf,
-    _Out_ PULONG buf_used
+    WDFWMIINSTANCE instance,
+    ULONG out_buf_size,
+    PVOID out_buf,
+    PULONG buf_used
 )
 {
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfWmiInstanceGetDevice(instance));

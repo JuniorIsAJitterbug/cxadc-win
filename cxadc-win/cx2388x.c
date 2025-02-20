@@ -17,37 +17,41 @@
 #include "cx2388x.h"
 
 __inline
+_Use_decl_annotations_
 ULONG cx_read(
-    _Inout_ PDEVICE_CONTEXT dev_ctx,
-    _In_ ULONG off
+    PDEVICE_CONTEXT dev_ctx,
+    ULONG off
 )
 {
     return READ_REGISTER_ULONG(&dev_ctx->mmio[off >> 2]);
 }
 
 __inline
+_Use_decl_annotations_
 VOID cx_write(
-    _Inout_ PDEVICE_CONTEXT dev_ctx,
-    _In_ ULONG off,
-    _In_ ULONG val
+    PDEVICE_CONTEXT dev_ctx,
+    ULONG off,
+    ULONG val
 )
 {
     WRITE_REGISTER_ULONG(&dev_ctx->mmio[off >> 2], val);
 }
 
 __inline
+_Use_decl_annotations_
 VOID cx_write_buf8(
-    _Inout_ PDEVICE_CONTEXT dev_ctx,
-    _In_ ULONG off,
-    _In_ PUCHAR buf,
-    _In_ ULONG count
+    PDEVICE_CONTEXT dev_ctx,
+    ULONG off,
+    PUCHAR buf,
+    ULONG count
 )
 {
     WRITE_REGISTER_BUFFER_UCHAR((PUCHAR)&dev_ctx->mmio[off >> 2], buf, count);
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_init(
-    _Inout_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -186,8 +190,9 @@ NTSTATUS cx_init(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_init_cdt(
-    _Inout_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -231,8 +236,9 @@ NTSTATUS cx_init_cdt(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_init_risc(
-    _Inout_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -307,8 +313,9 @@ NTSTATUS cx_init_risc(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_init_cmds(
-    _Inout_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -327,8 +334,9 @@ NTSTATUS cx_init_cmds(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_disable(
-    _Inout_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -348,8 +356,9 @@ NTSTATUS cx_disable(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_reset(
-    _Inout_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -424,9 +433,10 @@ NTSTATUS cx_reset(
     return status;
 }
 
+_Use_decl_annotations_
 BOOLEAN cx_evt_isr(
-    _In_ WDFINTERRUPT intr,
-    _In_ ULONG msg_id
+    WDFINTERRUPT intr,
+    ULONG msg_id
 )
 {
     UNREFERENCED_PARAMETER(msg_id);
@@ -463,9 +473,10 @@ BOOLEAN cx_evt_isr(
     return is_recognized;
 }
 
+_Use_decl_annotations_
 VOID cx_evt_dpc(
-    _In_ WDFINTERRUPT intr,
-    _In_ WDFOBJECT dev
+    WDFINTERRUPT intr,
+    WDFOBJECT dev
 )
 {
     UNREFERENCED_PARAMETER(dev);
@@ -484,9 +495,10 @@ VOID cx_evt_dpc(
     KeSetEvent(&dev_ctx->isr_event, IO_NO_INCREMENT, FALSE);
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_evt_intr_enable(
-    _In_ WDFINTERRUPT intr,
-    _In_ WDFDEVICE    dev
+    WDFINTERRUPT intr,
+    WDFDEVICE    dev
 )
 {
     UNREFERENCED_PARAMETER(dev);
@@ -504,9 +516,10 @@ NTSTATUS cx_evt_intr_enable(
     return status;
 }
 
+_Use_decl_annotations_
 NTSTATUS cx_evt_intr_disable(
-    _In_ WDFINTERRUPT intr,
-    _In_ WDFDEVICE    dev
+    WDFINTERRUPT intr,
+    WDFDEVICE    dev
 )
 {
     UNREFERENCED_PARAMETER(dev);
@@ -520,8 +533,9 @@ NTSTATUS cx_evt_intr_disable(
     return status;
 }
 
+_Use_decl_annotations_
 VOID cx_start_capture(
-    _Inout_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     if (dev_ctx->state.is_capturing)
@@ -557,8 +571,9 @@ VOID cx_start_capture(
     InterlockedExchange((PLONG)&dev_ctx->state.is_capturing, TRUE);
 }
 
+_Use_decl_annotations_
 VOID cx_stop_capture(
-    _Inout_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "stopping capture");
@@ -576,8 +591,9 @@ VOID cx_stop_capture(
     cx_write(dev_ctx, CX_DMAC_DEVICE_CONTROL_2_ADDR, 0);
 }
 
+_Use_decl_annotations_
 VOID cx_set_vmux(
-    _Inout_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     cx_write(dev_ctx, CX_VIDEO_INPUT_FORMAT_ADDR,
@@ -590,8 +606,9 @@ VOID cx_set_vmux(
         }.dword);
 }
 
+_Use_decl_annotations_
 VOID cx_set_level(
-    _Inout_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     cx_write(dev_ctx, CX_VIDEO_AGC_GAIN_ADJUST_4_ADDR,
@@ -605,8 +622,9 @@ VOID cx_set_level(
         }.dword);
 }
 
+_Use_decl_annotations_
 VOID cx_set_tenbit(
-    _Inout_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     cx_write(dev_ctx, CX_VIDEO_CAPTURE_CONTROL_ADDR,
@@ -618,8 +636,9 @@ VOID cx_set_tenbit(
         }.dword);
 }
 
+_Use_decl_annotations_
 VOID cx_set_center_offset(
-    _Inout_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     cx_write(dev_ctx, CX_VIDEO_AGC_SYNC_TIP_ADJUST_3_ADDR,
@@ -630,8 +649,9 @@ VOID cx_set_center_offset(
         }.dword);
 }
 
+_Use_decl_annotations_
 BOOLEAN cx_get_ouflow_state(
-    _Inout_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     CX_VIDEO_DEVICE_STATUS status =
@@ -642,8 +662,9 @@ BOOLEAN cx_get_ouflow_state(
     return status.lof ? TRUE : FALSE;
 }
 
+_Use_decl_annotations_
 VOID cx_reset_ouflow_state(
-    _Inout_ PDEVICE_CONTEXT dev_ctx
+    PDEVICE_CONTEXT dev_ctx
 )
 {
     CX_VIDEO_DEVICE_STATUS status =
