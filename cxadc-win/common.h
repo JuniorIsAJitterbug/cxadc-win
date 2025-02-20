@@ -30,6 +30,12 @@ typedef struct _DRIVER_CONTEXT
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(DRIVER_CONTEXT, cx_driver_get_ctx)
 
+typedef struct _MMIO
+{
+    volatile PULONG base;
+    ULONG len;
+} MMIO, * PMMIO;
+
 typedef struct _DMA_DATA
 {
     WDFCOMMONBUFFER buf;
@@ -37,6 +43,12 @@ typedef struct _DMA_DATA
     PUCHAR va;
     PHYSICAL_ADDRESS la;
 } DMA_DATA, *PDMA_DATA;
+
+typedef struct _RISC
+{
+    DMA_DATA instructions;
+    DMA_DATA page[CX_VBI_BUF_COUNT];
+} RISC, *PRISC;
 
 typedef struct _DEVICE_CONTEXT
 {
@@ -55,12 +67,9 @@ typedef struct _DEVICE_CONTEXT
 
     WDFDMAENABLER dma_enabler;
 
-    PULONG mmio;
-    ULONG mmio_len;
+    MMIO mmio;
+    RISC risc;
     PMDL user_mdl;
-
-    DMA_DATA dma_risc_instr;
-    DMA_DATA dma_risc_page[CX_VBI_BUF_COUNT];
 } DEVICE_CONTEXT, *PDEVICE_CONTEXT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(DEVICE_CONTEXT, cx_device_get_ctx)

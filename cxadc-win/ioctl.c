@@ -288,7 +288,7 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        *(PULONG)out_buf = cx_read(dev_ctx, address);
+        *(PULONG)out_buf = cx_read(&dev_ctx->mmio, address);
         break;
     }
 
@@ -377,7 +377,7 @@ VOID cx_evt_io_ctrl(
         }
 
         TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "writing %08X to %08X", data.val, data.addr);
-        cx_write(dev_ctx, data.addr, data.val);
+        cx_write(&dev_ctx->mmio, data.addr, data.val);
         break;
     }
 
@@ -485,7 +485,7 @@ VOID cx_evt_io_read(
                 len = count;
             }
 
-            WdfMemoryCopyFromBuffer(mem, tgt_off, &dev_ctx->dma_risc_page[page_no].va[page_off], len);
+            WdfMemoryCopyFromBuffer(mem, tgt_off, &dev_ctx->risc.page[page_no].va[page_off], len);
 
             if (!NT_SUCCESS(status))
             {
@@ -502,10 +502,10 @@ VOID cx_evt_io_read(
         }
 
         // check over/underflow, increment count if set
-        if (cx_get_ouflow_state(dev_ctx))
+        if (cx_get_ouflow_state(&dev_ctx->mmio))
         {
             dev_ctx->state.ouflow_count += 1;
-            cx_reset_ouflow_state(dev_ctx);
+            cx_reset_ouflow_state(&dev_ctx->mmio);
         }
 
         if (count)

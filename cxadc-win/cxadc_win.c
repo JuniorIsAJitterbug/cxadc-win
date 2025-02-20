@@ -253,7 +253,7 @@ NTSTATUS cx_init_mmio(
 {
     PAGED_CODE();
 
-    dev_ctx->mmio = (PULONG)MmMapIoSpaceEx(
+    dev_ctx->mmio.base = MmMapIoSpaceEx(
         desc->u.Memory.Start,
         desc->u.Memory.Length,
         PAGE_NOCACHE | PAGE_READWRITE);
@@ -263,7 +263,7 @@ NTSTATUS cx_init_mmio(
         desc->u.Memory.Start.QuadPart + desc->u.Memory.Length,
         desc->u.Memory.Length);
 
-    if (!dev_ctx->mmio)
+    if (!dev_ctx->mmio.base)
     {
         TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "MmMapIoSpaceEx failed to create %I64X->%I64X (%08X)",
             desc->u.Memory.Start.QuadPart,
@@ -273,8 +273,8 @@ NTSTATUS cx_init_mmio(
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
-    dev_ctx->mmio_len = desc->u.Memory.Length;
-    dev_ctx->user_mdl = IoAllocateMdl((PVOID)dev_ctx->mmio, dev_ctx->mmio_len, FALSE, FALSE, NULL);
+    dev_ctx->mmio.len = desc->u.Memory.Length;
+    dev_ctx->user_mdl = IoAllocateMdl((PVOID)dev_ctx->mmio.base, dev_ctx->mmio.len, FALSE, FALSE, NULL);
 
     if (!dev_ctx->user_mdl)
     {
@@ -331,10 +331,10 @@ NTSTATUS cx_evt_device_release_hardware(
 
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(dev);
 
-    if (dev_ctx->mmio)
+    if (dev_ctx->mmio.base != NULL)
     {
-        MmUnmapIoSpace(dev_ctx->mmio, dev_ctx->mmio_len);
-        dev_ctx->mmio = NULL;
+        MmUnmapIoSpace((PVOID)dev_ctx->mmio.base, dev_ctx->mmio.len);
+        dev_ctx->mmio.base = NULL;
     }
 
     return status;
@@ -371,7 +371,7 @@ NTSTATUS cx_evt_device_d0_exit(
 
     // should already be stopped
     cx_stop_capture(dev_ctx);
-    cx_disable(dev_ctx);
+    cx_disable(&dev_ctx->mmio);
 
     switch (target_state)
     {
@@ -384,7 +384,7 @@ NTSTATUS cx_evt_device_d0_exit(
         break;
 
     case WdfPowerDeviceD3Final:
-        cx_reset(dev_ctx);
+        cx_reset(&dev_ctx->mmio);
         break;
     }
 
@@ -475,8 +475,8 @@ NTSTATUS cx_init_dma(
     }
 
     // risc instructions
-    dev_ctx->dma_risc_instr.len = CX_RISC_INSTR_BUF_SIZE;
-    status = WdfCommonBufferCreate(dev_ctx->dma_enabler, dev_ctx->dma_risc_instr.len, WDF_NO_OBJECT_ATTRIBUTES, &dev_ctx->dma_risc_instr.buf);
+    dev_ctx->risc.instructions.len = CX_RISC_INSTR_BUF_SIZE;
+    status = WdfCommonBufferCreate(dev_ctx->dma_enabler, dev_ctx->risc.instructions.len, WDF_NO_OBJECT_ATTRIBUTES, &dev_ctx->risc.instructions.buf);
 
     if (!NT_SUCCESS(status))
     {
@@ -484,15 +484,15 @@ NTSTATUS cx_init_dma(
         return status;
     }
 
-    dev_ctx->dma_risc_instr.va = WdfCommonBufferGetAlignedVirtualAddress(dev_ctx->dma_risc_instr.buf);
-    dev_ctx->dma_risc_instr.la = WdfCommonBufferGetAlignedLogicalAddress(dev_ctx->dma_risc_instr.buf);
+    dev_ctx->risc.instructions.va = WdfCommonBufferGetAlignedVirtualAddress(dev_ctx->risc.instructions.buf);
+    dev_ctx->risc.instructions.la = WdfCommonBufferGetAlignedLogicalAddress(dev_ctx->risc.instructions.buf);
 
-    RtlZeroMemory(dev_ctx->dma_risc_instr.va, dev_ctx->dma_risc_instr.len);
+    RtlZeroMemory(dev_ctx->risc.instructions.va, dev_ctx->risc.instructions.len);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "created risc instr dma 0x%p, (%I64X) (%u kbytes)",
-        dev_ctx->dma_risc_instr.va,
-        dev_ctx->dma_risc_instr.la.QuadPart,
-        (ULONG)(WdfCommonBufferGetLength(dev_ctx->dma_risc_instr.buf) / 1024));
+        dev_ctx->risc.instructions.va,
+        dev_ctx->risc.instructions.la.QuadPart,
+        (ULONG)(WdfCommonBufferGetLength(dev_ctx->risc.instructions.buf) / 1024));
 
     // data pages
     for (ULONG i = 0; i < CX_VBI_BUF_COUNT; i++)
@@ -511,7 +511,7 @@ NTSTATUS cx_init_dma(
         dma_data.la = WdfCommonBufferGetAlignedLogicalAddress(dma_data.buf);
 
         RtlZeroMemory(dma_data.va, dma_data.len);
-        dev_ctx->dma_risc_page[i] = dma_data;
+        dev_ctx->risc.page[i] = dma_data;
     }
 
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "created %d data pages", CX_VBI_BUF_COUNT);

@@ -15,115 +15,80 @@
 #include "cx2388x.tmh"
 #include "cx2388x.h"
 
-__inline
-_Use_decl_annotations_
-ULONG cx_read(
-    PDEVICE_CONTEXT dev_ctx,
-    ULONG off
-)
-{
-    return READ_REGISTER_ULONG(&dev_ctx->mmio[off >> 2]);
-}
-
-__inline
-_Use_decl_annotations_
-VOID cx_write(
-    PDEVICE_CONTEXT dev_ctx,
-    ULONG off,
-    ULONG val
-)
-{
-    WRITE_REGISTER_ULONG(&dev_ctx->mmio[off >> 2], val);
-}
-
-__inline
-_Use_decl_annotations_
-VOID cx_write_buf8(
-    PDEVICE_CONTEXT dev_ctx,
-    ULONG off,
-    PUCHAR buf,
-    ULONG count
-)
-{
-    WRITE_REGISTER_BUFFER_UCHAR((PUCHAR)&dev_ctx->mmio[off >> 2], buf, count);
-}
-
 _Use_decl_annotations_
 NTSTATUS cx_init(
     PDEVICE_CONTEXT dev_ctx
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-
     // the following values & comments are from the Linux driver
     // I don't fully understand what each value is doing, nor if/why they are required
 
-    cx_init_cdt(dev_ctx);
-    cx_init_risc(dev_ctx);
-    cx_init_cmds(dev_ctx);
+    cx_init_cdt(&dev_ctx->mmio);
+    cx_init_risc(&dev_ctx->risc);
+    cx_init_cmds(&dev_ctx->mmio, &dev_ctx->risc);
 
     // clear interrupt
-    cx_write(dev_ctx, CX_DMAC_VIDEO_INTERRUPT_STATUS_ADDR, cx_read(dev_ctx, CX_DMAC_VIDEO_INTERRUPT_STATUS_ADDR));
+    cx_write(&dev_ctx->mmio, CX_DMAC_VIDEO_INTERRUPT_STATUS_ADDR, cx_read(&dev_ctx->mmio, CX_DMAC_VIDEO_INTERRUPT_STATUS_ADDR));
 
     // allow full range
-    cx_write(dev_ctx, CX_VIDEO_OUTPUT_CONTROL_ADDR,
-        (CX_VIDEO_OUTPUT_CONTROL) {
+    cx_write(&dev_ctx->mmio, CX_VIDEO_OUTPUT_CONTROL_ADDR,
+        (CX_VIDEO_OUTPUT_CONTROL){
             .hsfmt = 1,
             .hactext = 1,
             .range = 1
         }.dword);
 
-    cx_write(dev_ctx, CX_VIDEO_CONTRAST_BRIGHTNESS_ADDR,
-        (CX_VIDEO_CONTRAST_BRIGHTNESS) {
+    cx_write(&dev_ctx->mmio, CX_VIDEO_CONTRAST_BRIGHTNESS_ADDR,
+        (CX_VIDEO_CONTRAST_BRIGHTNESS){
             .cntrst = 0xFF
         }.dword);
 
     // no of byte transferred from peripheral to fifo
     // if fifo buffer < this, it will still transfer this no of byte
     // must be multiple of 8, if not go haywire?
-    cx_write(dev_ctx, CX_VIDEO_VBI_PACKET_SIZE_DELAY_ADDR,
-        (CX_VIDEO_VBI_PACKET_SIZE_DELAY) {
+    cx_write(&dev_ctx->mmio, CX_VIDEO_VBI_PACKET_SIZE_DELAY_ADDR,
+        (CX_VIDEO_VBI_PACKET_SIZE_DELAY){
             .vbi_v_del = 2,
             .frm_size = CX_CDT_BUF_LEN
         }.dword);
 
     // raw mode & byte swap << 8 (3 << 8 = swap)
-    cx_write(dev_ctx, CX_VIDEO_COLOR_FORMAT_CONTROL_ADDR,
-        (CX_VIDEO_COLOR_FORMAT_CONTROL) {
+    cx_write(&dev_ctx->mmio, CX_VIDEO_COLOR_FORMAT_CONTROL_ADDR,
+        (CX_VIDEO_COLOR_FORMAT_CONTROL){
             .color_even = 0xE,
             .color_odd = 0xE,
         }.dword);
 
     // power down audio and chroma DAC+ADC
-    cx_write(dev_ctx, CX_MISC_AFECFG_ADDR,
-        (CX_MISC_AFECFG) {
+    cx_write(&dev_ctx->mmio, CX_MISC_AFECFG_ADDR,
+        (CX_MISC_AFECFG){
             .bg_pwrdn = 1,
             .dac_pwrdn = 1
         }.dword);
 
     // set SRC to 8xfsc
-    cx_write(dev_ctx, CX_VIDEO_SAMPLE_RATE_CONVERSION_ADDR,
-        (CX_VIDEO_SAMPLE_RATE_CONVERSION) {
+    cx_write(&dev_ctx->mmio, CX_VIDEO_SAMPLE_RATE_CONVERSION_ADDR,
+        (CX_VIDEO_SAMPLE_RATE_CONVERSION){
             .src_reg_val = 0x20000
         }.dword);
     
     // set PLL to 1:1
-    cx_write(dev_ctx, CX_VIDEO_PLL_ADDR,
-        (CX_VIDEO_PLL) {
+    cx_write(&dev_ctx->mmio, CX_VIDEO_PLL_ADDR,
+        (CX_VIDEO_PLL){
             .pll_int = 0x10,
             .pll_dds = 1
         }.dword);
 
     // set vbi agc
     // set back porch sample delay & sync sample delay to max
-    cx_write(dev_ctx, CX_VIDEO_AGC_SYNC_SLICER_ADDR,
-        (CX_VIDEO_AGC_SYNC_SLICER) {
+    cx_write(&dev_ctx->mmio, CX_VIDEO_AGC_SYNC_SLICER_ADDR,
+        (CX_VIDEO_AGC_SYNC_SLICER){
             .sync_sam_dly = 0xFF,
             .bp_sam_dly = 0xFF
         }.dword);
 
-    cx_write(dev_ctx, CX_VIDEO_AGC_CONTROL_ADDR,
-        (CX_VIDEO_AGC_CONTROL) {
+    cx_write(&dev_ctx->mmio, CX_VIDEO_AGC_CONTROL_ADDR,
+        (CX_VIDEO_AGC_CONTROL){
             .intrvl_cnt_val = 0xFFF,
             .bp_ref = 0x100,
             .bp_ref_sel = 1,
@@ -131,35 +96,35 @@ NTSTATUS cx_init(
             .clamp_vbi_en = 0
         }.dword);
 
-    cx_write(dev_ctx, CX_VIDEO_AGC_SYNC_TIP_ADJUST_1_ADDR,
-        (CX_VIDEO_AGC_SYNC_TIP_ADJUST_1) {
+    cx_write(&dev_ctx->mmio, CX_VIDEO_AGC_SYNC_TIP_ADJUST_1_ADDR,
+        (CX_VIDEO_AGC_SYNC_TIP_ADJUST_1){
             .trk_sat_val = 0x0F,
             .trk_mode_thr = 0x1C0
         }.dword);
 
-    cx_write(dev_ctx, CX_VIDEO_AGC_SYNC_TIP_ADJUST_2_ADDR,
-        (CX_VIDEO_AGC_SYNC_TIP_ADJUST_2) {
+    cx_write(&dev_ctx->mmio, CX_VIDEO_AGC_SYNC_TIP_ADJUST_2_ADDR,
+        (CX_VIDEO_AGC_SYNC_TIP_ADJUST_2){
             .acq_sat_val = 0xF,
             .acq_mode_thr = 0x20
         }.dword);
 
-    cx_write(dev_ctx, CX_VIDEO_AGC_GAIN_ADJUST_1_ADDR,
-        (CX_VIDEO_AGC_GAIN_ADJUST_1) {
+    cx_write(&dev_ctx->mmio, CX_VIDEO_AGC_GAIN_ADJUST_1_ADDR,
+        (CX_VIDEO_AGC_GAIN_ADJUST_1){
             .trk_agc_sat_val = 7,
             .trk_agc_core_th_val = 0xE,
             .trk_agc_mode_th = 0xE0
         }.dword);
 
-    cx_write(dev_ctx, CX_VIDEO_AGC_GAIN_ADJUST_2_ADDR,
-        (CX_VIDEO_AGC_GAIN_ADJUST_2) {
+    cx_write(&dev_ctx->mmio, CX_VIDEO_AGC_GAIN_ADJUST_2_ADDR,
+        (CX_VIDEO_AGC_GAIN_ADJUST_2){
             .acq_agc_sat_val = 0xF,
             .acq_gain_val = 2,
             .acq_agc_mode_th = 0x20
         }.dword);
 
     // set gain of agc but not offset
-    cx_write(dev_ctx, CX_VIDEO_AGC_GAIN_ADJUST_3_ADDR,
-        (CX_VIDEO_AGC_GAIN_ADJUST_3) {
+    cx_write(&dev_ctx->mmio, CX_VIDEO_AGC_GAIN_ADJUST_3_ADDR,
+        (CX_VIDEO_AGC_GAIN_ADJUST_3){
             .acc_inc_val = 0x50,
             .acc_max_val = 0x28,
             .acc_min_val = 0x28
@@ -168,33 +133,30 @@ NTSTATUS cx_init(
     // disable PLL adjust (stabilizes output when video is detected by chip)
     CX_VIDEO_PLL_ADJUST pll_adjust =
     {
-        .dword = cx_read(dev_ctx, CX_VIDEO_PLL_ADJUST_ADDR)
+        .dword = cx_read(&dev_ctx->mmio, CX_VIDEO_PLL_ADJUST_ADDR)
     };
 
     pll_adjust.pll_adj_en = 0;
-    cx_write(dev_ctx, CX_VIDEO_PLL_ADJUST_ADDR, pll_adjust.dword);
+    cx_write(&dev_ctx->mmio, CX_VIDEO_PLL_ADJUST_ADDR, pll_adjust.dword);
 
     // i2c sda/scl set to high and use software control
-    cx_write(dev_ctx, CX_I2C_DATA_CONTROL_ADDR,
-        (CX_I2C_DATA_CONTROL) {
+    cx_write(&dev_ctx->mmio, CX_I2C_DATA_CONTROL_ADDR,
+        (CX_I2C_DATA_CONTROL){
             .sda = 1,
             .scl = 1
         }.dword);
 
-    cx_set_vmux(dev_ctx);
-    cx_set_tenbit(dev_ctx);
-    cx_set_level(dev_ctx);
-    cx_set_center_offset(dev_ctx);
-
-    return status;
+    cx_set_vmux(&dev_ctx->mmio, dev_ctx->config.vmux);
+    cx_set_tenbit(&dev_ctx->mmio, dev_ctx->config.tenbit);
+    cx_set_level(&dev_ctx->mmio, dev_ctx->config.level, dev_ctx->config.sixdb);
+    cx_set_center_offset(&dev_ctx->mmio, dev_ctx->config.center_offset);
 }
 
 _Use_decl_annotations_
-NTSTATUS cx_init_cdt(
-    PDEVICE_CONTEXT dev_ctx
+VOID cx_init_cdt(
+    PMMIO mmio
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     ULONG cdt_ptr = CX_SRAM_CDT_BASE;
     ULONG buf_ptr = CX_SRAM_CDT_BUF_BASE;
 
@@ -204,8 +166,8 @@ NTSTATUS cx_init_cdt(
     // set cluster buffer location
     for (ULONG i = 0; i < CX_CDT_BUF_COUNT; i++)
     {
-        cx_write_buf8(dev_ctx, cdt_ptr,
-            (CX_CDT_DESCRIPTOR) {
+        cx_write_buf(mmio, cdt_ptr,
+            (CX_CDT_DESCRIPTOR){
                 .buffer_ptr = buf_ptr
             }.data,
             sizeof(CX_CDT_DESCRIPTOR));
@@ -215,35 +177,32 @@ NTSTATUS cx_init_cdt(
     }
 
     // size of one buffer - 1
-    cx_write(dev_ctx, CX_DMAC_VBI_CNT1_ADDR,
-        (CX_DMAC_DMA_CNT1) {
+    cx_write(mmio, CX_DMAC_VBI_CNT1_ADDR,
+        (CX_DMAC_DMA_CNT1){
             .dma_cnt1 = CX_CDT_BUF_LEN / 8 - 1
         }.dword);
 
     // ptr to cdt
-    cx_write(dev_ctx, CX_DMAC_VBI_PTR2_ADDR,
-        (CX_DMAC_DMA_PTR2) {
+    cx_write(mmio, CX_DMAC_VBI_PTR2_ADDR,
+        (CX_DMAC_DMA_PTR2){
             .dma_ptr2 = CX_SRAM_CDT_BASE >> 2
         }.dword);
 
     // size of cdt
-    cx_write(dev_ctx, CX_DMAC_VBI_CNT2_ADDR,
-        (CX_DMAC_DMA_CNT2) {
+    cx_write(mmio, CX_DMAC_VBI_CNT2_ADDR,
+        (CX_DMAC_DMA_CNT2){
             .dma_cnt2 = CX_CDT_BUF_COUNT * 2
         }.dword);
-
-    return status;
 }
 
 _Use_decl_annotations_
-NTSTATUS cx_init_risc(
-    PDEVICE_CONTEXT dev_ctx
+VOID cx_init_risc(
+    PRISC risc
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    PCX_RISC_INSTRUCTIONS dma_instr_ptr = (PCX_RISC_INSTRUCTIONS)dev_ctx->dma_risc_instr.va;
+    PCX_RISC_INSTRUCTIONS dma_instr_ptr = (PCX_RISC_INSTRUCTIONS)risc->instructions.va;
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "dma phys addr %08X", dev_ctx->dma_risc_instr.la.LowPart);
+    TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "dma phys addr %08X", risc->instructions.la.LowPart);
 
     // the following comments are from the Linux driver, as they explain the logic sufficiently
 
@@ -258,7 +217,7 @@ NTSTATUS cx_init_risc(
 
     for (ULONG page_idx = 0; page_idx < CX_VBI_BUF_COUNT; page_idx++)
     {
-        ULONG dma_page_addr = dev_ctx->dma_risc_page[page_idx].la.LowPart;
+        ULONG dma_page_addr = risc->page[page_idx].la.LowPart;
 
         // Each WRITE is CX_CDT_BUF_LEN bytes so each DMA page requires
         //  n = (PAGE_SIZE / CX_CDT_BUF_LEN) WRITEs to fill it.
@@ -303,39 +262,34 @@ NTSTATUS cx_init_risc(
     dma_instr_ptr->jump_instr = (CX_RISC_INSTR_JUMP)
     {
         .opcode = CX_RISC_INSTR_JUMP_OPCODE,
-        .jump_address = dev_ctx->dma_risc_instr.la.LowPart + 4
+        .jump_address = risc->instructions.la.LowPart + 4
     };
 
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "filled risc instr dma, total size %lu kbyte",
         sizeof(CX_RISC_INSTRUCTIONS) / 1024);
-
-    return status;
 }
 
 _Use_decl_annotations_
-NTSTATUS cx_init_cmds(
-    PDEVICE_CONTEXT dev_ctx
+VOID cx_init_cmds(
+    PMMIO mmio,
+    PRISC risc
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-
     // init sram
-    cx_write_buf8(dev_ctx, CX_SRAM_CMDS_VBI_BASE,
-        (CX_CMDS) {
-            .initial_risc_addr = dev_ctx->dma_risc_instr.la.LowPart,
+    cx_write_buf(mmio, CX_SRAM_CMDS_VBI_BASE,
+        (CX_CMDS){
+            .initial_risc_addr = risc->instructions.la.LowPart,
             .cdt_base = CX_SRAM_CDT_BASE,
             .cdt_size = CX_CDT_BUF_COUNT * 2,
             .risc_base = CX_SRAM_RISC_QUEUE_BASE,
             .risc_size = 0x40
         }.data,
         sizeof(CX_CMDS));
-
-    return status;
 }
 
 _Use_decl_annotations_
 NTSTATUS cx_disable(
-    PDEVICE_CONTEXT dev_ctx
+    PMMIO mmio
 )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -343,34 +297,32 @@ NTSTATUS cx_disable(
     // setting all bits to 0/1 so just write entire dword
 
     // turn off interrupt
-    cx_write(dev_ctx, CX_DMAC_VIDEO_INTERRUPT_MASK_ADDR, 0);
-    cx_write(dev_ctx, CX_DMAC_VIDEO_INTERRUPT_STATUS_ADDR, 0xFFFFFFFF);
+    cx_write(mmio, CX_DMAC_VIDEO_INTERRUPT_MASK_ADDR, 0);
+    cx_write(mmio, CX_DMAC_VIDEO_INTERRUPT_STATUS_ADDR, 0xFFFFFFFF);
 
     // disable fifo and risc
-    cx_write(dev_ctx, CX_VIDEO_IPB_DMA_CONTROL_ADDR, 0);
+    cx_write(mmio, CX_VIDEO_IPB_DMA_CONTROL_ADDR, 0);
 
     // disable risc
-    cx_write(dev_ctx, CX_DMAC_DEVICE_CONTROL_2_ADDR, 0);
+    cx_write(mmio, CX_DMAC_DEVICE_CONTROL_2_ADDR, 0);
 
     return status;
 }
 
 _Use_decl_annotations_
-NTSTATUS cx_reset(
-    PDEVICE_CONTEXT dev_ctx
+VOID cx_reset(
+    PMMIO mmio
 )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-
     // set agc registers back to default values
-    cx_write(dev_ctx, CX_VIDEO_AGC_CONTROL_ADDR,
-        (CX_VIDEO_AGC_CONTROL) {
+    cx_write(mmio, CX_VIDEO_AGC_CONTROL_ADDR,
+        (CX_VIDEO_AGC_CONTROL){
             .intrvl_cnt_val = 0x555,
             .bp_ref = 0xE0
         }.dword);
 
-    cx_write(dev_ctx, CX_VIDEO_AGC_SYNC_SLICER_ADDR,
-        (CX_VIDEO_AGC_SYNC_SLICER) {
+    cx_write(mmio, CX_VIDEO_AGC_SYNC_SLICER_ADDR,
+        (CX_VIDEO_AGC_SYNC_SLICER){
             .sync_sam_dly = 0x1C,
             .bp_sam_dly = 0x60,
             .mm_multi = 4,
@@ -379,57 +331,55 @@ NTSTATUS cx_reset(
             .dly_upd_en = 1
         }.dword);
 
-    cx_write(dev_ctx, CX_VIDEO_AGC_SYNC_TIP_ADJUST_1_ADDR,
-        (CX_VIDEO_AGC_SYNC_TIP_ADJUST_1) {
+    cx_write(mmio, CX_VIDEO_AGC_SYNC_TIP_ADJUST_1_ADDR,
+        (CX_VIDEO_AGC_SYNC_TIP_ADJUST_1){
             .trk_sat_val = 0xF,
             .trk_mode_thr = 0x1C0
         }.dword);
 
-    cx_write(dev_ctx, CX_VIDEO_AGC_SYNC_TIP_ADJUST_2_ADDR,
-        (CX_VIDEO_AGC_SYNC_TIP_ADJUST_2) {
+    cx_write(mmio, CX_VIDEO_AGC_SYNC_TIP_ADJUST_2_ADDR,
+        (CX_VIDEO_AGC_SYNC_TIP_ADJUST_2){
             .acq_sat_val = 0x3F,
             .acq_g_val = 1,
             .acq_mode_thr = 0x20
         }.dword);
 
-    cx_write(dev_ctx, CX_VIDEO_AGC_SYNC_TIP_ADJUST_3_ADDR,
-        (CX_VIDEO_AGC_SYNC_TIP_ADJUST_3) {
+    cx_write(mmio, CX_VIDEO_AGC_SYNC_TIP_ADJUST_3_ADDR,
+        (CX_VIDEO_AGC_SYNC_TIP_ADJUST_3){
             .acc_max = 0x40,
             .acc_min = 0xE0,
             .low_stip_th = 0x1E48
         }.dword);
 
-    cx_write(dev_ctx, CX_VIDEO_AGC_GAIN_ADJUST_1_ADDR,
-        (CX_VIDEO_AGC_GAIN_ADJUST_1) {
+    cx_write(mmio, CX_VIDEO_AGC_GAIN_ADJUST_1_ADDR,
+        (CX_VIDEO_AGC_GAIN_ADJUST_1){
             .trk_agc_sat_val = 7,
             .trk_agc_core_th_val = 0xE,
             .trk_agc_mode_th = 0xE0
         }.dword);
 
-    cx_write(dev_ctx, CX_VIDEO_AGC_GAIN_ADJUST_2_ADDR,
-        (CX_VIDEO_AGC_GAIN_ADJUST_2) {
+    cx_write(mmio, CX_VIDEO_AGC_GAIN_ADJUST_2_ADDR,
+        (CX_VIDEO_AGC_GAIN_ADJUST_2){
             .acq_agc_sat_val = 0xF,
             .acq_gain_val = 2,
             .acq_agc_mode_th = 0x20
         }.dword);
 
-    cx_write(dev_ctx, CX_VIDEO_AGC_GAIN_ADJUST_3_ADDR,
-        (CX_VIDEO_AGC_GAIN_ADJUST_3) {
+    cx_write(mmio, CX_VIDEO_AGC_GAIN_ADJUST_3_ADDR,
+        (CX_VIDEO_AGC_GAIN_ADJUST_3){
             .acc_inc_val = 0xC0,
             .acc_max_val = 0x38,
             .acc_min_val = 0x28
         }.dword);
 
-    cx_write(dev_ctx, CX_VIDEO_AGC_GAIN_ADJUST_4_ADDR,
-        (CX_VIDEO_AGC_GAIN_ADJUST_4) {
+    cx_write(mmio, CX_VIDEO_AGC_GAIN_ADJUST_4_ADDR,
+        (CX_VIDEO_AGC_GAIN_ADJUST_4){
             .high_acc_val = 0x34,
             .low_acc_val = 0x2C,
             .init_vga_val = 0xA,
             .vga_en = 1,
             .slice_ref_en = 1
         }.dword);
-
-    return status;
 }
 
 _Use_decl_annotations_
@@ -445,14 +395,14 @@ BOOLEAN cx_evt_isr(
 
     CX_DMAC_VIDEO_INTERRUPT mstat =
     {
-        .dword = cx_read(dev_ctx, CX_DMAC_VIDEO_INTERRUPT_MSTATUS_ADDR)
+        .dword = cx_read(&dev_ctx->mmio, CX_DMAC_VIDEO_INTERRUPT_MSTATUS_ADDR)
     };
 
     if (!mstat.vbi_risci1 && mstat.dword)
     {
         // unexpected interrupts?
         TraceEvents(TRACE_LEVEL_ERROR, DBG_GENERAL, "intr stat 0x%0X masked 0x%0X",
-            cx_read(dev_ctx, CX_DMAC_VIDEO_INTERRUPT_STATUS_ADDR),
+            cx_read(&dev_ctx->mmio, CX_DMAC_VIDEO_INTERRUPT_STATUS_ADDR),
             mstat.dword);
     }
 
@@ -462,7 +412,7 @@ BOOLEAN cx_evt_isr(
     }
 
     // clear interrupts
-    cx_write(dev_ctx, CX_DMAC_VIDEO_INTERRUPT_STATUS_ADDR, mstat.dword);
+    cx_write(&dev_ctx->mmio, CX_DMAC_VIDEO_INTERRUPT_STATUS_ADDR, mstat.dword);
 
     if (is_recognized)
     {
@@ -489,7 +439,7 @@ VOID cx_evt_dpc(
     // in main memory. so we only retrieve CX_VBI_GP_CNT after an interrupt has occurred and then round
     // it down to the last page that we know should have triggered an interrupt.
     InterlockedExchange(&dev_ctx->state.last_gp_cnt,
-        cx_read(dev_ctx, CX_VIDEO_VBI_GP_COUNTER_ADDR) & ~(CX_IRQ_PERIOD_IN_PAGES - 1));
+        cx_read(&dev_ctx->mmio, CX_VIDEO_VBI_GP_COUNTER_ADDR) & ~(CX_IRQ_PERIOD_IN_PAGES - 1));
 
     KeSetEvent(&dev_ctx->isr_event, IO_NO_INCREMENT, FALSE);
 }
@@ -507,8 +457,8 @@ NTSTATUS cx_evt_intr_enable(
 
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "enabling interrupts");
 
-    cx_write(dev_ctx, CX_MISC_PCI_INTERRUPT_MASK_ADDR,
-        (CX_MISC_PCI_INTERRUPT_MASK) {
+    cx_write(&dev_ctx->mmio, CX_MISC_PCI_INTERRUPT_MASK_ADDR,
+        (CX_MISC_PCI_INTERRUPT_MASK){
             .vid_int = 1
         }.dword);
 
@@ -527,7 +477,7 @@ NTSTATUS cx_evt_intr_disable(
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfInterruptGetDevice(intr));
 
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "disabling interrupts");
-    cx_write(dev_ctx, CX_MISC_PCI_INTERRUPT_MASK_ADDR, 0);
+    cx_write(&dev_ctx->mmio, CX_MISC_PCI_INTERRUPT_MASK_ADDR, 0);
 
     return status;
 }
@@ -546,20 +496,20 @@ VOID cx_start_capture(
     TraceEvents(TRACE_LEVEL_INFORMATION, DBG_GENERAL, "starting capture");
 
     // enable fifo and risc
-    cx_write(dev_ctx, CX_DMAC_DEVICE_CONTROL_2_ADDR,
-        (CX_DMAC_DEVICE_CONTROL_2) {
+    cx_write(&dev_ctx->mmio, CX_DMAC_DEVICE_CONTROL_2_ADDR,
+        (CX_DMAC_DEVICE_CONTROL_2){
             .run_risc = 1
         }.dword);
 
-    cx_write(dev_ctx, CX_VIDEO_IPB_DMA_CONTROL_ADDR,
-        (CX_VIDEO_IPB_DMA_CONTROL) {
+    cx_write(&dev_ctx->mmio, CX_VIDEO_IPB_DMA_CONTROL_ADDR,
+        (CX_VIDEO_IPB_DMA_CONTROL){
             .vbi_fifo_en = 1,
             .vbi_risc_en = 1
         }.dword);
 
     // turn on interrupt
-    cx_write(dev_ctx, CX_DMAC_VIDEO_INTERRUPT_MASK_ADDR,
-        (CX_DMAC_VIDEO_INTERRUPT) {
+    cx_write(&dev_ctx->mmio, CX_DMAC_VIDEO_INTERRUPT_MASK_ADDR,
+        (CX_DMAC_VIDEO_INTERRUPT){
             .vbi_risci1 = 1,
             .vbi_risci2 = 1,
             .vbif_of = 1,
@@ -580,69 +530,74 @@ VOID cx_stop_capture(
     InterlockedExchange((PLONG)&dev_ctx->state.is_capturing, FALSE);
 
     // turn off interrupt
-    cx_write(dev_ctx, CX_DMAC_VIDEO_INTERRUPT_MASK_ADDR, 0);
-    cx_write(dev_ctx, CX_DMAC_VIDEO_INTERRUPT_STATUS_ADDR, 0xFFFFFFFF);
+    cx_write(&dev_ctx->mmio, CX_DMAC_VIDEO_INTERRUPT_MASK_ADDR, 0);
+    cx_write(&dev_ctx->mmio, CX_DMAC_VIDEO_INTERRUPT_STATUS_ADDR, 0xFFFFFFFF);
 
     // disable fifo and risc
-    cx_write(dev_ctx, CX_VIDEO_IPB_DMA_CONTROL_ADDR, 0);
+    cx_write(&dev_ctx->mmio, CX_VIDEO_IPB_DMA_CONTROL_ADDR, 0);
 
     // disable risc
-    cx_write(dev_ctx, CX_DMAC_DEVICE_CONTROL_2_ADDR, 0);
+    cx_write(&dev_ctx->mmio, CX_DMAC_DEVICE_CONTROL_2_ADDR, 0);
 }
 
 _Use_decl_annotations_
 VOID cx_set_vmux(
-    PDEVICE_CONTEXT dev_ctx
+    PMMIO mmio,
+    ULONG vmux
 )
 {
-    cx_write(dev_ctx, CX_VIDEO_INPUT_FORMAT_ADDR,
-        (CX_VIDEO_INPUT_FORMAT) {
+    cx_write(mmio, CX_VIDEO_INPUT_FORMAT_ADDR,
+        (CX_VIDEO_INPUT_FORMAT){
             .fmt = 1,
             .svid = 1,
             .agcen = 1,
-            .yadc_sel = dev_ctx->config.vmux,
+            .yadc_sel = vmux,
             .svid_c_sel = 1,
         }.dword);
 }
 
 _Use_decl_annotations_
 VOID cx_set_level(
-    PDEVICE_CONTEXT dev_ctx
+    PMMIO mmio,
+    ULONG level,
+    BOOLEAN enable_sixdb
 )
 {
-    cx_write(dev_ctx, CX_VIDEO_AGC_GAIN_ADJUST_4_ADDR,
-        (CX_VIDEO_AGC_GAIN_ADJUST_4) {
+    cx_write(mmio, CX_VIDEO_AGC_GAIN_ADJUST_4_ADDR,
+        (CX_VIDEO_AGC_GAIN_ADJUST_4){
             .high_acc_val = 0x00,
             .low_acc_val = 0xFF,
-            .init_vga_val = dev_ctx->config.level,
+            .init_vga_val = level,
             .vga_en = 0x00,
             .slice_ref_en = 0x00,
-            .init_6db_val = dev_ctx->config.sixdb
+            .init_6db_val = enable_sixdb
         }.dword);
 }
 
 _Use_decl_annotations_
 VOID cx_set_tenbit(
-    PDEVICE_CONTEXT dev_ctx
+    PMMIO mmio,
+    BOOLEAN enable_tenbit
 )
 {
-    cx_write(dev_ctx, CX_VIDEO_CAPTURE_CONTROL_ADDR,
-        (CX_VIDEO_CAPTURE_CONTROL) {
+    cx_write(mmio, CX_VIDEO_CAPTURE_CONTROL_ADDR,
+        (CX_VIDEO_CAPTURE_CONTROL){
             .capture_even = 1,
             .capture_odd = 1,
-            .raw16 = dev_ctx->config.tenbit,
+            .raw16 = enable_tenbit,
             .cap_raw_all = 1
         }.dword);
 }
 
 _Use_decl_annotations_
 VOID cx_set_center_offset(
-    PDEVICE_CONTEXT dev_ctx
+    PMMIO mmio,
+    ULONG center_offset
 )
 {
-    cx_write(dev_ctx, CX_VIDEO_AGC_SYNC_TIP_ADJUST_3_ADDR,
-        (CX_VIDEO_AGC_SYNC_TIP_ADJUST_3) {
-            .acc_max = dev_ctx->config.center_offset,
+    cx_write(mmio, CX_VIDEO_AGC_SYNC_TIP_ADJUST_3_ADDR,
+        (CX_VIDEO_AGC_SYNC_TIP_ADJUST_3){
+            .acc_max = center_offset,
             .acc_min = 0xFF,
             .low_stip_th = 0x1E48
         }.dword);
@@ -650,12 +605,12 @@ VOID cx_set_center_offset(
 
 _Use_decl_annotations_
 BOOLEAN cx_get_ouflow_state(
-    PDEVICE_CONTEXT dev_ctx
+    PMMIO mmio
 )
 {
     CX_VIDEO_DEVICE_STATUS status =
     {
-        .dword = cx_read(dev_ctx, CX_VIDEO_DEVICE_STATUS_ADDR)
+        .dword = cx_read(mmio, CX_VIDEO_DEVICE_STATUS_ADDR)
     };
 
     return status.lof ? TRUE : FALSE;
@@ -663,15 +618,48 @@ BOOLEAN cx_get_ouflow_state(
 
 _Use_decl_annotations_
 VOID cx_reset_ouflow_state(
-    PDEVICE_CONTEXT dev_ctx
+   PMMIO mmio
 )
 {
     CX_VIDEO_DEVICE_STATUS status =
     {
-        .dword = cx_read(dev_ctx, CX_VIDEO_DEVICE_STATUS_ADDR)
+        .dword = cx_read(mmio, CX_VIDEO_DEVICE_STATUS_ADDR)
     };
 
     status.lof = 0;
 
-    cx_write(dev_ctx, CX_VIDEO_DEVICE_STATUS_ADDR, status.dword);
+    cx_write(mmio, CX_VIDEO_DEVICE_STATUS_ADDR, status.dword);
+}
+
+__inline
+_Use_decl_annotations_
+ULONG cx_read(
+    PMMIO mmio,
+    ULONG off
+)
+{
+    return READ_REGISTER_ULONG(&mmio->base[off >> 2]);
+}
+
+__inline
+_Use_decl_annotations_
+VOID cx_write(
+    PMMIO mmio,
+    ULONG off,
+    ULONG val
+)
+{
+    WRITE_REGISTER_ULONG(&mmio->base[off >> 2], val);
+}
+
+__inline
+_Use_decl_annotations_
+VOID cx_write_buf(
+    PMMIO mmio,
+    ULONG off,
+    PUCHAR buf,
+    ULONG count
+)
+{
+    WRITE_REGISTER_BUFFER_UCHAR((volatile PUCHAR)&mmio->base[off >> 2], buf, count);
 }

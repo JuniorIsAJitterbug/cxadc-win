@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * cxadc-win - CX2388x ADC DMA driver for Windows
  *
@@ -13,16 +13,13 @@
 
 #pragma once
 
-__inline ULONG cx_read(_Inout_ PDEVICE_CONTEXT dev_ctx, _In_ ULONG off);
-__inline VOID cx_write(_Inout_ PDEVICE_CONTEXT dev_ctx, _In_ ULONG off, _In_ ULONG val);
-__inline VOID cx_write_buf8(_Inout_ PDEVICE_CONTEXT dev_ctx, _In_ ULONG off, _In_ PUCHAR buf, _In_ ULONG count);
 
 NTSTATUS cx_init(_Inout_ PDEVICE_CONTEXT dev_ctx);
-NTSTATUS cx_disable(_Inout_ PDEVICE_CONTEXT dev_ctx);
-NTSTATUS cx_reset(_Inout_ PDEVICE_CONTEXT dev_ctx);
-NTSTATUS cx_init_cdt(_Inout_ PDEVICE_CONTEXT dev_ctx);
-NTSTATUS cx_init_risc(_Inout_ PDEVICE_CONTEXT dev_ctx);
-NTSTATUS cx_init_cmds(_Inout_ PDEVICE_CONTEXT dev_ctx);
+NTSTATUS cx_disable(_Inout_ PMMIO mmio);
+VOID cx_reset(_Inout_ PMMIO mmio);
+VOID cx_init_cdt(_Inout_ PMMIO mmio);
+VOID cx_init_risc(_Inout_ PRISC risc);
+VOID cx_init_cmds(_Inout_ PMMIO mmio, _In_ PRISC risc);
 
 EVT_WDF_INTERRUPT_ISR cx_evt_isr;
 EVT_WDF_INTERRUPT_DPC cx_evt_dpc;
@@ -31,13 +28,16 @@ EVT_WDF_INTERRUPT_DISABLE cx_evt_intr_disable;
 
 VOID cx_start_capture(_Inout_ PDEVICE_CONTEXT dev_ctx);
 VOID cx_stop_capture(_Inout_ PDEVICE_CONTEXT dev_ctx);
-VOID cx_set_vmux(_Inout_ PDEVICE_CONTEXT dev_ctx);
-VOID cx_set_level(_Inout_ PDEVICE_CONTEXT dev_ctx);
-VOID cx_set_tenbit(_Inout_ PDEVICE_CONTEXT dev_ctx);
-VOID cx_set_center_offset(_Inout_ PDEVICE_CONTEXT dev_ctx);
+VOID cx_set_vmux(_Inout_ PMMIO mmio, _In_ ULONG vmux);
+VOID cx_set_level(_Inout_ PMMIO mmio, _In_ ULONG level, _In_ BOOLEAN enable_sixdb);
+VOID cx_set_tenbit(_Inout_ PMMIO mmio, _In_ BOOLEAN enable_tenbit);
+VOID cx_set_center_offset(_Inout_ PMMIO mmio, _In_ ULONG center_offset);
+BOOLEAN cx_get_ouflow_state(_Inout_ PMMIO mmio);
+VOID cx_reset_ouflow_state(_Inout_ PMMIO mmio);
 
-BOOLEAN cx_get_ouflow_state(_Inout_ PDEVICE_CONTEXT dev_ctx);
-VOID cx_reset_ouflow_state(_Inout_ PDEVICE_CONTEXT dev_ctx);
+__inline ULONG cx_read(_Inout_ PMMIO mmio, _In_ ULONG off);
+__inline VOID cx_write(_Inout_ PMMIO mmio, _In_ ULONG off, _In_ ULONG val);
+__inline VOID cx_write_buf(_Inout_ PMMIO mmio, _In_ ULONG off, _In_reads_(count) PUCHAR buf, _In_ ULONG count);
 
 #define CX_IRQ_PERIOD_IN_PAGES                  (0x200000 >> PAGE_SHIFT)
 
