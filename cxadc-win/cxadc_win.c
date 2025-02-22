@@ -402,9 +402,6 @@ NTSTATUS cx_init_device_ctx(
 
     PAGED_CODE();
 
-    // device is 32-bit aligned
-    WdfDeviceSetAlignmentRequirement(dev_ctx->dev, FILE_LONG_ALIGNMENT);
-
     // set device idx and increment device count
     PDRIVER_CONTEXT driver_ctx = cx_driver_get_ctx(WdfGetDriver());
     dev_ctx->dev_idx = driver_ctx->dev_count;
@@ -462,6 +459,9 @@ NTSTATUS cx_init_dma(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PAGED_CODE();
+
+    // device is 32-bit aligned
+    WdfDeviceSetAlignmentRequirement(dev_ctx->dev, FILE_LONG_ALIGNMENT);
 
     WDF_DMA_ENABLER_CONFIG dma_cfg;
     WDF_DMA_ENABLER_CONFIG_INIT(&dma_cfg, WdfDmaProfilePacket, CX_VBI_BUF_SIZE);
