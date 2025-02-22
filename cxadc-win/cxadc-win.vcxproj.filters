@@ -42,9 +42,6 @@
     <ClInclude Include="common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="public.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="registry.h">
       <Filter>Header Files</Filter>
     </ClInclude>

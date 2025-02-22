@@ -37,7 +37,6 @@
     <ClInclude Include="cxadc_win.h" />
     <ClInclude Include="ioctl.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="public.h" />
     <ClInclude Include="registry.h" />
     <ClInclude Include="trace.h" />
     <ClInclude Include="wmi.h" />

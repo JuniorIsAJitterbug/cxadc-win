@@ -18,6 +18,7 @@
 
 #include <stdlib.h>
 
-#include "public.h"
+#include "cx_config.h"
+#include "cx_ctl_codes.h"
 #include "common.h"
 #include "resource.h"

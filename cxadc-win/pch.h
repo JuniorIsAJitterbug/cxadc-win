@@ -20,6 +20,8 @@
 #include <wdmguid.h>
 #include <ntstrsafe.h>
 
+#include "cx_config.h"
+#include "cx_hw.h"
+#include "cx_ctl_codes.h"
 #include "trace.h"
-#include "public.h"
 #include "common.h"

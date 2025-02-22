@@ -15,12 +15,6 @@
 
 #define SYMLINK_PATH            L"\\DosDevices\\cxadc"
 #define WIN32_PATH              L"\\\\.\\cxadc"
-
-#define CX_CDT_BUF_LEN          2048
-#define CX_CDT_BUF_COUNT        8
-#define CX_VBI_BUF_SIZE         (1024 * 1024 * 64)
-#define CX_VBI_BUF_COUNT        (CX_VBI_BUF_SIZE / PAGE_SIZE)
-#define CX_RISC_INSTR_BUF_SIZE  (CX_VBI_BUF_SIZE / CX_CDT_BUF_LEN) * 8 + PAGE_SIZE
 #define READ_TIMEOUT            5000
 
 typedef struct _DRIVER_CONTEXT

@@ -13,31 +13,6 @@
 
 #pragma once
 
-#include <initguid.h>
-
-DEFINE_GUID(GUID_DEVINTERFACE_CXADCWIN,
-    0x13EF40B0, 0x05FF, 0x4173, 0xB6, 0x13, 0x31, 0x41, 0xAD, 0x2E, 0x37, 0x62);
-
-typedef struct _DEVICE_CONFIG
-{
-    ULONG vmux;
-    ULONG level;
-    BOOLEAN tenbit;
-    BOOLEAN sixdb;
-    ULONG center_offset;
-} DEVICE_CONFIG, * PDEVICE_CONFIG;
-
-typedef struct _DEVICE_STATE
-{
-    ULONG last_gp_cnt;
-    ULONG initial_page;
-
-    ULONG ouflow_count;
-
-    ULONG reader_count;
-    BOOLEAN is_capturing;
-} DEVICE_STATE, * PDEVICE_STATE;
-
 #define CX_IOCTL_GET_CONFIG \
     CTL_CODE(FILE_DEVICE_UNKNOWN, 0x700, METHOD_BUFFERED, FILE_READ_DATA)
 
