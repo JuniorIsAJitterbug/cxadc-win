@@ -10,6 +10,8 @@ using System.Buffers.Binary;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.Devices.DeviceAndDriverInstallation;
 using Windows.Win32.Storage.FileSystem;
 
 namespace cxadc_win_tool;
@@ -25,6 +27,7 @@ public class Cxadc : IDisposable
     public const uint CX_IOCTL_GET_CENTER_OFFSET = 0x825;
     public const uint CX_IOCTL_GET_BUS_NUMBER = 0x830;
     public const uint CX_IOCTL_GET_DEVICE_ADDRESS = 0x831;
+    public const uint CX_IOCTL_GET_WIN32_PATH = 0x832;
     public const uint CX_IOCTL_GET_REGISTER = 0x82F;
     public const uint CX_IOCTL_RESET_OUFLOW_COUNT = 0x910;
     public const uint CX_IOCTL_SET_VMUX = 0x921;
@@ -167,6 +170,67 @@ public class Cxadc : IDisposable
                 throw new Exception($"Set failed: {errStr}");
             }
         }
+    }
+
+    public static List<string> EnumerateDevices()
+    {
+        var devicePaths = new List<string>();
+
+        var flags = SETUP_DI_GET_CLASS_DEVS_FLAGS.DIGCF_PRESENT | SETUP_DI_GET_CLASS_DEVS_FLAGS.DIGCF_DEVICEINTERFACE;
+        using var devHandle = PInvoke.SetupDiGetClassDevs(DeviceGuid, "", (HWND)null, flags);
+
+        if (devHandle != null && devHandle.IsInvalid)
+        {
+            throw new Exception($"SetupDiGetDeviceInterfaceDetail failed: {Marshal.GetLastPInvokeErrorMessage()} ({Marshal.GetLastWin32Error()})");
+        }
+
+        var devIfaceData = new SP_DEVICE_INTERFACE_DATA { cbSize = (uint)Marshal.SizeOf<SP_DEVICE_INTERFACE_DATA>() };
+        var count = 0u;
+
+        while (PInvoke.SetupDiEnumDeviceInterfaces(devHandle, null, DeviceGuid, count++, ref devIfaceData))
+        {
+            uint requiredSize = 0;
+
+            unsafe
+            {
+                // get req size for details
+                if (!PInvoke.SetupDiGetDeviceInterfaceDetail(devHandle, devIfaceData, null, 0, &requiredSize, null)
+                    && Marshal.GetLastWin32Error() != (int)WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER)
+                {
+                    // failed with unexpected err
+                    throw new Exception($"SetupDiGetDeviceInterfaceDetail failed: {Marshal.GetLastPInvokeErrorMessage()} ({Marshal.GetLastWin32Error()})");
+                }
+
+                var devIfaceDetailDataPtr = (SP_DEVICE_INTERFACE_DETAIL_DATA_W*)Marshal.AllocHGlobal((int)requiredSize);
+                Marshal.StructureToPtr(
+                    new SP_DEVICE_INTERFACE_DETAIL_DATA_W { cbSize = (uint)Marshal.SizeOf<SP_DEVICE_INTERFACE_DETAIL_DATA_W>() },
+                    (nint)devIfaceDetailDataPtr, false);
+
+                // get details
+                if (!PInvoke.SetupDiGetDeviceInterfaceDetail(devHandle, devIfaceData, devIfaceDetailDataPtr, requiredSize, null, null))
+                {
+                    throw new Exception($"SetupDiGetDeviceInterfaceDetail failed: {Marshal.GetLastPInvokeErrorMessage()} ({Marshal.GetLastWin32Error()})");
+                }
+
+                unsafe
+                {
+                    var path = new string((char*)&devIfaceDetailDataPtr->DevicePath);
+
+                if (path != null)
+                {
+                    devicePaths.Add(path);
+                }
+            }
+        }
+        }
+
+        // check if unexpected enum err
+        if (Marshal.GetLastWin32Error() != (uint)WIN32_ERROR.ERROR_NO_MORE_ITEMS)
+        {
+            throw new Exception($"SetupDiEnumDeviceInterfaces failed: {Marshal.GetLastPInvokeErrorMessage()} ({Marshal.GetLastWin32Error()})");
+        }
+
+        return devicePaths;
     }
 
     ~Cxadc() => Dispose();

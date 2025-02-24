@@ -2,3 +2,12 @@
 DeviceIoControl
 ReadFile
 CloseHandle
+
+SetupDiGetClassDevs
+SetupDiEnumDeviceInterfaces
+SetupDiGetDeviceInterfaceDetail
+
+WIN32_ERROR
+FILE_ACCESS_RIGHTS
+FILE_DEVICE_UNKNOWN
+METHOD_BUFFERED

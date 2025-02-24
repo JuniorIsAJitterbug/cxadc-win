@@ -8,10 +8,10 @@
 using cxadc_win_tool;
 using System.Buffers.Binary;
 using System.CommandLine;
+using System.Text;
 
 const uint READ_SIZE = 2 * 1024 * 1024; // 2MB
 const uint BUFFER_SIZE = 64 * 1024 * 1024; // 64MB
-const uint MAX_CARDS = byte.MaxValue;
 
 Cxadc? cx = null;
 Clockgen? clockgen = null;
@@ -357,9 +357,10 @@ var scanCommand = new Command("scan", "list devices");
 
 scanCommand.SetHandler(() =>
 {
-    foreach (var device in GetDevices())
+    foreach (var device in Cxadc.EnumerateDevices())
     {
-        Console.WriteLine(device);
+        using var cx = new Cxadc(device);
+        Console.WriteLine(Encoding.Unicode.GetString(cx.Get(Cxadc.CX_IOCTL_GET_WIN32_PATH, 128, new byte[128])));
     }
 });
 
@@ -368,7 +369,7 @@ var statusCommand = new Command("status", "show all device config");
 
 statusCommand.SetHandler(() =>
 {
-    foreach (var device in GetDevices())
+    foreach (var device in Cxadc.EnumerateDevices())
     {
         PrintCxConfig(device);
         Console.WriteLine();
@@ -405,30 +406,6 @@ var rootCommand = new RootCommand("cxadc-win-tool - https://github.com/JuniorIsA
     clockgenCommand,
     levelAdjCommand
 };
-
-List<string> GetDevices()
-{
-    var devices = new List<string>();
-
-    for (var i = 0; i < MAX_CARDS; i++)
-    {
-        var path = $"\\\\.\\cxadc{i}";
-
-        try
-        {
-            using (cx = new Cxadc(path))
-            {
-                devices.Add(path);
-            }
-        }
-        catch
-        {
-            // assume not a valid path or some other error
-        }
-    }
-
-    return devices;
-}
 
 void PrintCxConfig(string device)
 {
