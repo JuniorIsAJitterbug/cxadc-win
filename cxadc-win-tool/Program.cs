@@ -7,11 +7,9 @@
 
 using ByteSizeLib;
 using cxadc_win_tool;
-using System.Buffers.Binary;
 using System.CommandLine;
 using System.CommandLine.Parsing;
 using System.Diagnostics;
-using System.Text;
 
 CancellationTokenSource cancelTokenSrc = new();
 CancellationToken cancelToken = cancelTokenSrc.Token;
@@ -62,12 +60,11 @@ captureCommand.SetHandler(async (device, output, quiet) =>
             {
                 // print to console
                 var clearLine = $"\r{new string(' ', Console.WindowWidth)}\r";
-                var ouflowCount = cx.Get(CxadcWin.IoctlCodes.GetOUFlowCount);
                 var durationStr = $"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
                 var ioStr = $"{ByteSize.FromBytes(currentSize):GiB} ({ByteSize.FromBytes(currentSize - previousSize):MiB}/s)";
 
                 Console.SetCursorPosition(0, Console.GetCursorPosition().Top);
-                Console.Error.Write($"{clearLine}Duration: {durationStr}     Size: {ioStr}     Over/Underflows: {ouflowCount}");
+                Console.Error.Write($"{clearLine}Duration: {durationStr}     Size: {ioStr}     Over/Underflows: {cx.OUFlowCount}");
             }
         }
     }
@@ -105,17 +102,29 @@ var setCommand = new Command("set", description: "set device options")
 setCommand.SetHandler((device, name, value) =>
 {
     using var cx = new CxadcWin(device);
-    var code = name switch
-    {
-        "vmux" => CxadcWin.IoctlCode.SetVMux,
-        "level" => CxadcWin.IoctlCode.SetLevel,
-        "tenbit" => CxadcWin.IoctlCode.SetTenbit,
-        "sixdb" => CxadcWin.IoctlCode.SetSixDB,
-        "center_offset" => CxadcWin.IoctlCode.SetCenterOffset,
-        _ => throw new Exception("Unknown option")
-    };
 
-    cx.Set(code, value);
+    switch (name)
+    {
+        case "vmux":
+            cx.VMux = value;
+            break;
+
+        case "level":
+            cx.Level = value;
+            break;
+
+        case "tenbit":
+            cx.IsTenbitEnabled = Convert.ToBoolean(value);
+            break;
+
+        case "sixdb":
+            cx.IsSixDBEnabled = Convert.ToBoolean(value);
+            break;
+
+        case "center_offset":
+            cx.CenterOffset = value;
+            break;
+    }
 
 }, inputDeviceArg, setNameArg, setValueArg);
 
@@ -133,12 +142,9 @@ var registerSetCommand = new Command("set")
 
 registerSetCommand.SetHandler((device, address, value) =>
 {
-    var buffer = new byte[8];
-    BinaryPrimitives.WriteUInt32LittleEndian(buffer, Convert.ToUInt32(address, 16));
-    BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan()[4..], Convert.ToUInt32(value, 16));
 
     using var cx = new CxadcWin(device);
-    cx.Set(CxadcWin.IoctlCode.SetRegister, buffer);
+    cx.SetRegister(address, value);
 
 }, inputDeviceArg, registerAddressArg, registerValueArg);
 
@@ -150,11 +156,8 @@ var registerGetCommand = new Command("get")
 
 registerGetCommand.SetHandler((device, address) =>
 {
-    var buffer = new byte[4];
-    BinaryPrimitives.WriteUInt32LittleEndian(buffer, Convert.ToUInt32(address, 16));
-
     using var cx = new CxadcWin(device);
-    var value = cx.Get(CxadcWin.IoctlCode.GetRegister, buffer);
+    var value = cx.GetRegister(address);
 
     Console.WriteLine($"{value}");
     Console.WriteLine($"0x{value:X8}");
@@ -188,7 +191,7 @@ resetCommand.SetHandler((device, name) =>
         _ => throw new Exception("Unknown option")
     };
 
-    cx.Set(code, 0);
+    cx.IoctlSetUint(code, 0);
 
 }, inputDeviceArg, resetNameArg);
 
@@ -306,7 +309,7 @@ scanCommand.SetHandler(() =>
     foreach (var device in CxadcWin.EnumerateDevices())
     {
         using var cx = new CxadcWin(device);
-        Console.WriteLine(Encoding.Unicode.GetString(cx.Get(CxadcWin.IoctlCode.GetWin32Path, 128, new byte[128])));
+        Console.WriteLine(cx.Win32Path);
     }
 
 });

@@ -49,6 +49,72 @@ public class CxadcWin : IDisposable
     public SafeFileHandle Handle { get => _handle; }
     public long TotalBytesRead { get => _totalBytesRead; }
 
+    public uint VMux
+    {
+        get => IoctlGetUint(IoctlCode.GetVMux);
+        set => IoctlSetUint(IoctlCode.SetVMux, value);
+    }
+
+    public uint Level
+    {
+        get => IoctlGetUint(IoctlCode.GetLevel);
+        set => IoctlSetUint(IoctlCode.SetLevel, value);
+    }
+
+    public bool IsTenbitEnabled
+    {
+        get => IoctlGetBool(IoctlCode.GetTenbit);
+        set => IoctlSetBool(IoctlCode.SetTenbit, value);
+    }
+    public bool IsSixDBEnabled
+    {
+        get => IoctlGetBool(IoctlCode.GetSixDB);
+        set => IoctlSetBool(IoctlCode.SetSixDB, value);
+    }
+    public uint CenterOffset
+    {
+        get => IoctlGetUint(IoctlCode.GetCenterOffset);
+        set => IoctlSetUint(IoctlCode.SetCenterOffset, value);
+    }
+
+    public bool IsCapturing
+    {
+        get => Convert.ToBoolean(IoctlGetBool(IoctlCode.GetCaptureState));
+    }
+
+    public uint OUFlowCount
+    {
+        get => IoctlGetUint(IoctlCode.GetOUFlowCount);
+    }
+
+    private string? _win32path = null;
+    public string Win32Path
+    {
+        get => this._win32path ??= Encoding.Unicode.GetString(IoctlGetBytes(IoctlCode.GetWin32Path, 128));
+    }
+
+    private uint? _pciBusNumber = null;
+    public uint PciBusNumber
+    {
+        get => this._pciBusNumber ??= IoctlGetUint(IoctlCode.GetBusNumber);
+    }
+
+    private uint? _deviceAddress = null;
+    public uint DeviceAddress
+    {
+        get => this._deviceAddress ??= IoctlGetUint(IoctlCode.GetDeviceAddress);
+    }
+
+    public uint DeviceNumber
+    {
+        get => (DeviceAddress >> 16) & 0x0000FFFF;
+    }
+
+    public uint FunctionNumber
+    {
+        get => DeviceAddress & 0x0000FFFF;
+    }
+
     private readonly SafeFileHandle _handle;
     private bool _disposed = false;
     private long _totalBytesRead = 0;
@@ -76,76 +142,41 @@ public class CxadcWin : IDisposable
         }
     }
 
-    public uint Get(IoctlCode code)
+    public byte[] Ioctl(IoctlCode code, FileAccess access, byte[]? inputData = null, int outBufferSize = 0)
     {
-        return BinaryPrimitives.ReadUInt32LittleEndian(Get(code, sizeof(uint), []));
-    }
-
-    public uint Get(IoctlCode code, byte[] data)
-    {
-        return BinaryPrimitives.ReadUInt32LittleEndian(Get(code, sizeof(uint), data));
-    }
-
-    public byte[] Get(IoctlCode code, uint len, byte[] data)
-    {
-        uint bytesRead = 0;
-        byte[] ret;
-
         unsafe
         {
-            var outBuffer = Marshal.AllocHGlobal((int)len);
-            var inBuffer = Marshal.AllocHGlobal(data.Length);
-            Marshal.Copy(data, 0, inBuffer, data.Length);
+            uint bytesRead = 0;
+            var inBufferSize = inputData != null ? inputData.Length : 0;
+            var inputBuffer = inBufferSize != 0 ? Marshal.AllocHGlobal(inBufferSize) : IntPtr.Zero;
+            var outputBuffer = outBufferSize != 0 ? Marshal.AllocHGlobal(outBufferSize) : IntPtr.Zero;
+
+            if (inputData != null && inputBuffer != IntPtr.Zero)
+            {
+                Marshal.Copy(inputData, 0, inputBuffer, (int)inBufferSize);
+            }
 
             if (!PInvoke.DeviceIoControl(
                 this._handle,
-                GetCtlCode(code, FileAccess.Read),
-                inBuffer.ToPointer(),
-                (uint)data.Length,
-                outBuffer.ToPointer(),
-                len,
+                GetCtlCode(code, access),
+                inputBuffer.ToPointer(),
+                (uint)inBufferSize,
+                outputBuffer.ToPointer(),
+                (uint)outBufferSize,
                 &bytesRead,
                 null))
             {
                 throw new Exception($"DeviceIoControl failed: {Marshal.GetLastPInvokeErrorMessage()} ({Marshal.GetLastWin32Error()})");
             }
 
-            ret = new byte[bytesRead];
-            Marshal.Copy(outBuffer, ret, 0, (int)bytesRead);
-        }
-
-        return ret;
-    }
-
-    public void Set(IoctlCode code, uint value)
-    {
-        var data = new byte[4];
-        BinaryPrimitives.WriteUInt32LittleEndian(data, value);
-
-        Set(code, data);
-    }
-
-    public void Set(IoctlCode code, byte[] data)
-    {
-        uint bytesRead = 0;
-
-        unsafe
-        {
-            var inBuffer = Marshal.AllocHGlobal(data.Length);
-            Marshal.Copy(data, 0, inBuffer, data.Length);
-
-            if (!PInvoke.DeviceIoControl(
-                this._handle,
-                GetCtlCode(code, FileAccess.Write),
-                inBuffer.ToPointer(),
-                (uint)data.Length,
-                null,
-                0,
-                &bytesRead,
-                null))
+            var ret = new byte[bytesRead];
+            
+            if (bytesRead > 0 && outputBuffer != IntPtr.Zero)
             {
-                throw new Exception($"DeviceIoControl failed: {Marshal.GetLastPInvokeErrorMessage()} ({Marshal.GetLastWin32Error()})");
+                Marshal.Copy(outputBuffer, ret, 0, (int)bytesRead);
             }
+
+            return ret;
         }
     }
 
@@ -216,7 +247,7 @@ public class CxadcWin : IDisposable
 
         // based on code from cxadc-linux3 leveladj.c
         var verifyCount = 0;
-        var tenbit = Convert.ToBoolean(Get(IoctlCode.GetTenbit));
+        var tenbit = this.IsTenbitEnabled;
         var levelInc = 1;
 
         var level = startingLevel;
@@ -233,7 +264,7 @@ public class CxadcWin : IDisposable
             uint oorCount = 0;
 
             Console.WriteLine($"Testing level {level}");
-            Set(IoctlCode.SetLevel, level);
+            this.Level = level;
 
             if (await deviceStream.ReadAsync(buffer, cancelToken) != sampleCount)
             {
@@ -307,25 +338,57 @@ public class CxadcWin : IDisposable
 
     public void PrintConfig()
     {
-        var path = Encoding.Unicode.GetString(Get(IoctlCode.GetWin32Path, 128, new byte[128]));
-        var busNum = Get(IoctlCode.GetBusNumber);
-        var devAddr = Get(IoctlCode.GetDeviceAddress);
-        var devNum = (devAddr >> 16) & 0x0000FFFF;
-        var funcNum = devAddr & 0x0000FFFF;
-
-        var config = Get(IoctlCode.GetConfig, 16, new byte[16]).AsSpan();
-        var state = Get(IoctlCode.GetState, 20, new byte[20]).AsSpan();
-
-        Console.WriteLine("{0,-15} {1,-8} {2,15}", "path", path, state[16] == 1 ? "**capturing**" : "");
-        Console.WriteLine("{0,-15} {1,-8}", "location", $"{busNum:00}:{devNum:00}.{funcNum:0}");
-        Console.WriteLine("{0,-15} {1,-8}", "vmux", BinaryPrimitives.ReadUInt32LittleEndian(config[0..]));
-        Console.WriteLine("{0,-15} {1,-8}", "level", BinaryPrimitives.ReadUInt32LittleEndian(config[4..]));
-        Console.WriteLine("{0,-15} {1,-8}", "tenbit", config[8]);
-        Console.WriteLine("{0,-15} {1,-8}", "sixdb", config[9]);
-        Console.WriteLine("{0,-15} {1,-8}", "center_offset", BinaryPrimitives.ReadUInt32LittleEndian(config[12..]));
-        Console.WriteLine("{0,-15} {1,-8}", "ouflow_count", BinaryPrimitives.ReadUInt32LittleEndian(state[8..]));
+        Console.WriteLine("{0,-15} {1,-8} {2,15}", "path", this.Win32Path, this.IsCapturing ? "**capturing**" : "");
+        Console.WriteLine("{0,-15} {1,-8}", "location", $"{this.PciBusNumber:00}:{this.DeviceNumber:00}.{this.FunctionNumber:0}");
+        Console.WriteLine("{0,-15} {1,-8}", "vmux", this.VMux);
+        Console.WriteLine("{0,-15} {1,-8}", "level", this.Level);
+        Console.WriteLine("{0,-15} {1,-8}", "tenbit", this.IsTenbitEnabled);
+        Console.WriteLine("{0,-15} {1,-8}", "sixdb", this.IsSixDBEnabled);
+        Console.WriteLine("{0,-15} {1,-8}", "center_offset", this.CenterOffset);
+        Console.WriteLine("{0,-15} {1,-8}", "ouflow_count", this.OUFlowCount);
         Console.WriteLine();
     }
+
+    // ioctl set fns
+    public void SetRegister(string address, string value) =>
+        SetRegister(Convert.ToUInt32(address, 16), Convert.ToUInt32(value, 16));
+
+    public void SetRegister(uint address, uint value)
+    {
+        var inputData = new byte[8];
+        BinaryPrimitives.WriteUInt32LittleEndian(inputData, address);
+        BinaryPrimitives.WriteUInt32LittleEndian(inputData.AsSpan()[4..], value);
+        Ioctl(IoctlCode.SetRegister, FileAccess.Write, inputData, 0);
+    }
+    public void IoctlSetBool(IoctlCode code, bool inputData, int outBufferSize = 0) =>
+        Ioctl(code, FileAccess.Write, [Convert.ToByte(inputData)], outBufferSize);
+
+    public void IoctlSetUint(IoctlCode code, uint value, int outBufferSize = 0)
+    {
+        var inputData = new byte[4];
+        BinaryPrimitives.WriteUInt32LittleEndian(inputData, value);
+        Ioctl(code, FileAccess.Write, inputData, outBufferSize);
+    }
+
+    // Ioctl get fns
+    public uint GetRegister(string address) =>
+        GetRegister(Convert.ToUInt32(address, 16));
+
+    public uint GetRegister(uint address)
+    {
+        var inputData = new byte[4];
+        BinaryPrimitives.WriteUInt32LittleEndian(inputData, address);
+        return BinaryPrimitives.ReadUInt32LittleEndian(Ioctl(IoctlCode.GetRegister, FileAccess.Read, inputData, 4));
+    }
+
+    public bool IoctlGetBool(IoctlCode code) =>
+        Ioctl(code, FileAccess.Read, null, 1)[0] == 1;
+
+    public uint IoctlGetUint(IoctlCode code, byte[]? inputData = null) =>
+        BinaryPrimitives.ReadUInt32LittleEndian(Ioctl(code, FileAccess.Read, inputData, 4));
+
+    public byte[] IoctlGetBytes(IoctlCode code, int outBufferSize = 0) =>
+        Ioctl(code, FileAccess.Read, null, outBufferSize);
 
     internal static uint GetCtlCode(IoctlCode function, FileAccess method) =>
         PInvoke.FILE_DEVICE_UNKNOWN << 16 | (uint)method << 14 | (uint)function << 2 | PInvoke.METHOD_BUFFERED;
