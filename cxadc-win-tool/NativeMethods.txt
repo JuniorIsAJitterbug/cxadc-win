@@ -1,13 +1,9 @@
-﻿CreateFile
-DeviceIoControl
-ReadFile
-CloseHandle
+﻿DeviceIoControl
 
 SetupDiGetClassDevs
 SetupDiEnumDeviceInterfaces
 SetupDiGetDeviceInterfaceDetail
 
 WIN32_ERROR
-FILE_ACCESS_RIGHTS
 FILE_DEVICE_UNKNOWN
 METHOD_BUFFERED

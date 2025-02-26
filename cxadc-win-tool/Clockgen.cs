@@ -47,7 +47,7 @@ public class Clockgen : IDisposable
 
         if (!ret || len == 0)
         {
-            throw new Exception($"Error reading sample rate {UsbDevice.LastErrorNumber} / {UsbDevice.LastErrorString}");
+            throw new Exception($"Error reading sample rate: {UsbDevice.LastErrorString} ({UsbDevice.LastErrorNumber})");
         }
 
         return BinaryPrimitives.ReadInt32LittleEndian(buf);
@@ -70,15 +70,10 @@ public class Clockgen : IDisposable
 
         if (!ret || len == 0)
         {
-            throw new Exception($"Error setting sample rate {UsbDevice.LastErrorNumber} / {UsbDevice.LastErrorString}");
+            throw new Exception($"Error setting sample rate: {UsbDevice.LastErrorString} ({UsbDevice.LastErrorNumber})");
         }
 
         return BinaryPrimitives.ReadInt32LittleEndian(buf);
-    }
-
-    public double GetClock(uint clockIdx)
-    {
-        return GetFreq(GetFreqIdx(clockIdx));
     }
 
     public byte GetFreqIdx(uint clockIdx)
@@ -102,7 +97,7 @@ public class Clockgen : IDisposable
 
         if (!ret || len == 0)
         {
-            throw new Exception($"Error reading clock {UsbDevice.LastErrorNumber} / {UsbDevice.LastErrorString}");
+            throw new Exception($"Error reading clock: {UsbDevice.LastErrorString} ({UsbDevice.LastErrorNumber})");
         }
 
         return buf[0];
@@ -129,13 +124,27 @@ public class Clockgen : IDisposable
 
         if (!ret || len == 0)
         {
-            throw new Exception($"Error setting clock {UsbDevice.LastErrorNumber} / {UsbDevice.LastErrorString}");
+            throw new Exception($"Error setting clock: {UsbDevice.LastErrorString} ({UsbDevice.LastErrorNumber})");
         }
 
         return ret;
     }
 
-    public double GetFreq(uint freqIdx) => freqIdx switch
+    public void PrintConfig()
+    {
+        Console.WriteLine("{0,-15} {1,-8}", "audio", GetAudioRate());
+
+        for (uint i = 0; i < 2; i++)
+        {
+            Console.WriteLine("{0,-15} {1,-8}", $"clock {i}", $"{GetClock(i):0.000}");
+        }
+    }
+
+    public double GetClock(uint clockIdx) => GetFreq(GetFreqIdx(clockIdx));
+
+    public static bool Exists() => UsbDevice.AllDevices.Find(new UsbDeviceFinder(VendorId, ProductId)) != null;
+
+    public static double GetFreq(uint freqIdx) => freqIdx switch
     {
         1 => 20.00000,
         2 => 28.63636,
@@ -148,7 +157,7 @@ public class Clockgen : IDisposable
 
     public void Dispose()
     {
-        this.Dispose(true);
+        Dispose(true);
         GC.SuppressFinalize(this);
     }
 
