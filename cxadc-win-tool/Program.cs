@@ -5,10 +5,12 @@
  * Copyright (C) 2024-2025 Jitterbug <jitterbug@posteo.co.uk>
  */
 
+using ByteSizeLib;
 using cxadc_win_tool;
 using System.Buffers.Binary;
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using System.Diagnostics;
 using System.Text;
 
 CancellationTokenSource cancelTokenSrc = new();
@@ -27,23 +29,53 @@ var inputDeviceArg = new Argument<string>(name: "device", description: "device p
 
 // capture command
 var captureOutputArg = new Argument<string>(name: "output", description: "output path (- for STDOUT)");
+var captureQuietOption = new Option<bool>(name: "--quiet", description: "do not print info to console", getDefaultValue: () => false);
+captureQuietOption.AddAlias("-q");
+
 var captureCommand = new Command("capture", description: "capture data")
 {
     inputDeviceArg,
     captureOutputArg,
+    captureQuietOption
 };
 
 captureCommand.AddAlias("cap");
 
-captureCommand.SetHandler(async (device, output) =>
+captureCommand.SetHandler(async (device, output, quiet) =>
 {
     using var cx = new CxadcWin(device);
     using var outputStream = output == "-" ? Console.OpenStandardOutput(CxadcWin.ReadBufferSize)
         : new FileStream(output, FileMode.Create, FileAccess.Write, FileShare.Write, CxadcWin.ReadBufferSize, true);
 
-    await cx.Read(outputStream, cancelToken);
+    var sw = new Stopwatch();
 
-}, inputDeviceArg, captureOutputArg);
+    async Task monitor()
+    {
+        while (!cancelToken.IsCancellationRequested)
+        {
+            var previousSize = cx.TotalBytesRead;
+            await Task.Delay(1000, cancelToken);
+            var currentSize = cx.TotalBytesRead;
+            var ts = sw.Elapsed;
+
+            if (!quiet && output != "-")
+            {
+                // print to console
+                var clearLine = $"\r{new string(' ', Console.WindowWidth)}\r";
+                var ouflowCount = cx.Get(CxadcWin.IoctlCodes.GetOUFlowCount);
+                var durationStr = $"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
+                var ioStr = $"{ByteSize.FromBytes(currentSize):GiB} ({ByteSize.FromBytes(currentSize - previousSize):MiB}/s)";
+
+                Console.SetCursorPosition(0, Console.GetCursorPosition().Top);
+                Console.Error.Write($"{clearLine}Duration: {durationStr}     Size: {ioStr}     Over/Underflows: {ouflowCount}");
+            }
+        }
+    }
+
+    sw.Start();
+    await Task.WhenAll(cx.Read(outputStream, cancelToken), monitor());
+
+}, inputDeviceArg, captureOutputArg, captureQuietOption);
 
 
 // get command
