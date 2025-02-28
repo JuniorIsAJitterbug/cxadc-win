@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup>
+		<CxVersionMajor>1</CxVersionMajor>
+		<CxVersionMinor>0</CxVersionMinor>
+		<CxVersionBuild>0</CxVersionBuild>
+		<CxVersionRevision>0</CxVersionRevision>
+
+		<CxVersionStr>$(CxVersionMajor).$(CxVersionMinor).$(CxVersionBuild).$(CxVersionRevision)</CxVersionStr>
+		<CxVersionSemverStr>$(CxVersionMajor).$(CxVersionMinor).$(CxVersionBuild)</CxVersionSemverStr>
+
+		<CxProjectUrl>https://github.com/JuniorIsAJitterbug/cxadc-win</CxProjectUrl>
+		<CxProjectCopyright>Copyright (c) 2024-2025 JuniorIsAJitterbug</CxProjectCopyright>
+	</PropertyGroup>
+
+	<Target Name="GetVersion" BeforeTargets="PrepareForBuild">
+		<Exec Command="git describe --all --dirty" ConsoleToMSBuild="true">
+			<Output PropertyName="CxVersionGitDescription" TaskParameter="ConsoleOutput" />
+		</Exec>
+		<Exec Command="git rev-parse HEAD" ConsoleToMSBuild="true">
+			<Output PropertyName="CxVersionGitHash" TaskParameter="ConsoleOutput" />
+		</Exec>
+		<PropertyGroup>
+			<CxVersionGitFull>$(CxVersionGitDescription) ($(CxVersionGitHash))</CxVersionGitFull>
+		</PropertyGroup>
+		<Message Text="Git: $(CxVersionGitFull)" Importance="high" />
+		<ItemGroup>
+			<ResourceCompile>
+				<PreprocessorDefinitions>CX_VERSION_MAJOR=$(CxVersionMajor);CX_VERSION_MINOR=$(CxVersionMinor);CX_VERSION_BUILD=$(CxVersionBuild);CX_VERSION_REVISION=$(CxVersionRevision);CX_VERSION_STR=\"$(CxVersionStr)\";CX_VERSION_SEMVER_STR=\"$(CxVersionSemverStr)\";CX_VERSION_GIT_DESCRIPTION=\"$(CxVersionGitDescription)\";CX_VERSION_GIT_HASH=\"$(CxVersionGitHash)\";CX_VERSION_GIT_FULL=\"$(CxVersionGitFull)\";CX_PROJECT_URL=\"$(CxProjectUrl)\";CX_PROJECT_COPYRIGHT=\"$(CxProjectCopyright)\";%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
+			</ResourceCompile>
+			<ClCompile>
+				<PreprocessorDefinitions>CX_VERSION_MAJOR=$(CxVersionMajor);CX_VERSION_MINOR=$(CxVersionMinor);CX_VERSION_BUILD=$(CxVersionBuild);CX_VERSION_REVISION=$(CxVersionRevision);CX_VERSION_STR=$(CxVersionStr);CX_VERSION_SEMVER_STR=$(CxVersionSemverStr);CX_VERSION_GIT_DESCRIPTION=$(CxVersionGitDescription);CX_VERSION_GIT_HASH=$(CxVersionGitHash);CX_VERSION_GIT_FULL=$(CxVersionGitFull);CX_PROJECT_URL=$(CxProjectUrl);CX_PROJECT_COPYRIGHT=$(CxProjectCopyright);%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
+			</ClCompile>
+		</ItemGroup>
+	</Target>
+</Project>

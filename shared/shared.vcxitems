@@ -18,4 +18,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)cx_ctl_codes.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)cx_hw.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)shared.props" />
+  </ItemGroup>
 </Project>

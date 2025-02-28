@@ -8,7 +8,7 @@ Class       = CXADC-WIN
 ClassGuid   = {A9005477-434A-42B4-A91C-3B3B82878D04}
 Provider    = %ManufacturerName%
 CatalogFile = cxadc-win.cat
-DriverVer   = ; set by stampinf
+DriverVer   = 01/01/1970,0.0.0.1; set by stampinf
 PnpLockdown = 1
 
 [DestinationDirs]
