@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="$(SolutionDir)shared\shared.props" />
+  <Import Project="..\shared\shared.props" />
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -8,7 +8,7 @@
     <RootNamespace>cxadc_win_tool</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-	<PublishSingleFile>true</PublishSingleFile>
+    <PublishSingleFile>true</PublishSingleFile>
     <PublishTrimmed>true</PublishTrimmed>
     <PublishReadyToRun>true</PublishReadyToRun>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -19,6 +19,7 @@
     <PackageProjectUrl>$(CxProjectUrl)</PackageProjectUrl>
     <Copyright>$(CxProjectCopyright)</Copyright>
     <Version>$(CxVersionSemverStr)</Version>
+    <AssemblyName>cxadc-win-tool</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

@@ -20,8 +20,8 @@ Class.InstallCopy = 11
 1 = %DiskName%,,,""
 
 [SourceDisksFiles]
-cxadc-win.sys           = 1,,
-cxadc-win-prop-page.dll = 1,,
+cxadc-win.sys = 1,,
+cxadc-win-pp.dll = 1,,
 
 ;*****************************************
 ; Class Section
@@ -33,10 +33,10 @@ CopyFiles = Class.InstallCopy
 [Class.AddReg]
 HKR,,,0,%ClassName%
 HKR,,Icon,,-14
-HKR,,EnumPropPages32,,"cxadc-win-prop-page.dll,cx_prop_page_provider"
+HKR,,EnumPropPages32,,"cxadc-win-pp.dll,cx_prop_page_provider"
 
 [Class.InstallCopy]
-cxadc-win-prop-page.dll
+cxadc-win-pp.dll
 
 
 ;*****************************************

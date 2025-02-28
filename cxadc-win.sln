@@ -3,12 +3,12 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35327.3
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cxadc-win", "cxadc-win\cxadc-win.vcxproj", "{DAE29972-C8C6-4850-9E52-45760BDD3E66}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "driver", "src\driver\driver.vcxproj", "{DAE29972-C8C6-4850-9E52-45760BDD3E66}"
 	ProjectSection(ProjectDependencies) = postProject
 		{83090CE1-3EAD-40D1-AE6B-8394FDCD345C} = {83090CE1-3EAD-40D1-AE6B-8394FDCD345C}
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "cxadc-win-tool", "cxadc-win-tool\cxadc-win-tool.csproj", "{80F37B37-5909-426E-A751-BE7C75F52A23}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "tool", "src\tool\tool.csproj", "{80F37B37-5909-426E-A751-BE7C75F52A23}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9875028E-5349-451B-A770-733DC59AF2A5}"
 	ProjectSection(SolutionItems) = preProject
@@ -19,9 +19,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cxadc-win-prop-page", "cxadc-win-prop-page\cxadc-win-prop-page.vcxproj", "{83090CE1-3EAD-40D1-AE6B-8394FDCD345C}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "prop-page", "src\prop-page\prop-page.vcxproj", "{83090CE1-3EAD-40D1-AE6B-8394FDCD345C}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shared", "shared\shared.vcxitems", "{04143256-7542-4C95-99FC-F6D9081961A0}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shared", "src\shared\shared.vcxitems", "{04143256-7542-4C95-99FC-F6D9081961A0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -99,8 +99,8 @@ Global
 		SolutionGuid = {A747CBA2-D23B-41C2-A0AB-18816F9B386B}
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		shared\shared.vcxitems*{04143256-7542-4c95-99fc-f6d9081961a0}*SharedItemsImports = 9
-		shared\shared.vcxitems*{83090ce1-3ead-40d1-ae6b-8394fdcd345c}*SharedItemsImports = 4
-		shared\shared.vcxitems*{dae29972-c8c6-4850-9e52-45760bdd3e66}*SharedItemsImports = 4
+		src\shared\shared.vcxitems*{04143256-7542-4c95-99fc-f6d9081961a0}*SharedItemsImports = 9
+		src\shared\shared.vcxitems*{83090ce1-3ead-40d1-ae6b-8394fdcd345c}*SharedItemsImports = 4
+		src\shared\shared.vcxitems*{dae29972-c8c6-4850-9e52-45760bdd3e66}*SharedItemsImports = 4
 	EndGlobalSection
 EndGlobal

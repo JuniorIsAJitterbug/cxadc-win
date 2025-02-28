@@ -56,7 +56,7 @@
     <Configuration>Debug</Configuration>
     <Platform Condition="'$(Platform)' == ''">x64</Platform>
     <RootNamespace>cxadc_win</RootNamespace>
-    <ProjectName>cxadc-win</ProjectName>
+    <ProjectName>driver</ProjectName>
     <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -102,9 +102,11 @@
   <PropertyGroup />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <TargetName>cxadc-win</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <TargetName>cxadc-win</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
@@ -129,7 +131,7 @@
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
     </DriverSign>
     <PreBuildEvent>
-      <Command>xcopy /y $(SolutionDir)$(Platform)\$(Configuration)\cxadc-win-prop-page.dll $(SolutionDir)$(Platform)\$(Configuration)\cxadc-win\</Command>
+      <Command>xcopy /y $(SolutionDir)$(Platform)\$(Configuration)\cxadc-win-pp.dll $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</Command>
     </PreBuildEvent>
     <Inf />
     <Inf>
@@ -158,7 +160,7 @@
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
     </DriverSign>
     <PreBuildEvent>
-      <Command>xcopy /y $(SolutionDir)$(Platform)\$(Configuration)\cxadc-win-prop-page.dll $(SolutionDir)$(Platform)\$(Configuration)\cxadc-win\</Command>
+      <Command>xcopy /y $(SolutionDir)$(Platform)\$(Configuration)\cxadc-win-pp.dll $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</Command>
     </PreBuildEvent>
     <Link>
       <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>

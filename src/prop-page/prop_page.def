@@ -1,4 +1,4 @@
-LIBRARY     cxadc-win-prop-page.dll
+LIBRARY     cxadc-win-pp.dll
 HEAPSIZE    8192
 
 EXPORTS

@@ -24,11 +24,11 @@ jobs:
 
       - name: Build driver
         run: |
-          msbuild ${{ env.solution_path }} -target:cxadc-win -p:Configuration=${{ matrix.configuration }} -p:Platform=${{ matrix.platform }}
+          msbuild ${{ env.solution_path }} -target:driver -p:Configuration=${{ matrix.configuration }} -p:Platform=${{ matrix.platform }}
 
       - name: Build tool
         run: |
-          dotnet publish cxadc-win-tool -r win-${{ matrix.platform }}
+          dotnet publish .\src\tool -r win-${{ matrix.platform }}
 
       - name: Create release directory
         run: |
@@ -36,10 +36,11 @@ jobs:
           Copy-Item -Path .\x64\Release\cxadc-win\cxadc-win.cat -Destination .\release\
           Copy-Item -Path .\x64\Release\cxadc-win\cxadc-win.sys -Destination .\release\
           Copy-Item -Path .\x64\Release\cxadc-win\cxadc-win.inf -Destination .\release\
-          Copy-Item -Path .\x64\Release\cxadc-win\cxadc-win-prop-page.dll -Destination .\release\
+          Copy-Item -Path .\x64\Release\cxadc-win\cxadc-win-pp.dll -Destination .\release\
           Copy-Item -Path .\x64\Release\cxadc-win.pdb -Destination .\release\
-          Copy-Item -Path .\cxadc-win-tool\bin\Release\net8.0-windows\win-x64\publish\cxadc-win-tool.exe -Destination .\release\
-          Copy-Item -Path .\cxadc-win-tool\bin\Release\net8.0-windows\win-x64\publish\cxadc-win-tool.pdb -Destination .\release\
+          Copy-Item -Path .\x64\Release\cxadc-win-pp.pdb -Destination .\release\
+          Copy-Item -Path .\tool\bin\Release\net8.0-windows\win-x64\publish\cxadc-win-tool.exe -Destination .\release\
+          Copy-Item -Path .\tool\bin\Release\net8.0-windows\win-x64\publish\cxadc-win-tool.pdb -Destination .\release\
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
