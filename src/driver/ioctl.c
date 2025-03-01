@@ -85,8 +85,14 @@ VOID cx_evt_file_cleanup(
 }
 
 _Use_decl_annotations_
-NTSTATUS cx_evt_set_output(WDFREQUEST req, PVOID buf, size_t buf_len)
+NTSTATUS cx_evt_set_output(WDFREQUEST req, size_t out_len, PVOID buf, size_t buf_len)
 {
+    if (out_len < buf_len)
+    {
+        TRACE_ERROR("cx_evt_set_output, buffer too small %Iu < %Iu", buf_len, out_len);
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+
     WDFMEMORY mem = WDF_NO_HANDLE;
 
     RETURN_NTSTATUS_IF_FAILED(WdfRequestRetrieveOutputMemory(req, &mem));
@@ -97,14 +103,19 @@ NTSTATUS cx_evt_set_output(WDFREQUEST req, PVOID buf, size_t buf_len)
 }
 
 _Use_decl_annotations_
-NTSTATUS cx_evt_get_input(WDFREQUEST req, PVOID buf, size_t buf_len)
+NTSTATUS cx_evt_get_input(WDFREQUEST req, size_t in_len, PVOID buf, size_t buf_len)
 {
+    if (in_len < buf_len)
+    {
+        TRACE_ERROR("cx_evt_get_input, buffer too small %Iu < %Iu", buf_len, in_len);
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+
     WDFMEMORY mem = WDF_NO_HANDLE;
 
     RETURN_NTSTATUS_IF_FAILED(WdfRequestRetrieveInputMemory(req, &mem));
     RETURN_NTSTATUS_IF_FAILED(WdfMemoryCopyToBuffer(mem, 0, buf, buf_len));
 
-    WdfRequestSetInformation(req, buf_len);
     return STATUS_SUCCESS;
 }
 
@@ -117,70 +128,67 @@ VOID cx_evt_io_ctrl(
     ULONG ctrl_code
 )
 {
-    UNREFERENCED_PARAMETER(out_len);
-    UNREFERENCED_PARAMETER(in_len);
-
     NTSTATUS status = STATUS_SUCCESS;
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfIoQueueGetDevice(queue));
 
     switch (ctrl_code)
     {
         case CX_IOCTL_GET_CONFIG:
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, &dev_ctx->config, sizeof(DEVICE_CONFIG)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->config, sizeof(dev_ctx->config)));
             break;
 
         case CX_IOCTL_GET_STATE:
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, &dev_ctx->state, sizeof(DEVICE_STATE)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->state, sizeof(dev_ctx->state)));
             break;
 
         case CX_IOCTL_GET_CAPTURE_STATE:
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, &dev_ctx->state.is_capturing, sizeof(BOOLEAN)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->state.is_capturing, sizeof(dev_ctx->state.is_capturing)));
             break;
 
         case CX_IOCTL_GET_OUFLOW_COUNT:
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, &dev_ctx->state.ouflow_count, sizeof(ULONG)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->state.ouflow_count, sizeof(dev_ctx->state.ouflow_count)));
             break;
 
         case CX_IOCTL_GET_VMUX:
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, &dev_ctx->config.vmux, sizeof(ULONG)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->config.vmux, sizeof(dev_ctx->config.vmux)));
             break;
 
         case CX_IOCTL_GET_LEVEL:
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, &dev_ctx->config.level, sizeof(ULONG)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->config.level, sizeof(dev_ctx->config.level)));
             break;
 
         case CX_IOCTL_GET_TENBIT:
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, &dev_ctx->config.tenbit, sizeof(BOOLEAN)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->config.tenbit, sizeof(dev_ctx->config.tenbit)));
             break;
 
         case CX_IOCTL_GET_SIXDB:
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, &dev_ctx->config.sixdb, sizeof(BOOLEAN)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->config.sixdb, sizeof(dev_ctx->config.sixdb)));
             break;
 
         case CX_IOCTL_GET_CENTER_OFFSET:
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, &dev_ctx->config.center_offset, sizeof(ULONG)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->config.center_offset, sizeof(dev_ctx->config.center_offset)));
             break;
 
         case CX_IOCTL_GET_BUS_NUMBER:
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, &dev_ctx->bus_number, sizeof(ULONG)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->bus_number, sizeof(dev_ctx->bus_number)));
             break;
 
         case CX_IOCTL_GET_DEVICE_ADDRESS:
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, &dev_ctx->dev_addr, sizeof(ULONG)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->dev_addr, sizeof(dev_ctx->dev_addr)));
             break;
 
         case CX_IOCTL_GET_WIN32_PATH:
         {
             DECLARE_UNICODE_STRING_SIZE(symlink_path, 128);
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, RtlUnicodeStringPrintf(&symlink_path, L"%ws%d", WIN32_PATH, dev_ctx->dev_idx));
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, symlink_path.Buffer, symlink_path.Length));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, symlink_path.Buffer, symlink_path.Length));
             break;
         }
 
         case CX_IOCTL_GET_REGISTER:
         {
             ULONG value = 0;
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, &value, sizeof(ULONG)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, in_len, &value, sizeof(ULONG)));
 
             if (value < CX_REGISTER_BASE || value > CX_REGISTER_END)
             {
@@ -190,7 +198,7 @@ VOID cx_evt_io_ctrl(
             }
 
             ULONG reg_val = cx_read(&dev_ctx->mmio, value);
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, &reg_val, sizeof(ULONG)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &reg_val, sizeof(ULONG)));
             break;
         }
 
@@ -201,7 +209,7 @@ VOID cx_evt_io_ctrl(
         case CX_IOCTL_SET_VMUX:
         {
             ULONG value = 0;
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, &value, sizeof(ULONG)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, in_len, &value, sizeof(dev_ctx->config.vmux)));
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_ctrl_set_vmux(dev_ctx, value));
             break;
         }
@@ -209,7 +217,7 @@ VOID cx_evt_io_ctrl(
         case CX_IOCTL_SET_LEVEL:
         {
             ULONG value = 0;
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, &value, sizeof(ULONG)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, in_len, &value, sizeof(dev_ctx->config.level)));
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_ctrl_set_level(dev_ctx, value));
             break;
         }
@@ -217,7 +225,7 @@ VOID cx_evt_io_ctrl(
         case CX_IOCTL_SET_TENBIT:
         {
             ULONG value = 0;
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, &value, sizeof(ULONG)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, in_len, &value, sizeof(dev_ctx->config.tenbit)));
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_ctrl_set_tenbit(dev_ctx, value ? TRUE : FALSE));
             break;
         }
@@ -225,7 +233,7 @@ VOID cx_evt_io_ctrl(
         case CX_IOCTL_SET_SIXDB:
         {
             ULONG value = 0;
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, &value, sizeof(ULONG)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, in_len, &value, sizeof(dev_ctx->config.sixdb)));
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_ctrl_set_sixdb(dev_ctx, value ? TRUE : FALSE));
             break;
         }
@@ -233,7 +241,7 @@ VOID cx_evt_io_ctrl(
         case CX_IOCTL_SET_CENTER_OFFSET:
         {
             ULONG value = 0;
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, &value, sizeof(ULONG)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, in_len, &value, sizeof(dev_ctx->config.center_offset)));
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_ctrl_set_center_offset(dev_ctx, value));
             break;
         }
@@ -242,7 +250,7 @@ VOID cx_evt_io_ctrl(
         {
             SET_REGISTER_DATA data = { 0 };
 
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, &data, sizeof(SET_REGISTER_DATA)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, in_len, &data, sizeof(SET_REGISTER_DATA)));
 
             if (data.addr < CX_REGISTER_BASE || data.addr  > CX_REGISTER_END)
             {
@@ -253,6 +261,7 @@ VOID cx_evt_io_ctrl(
 
             TRACE_INFO("CX_IOCTL_SET_REGISTER writing %08X to %08X", data.val, data.addr);
             cx_write(&dev_ctx->mmio, data.addr, data.val);
+            WdfRequestSetInformation(req, 0);
             break;
         }
 
@@ -265,7 +274,7 @@ VOID cx_evt_io_ctrl(
                 file_ctx->ptr = MmMapLockedPagesSpecifyCache(dev_ctx->user_mdl, UserMode, MmNonCached, NULL, FALSE, NormalPagePriority);
             }
 
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, &file_ctx->ptr, sizeof(UINT_PTR)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &file_ctx->ptr, sizeof(UINT_PTR)));
             TRACE_INFO("CX_IOCTL_MMAP addr %p", file_ctx->ptr);
             break;
         }
@@ -282,11 +291,14 @@ VOID cx_evt_io_ctrl(
                 file_ctx->ptr = NULL;
             }
 
+            WdfRequestSetInformation(req, 0);
             break;
         }
 
         default:
+            TRACE_ERROR("unknown ioctl %X", ctrl_code);
             status = STATUS_INVALID_DEVICE_REQUEST;
+            WdfRequestSetInformation(req, 0);
             break;
     }
 

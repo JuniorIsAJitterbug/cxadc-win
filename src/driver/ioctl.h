@@ -17,8 +17,8 @@ EVT_WDF_DEVICE_FILE_CREATE cx_evt_file_create;
 EVT_WDF_FILE_CLOSE cx_evt_file_close;
 EVT_WDF_FILE_CLEANUP cx_evt_file_cleanup;
 
-NTSTATUS cx_evt_set_output(_In_ WDFREQUEST req, _Inout_updates_(buf_len)  PVOID buf, _In_ size_t buf_len);
-NTSTATUS cx_evt_get_input(_In_ WDFREQUEST req, _In_reads_(buf_len) PVOID buf, _In_ size_t buf_len);
+NTSTATUS cx_evt_set_output(_In_ WDFREQUEST req, _In_ size_t out_len, _Inout_updates_(buf_len) PVOID buf, _In_ size_t buf_len);
+NTSTATUS cx_evt_get_input(_In_ WDFREQUEST req, _In_ size_t in_len, _In_reads_(buf_len) PVOID buf, _In_ size_t buf_len);
 
 VOID cx_evt_io_ctrl(_In_ WDFQUEUE queue, _In_ WDFREQUEST req, _In_ size_t out_len, _In_ size_t in_len, _In_ ULONG ctrl_code);
 VOID cx_evt_io_read(_In_ WDFQUEUE queue, _In_ WDFREQUEST req, _In_ size_t len);
