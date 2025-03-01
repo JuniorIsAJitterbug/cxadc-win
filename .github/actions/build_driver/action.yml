@@ -1,0 +1,37 @@
+name: Build cxadc-win driver
+description: Build cxadc-win driver
+
+inputs:
+  solution:
+    description: Path to solution file
+    required: true
+  configuration:
+    description: Build configuration
+    required: true
+  platform:
+    description: Target platform
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup msbuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Build
+      shell: pwsh
+      run: |
+        msbuild ${{ inputs.solution }} -target:driver -p:Configuration=${{ inputs.configuration }} -p:Platform=${{ inputs.platform }}
+
+    - name: Upload artifacts (bin)
+      uses: actions/upload-artifact@v4
+      with:
+        name: bin-driver
+        path: .\${{ inputs.platform }}\${{ inputs.configuration }}\driver\*.*
+
+    - name: Upload artifacts (pdb)
+      uses: actions/upload-artifact@v4
+      with:
+        name: pdb-driver
+        path: .\${{ inputs.platform }}\${{ inputs.configuration }}\*.pdb
+        if-no-files-found: error

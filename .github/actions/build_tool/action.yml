@@ -1,0 +1,43 @@
+name: Build cxadc-win-tool
+description: Build cxadc-win-tool
+
+inputs:
+  configuration:
+    description: Build configuration
+    required: true
+  framework:
+    description: Target framework
+    required: true
+  runtime:
+    description: Target runtime
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        fetch-tags: true
+
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v4
+
+    - name: Build
+      shell: pwsh
+      run: dotnet publish .\src\tool\tool.csproj -c ${{ inputs.configuration }} -f ${{ inputs.framework }} -r ${{ inputs.runtime }}
+
+    - name: Upload artifacts (bin)
+      uses: actions/upload-artifact@v4
+      with:
+        name: bin-tool
+        path: .\src\tool\bin\${{ inputs.configuration }}\${{ inputs.framework }}\${{ inputs.runtime }}\publish\cxadc-win-tool.exe
+        if-no-files-found: error
+
+    - name: Upload artifacts (pdb)
+      uses: actions/upload-artifact@v4
+      with:
+        name: pdb-tool
+        path: .\src\tool\bin\${{ inputs.configuration }}\${{ inputs.framework }}\${{ inputs.runtime }}\publish\cxadc-win-tool.pdb
+        if-no-files-found: error
