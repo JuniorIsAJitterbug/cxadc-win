@@ -462,6 +462,7 @@ NTSTATUS cx_check_dev_info(
 
     BUS_INTERFACE_STANDARD bus = { 0 };
 
+    // get pci bus interface
     RETURN_NTSTATUS_IF_FAILED(WdfFdoQueryForInterface(
         dev,
         &GUID_BUS_INTERFACE_STANDARD,
@@ -470,19 +471,19 @@ NTSTATUS cx_check_dev_info(
         1,
         NULL));
 
-    UCHAR buf[256];
-    RtlZeroMemory(buf, sizeof(buf));
-    bus.GetBusData(bus.Context, PCI_WHICHSPACE_CONFIG, buf, FIELD_OFFSET(PCI_COMMON_CONFIG, VendorID), 256);
+    PCI_COMMON_CONFIG pci_config = { 0 };
 
-    // ensure device id is correct
-    PPCI_COMMON_CONFIG pci_config = (PPCI_COMMON_CONFIG)buf;
-
-    if (pci_config->VendorID != VENDOR_ID || pci_config->DeviceID != DEVICE_ID)
+    // read first 64 bytes from pci config
+    if (bus.GetBusData(bus.Context, PCI_WHICHSPACE_CONFIG, &pci_config, 0, PCI_COMMON_HDR_LENGTH) != PCI_COMMON_HDR_LENGTH)
     {
-        TRACE_ERROR("unknown vendor/device id %04X:%04X",
-            pci_config->VendorID,
-            pci_config->DeviceID);
+        TRACE_ERROR("GetBusData failed");
+        return STATUS_UNSUCCESSFUL;
+    }
 
+    // ensure device/vendor id is correct
+    if (pci_config.VendorID != VENDOR_ID || pci_config.DeviceID != DEVICE_ID)
+    {
+        TRACE_ERROR("unknown vendor/device id %04X:%04X", pci_config.VendorID, pci_config.DeviceID);
         return STATUS_UNSUCCESSFUL;
     }
 
