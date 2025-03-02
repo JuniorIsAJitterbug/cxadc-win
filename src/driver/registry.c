@@ -39,7 +39,8 @@ NTSTATUS cx_reg_get_value(
 
     status = WdfRegistryQueryULong(key, &key_uc, value);
 
-    if (!NT_SUCCESS(status))
+    // only log errors if not about missing keys
+    if (!NT_SUCCESS(status) && status != STATUS_OBJECT_NAME_NOT_FOUND)
     {
         TRACE_STATUS_ERROR(status, "WdfRegistryQueryULong");
     }
