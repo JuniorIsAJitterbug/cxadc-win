@@ -6,36 +6,38 @@
 Signature   = "$WINDOWS NT$"
 Class       = CXADC-WIN
 ClassGuid   = {A9005477-434A-42B4-A91C-3B3B82878D04}
-Provider    = %ManufacturerName%
+Provider    = %ProviderName%
 CatalogFile = cxadc-win.cat
 DriverVer   = 01/01/1970,0.0.0.1; set by stampinf
 PnpLockdown = 1
 
 [DestinationDirs]
-DefaultDestDir = 13
-DriverInstallCopy = 13
-Class.InstallCopy = 11
+DefaultDestDir      = 13 ; driver store
+DriverInstall.Copy  = 13 ; driver store
+ClassInstall.Copy   = 11 ; system32
 
 [SourceDisksNames]
-1 = %DiskName%,,,""
+1 = %DiskName%
 
 [SourceDisksFiles]
-cxadc-win.sys = 1,,
-cxadc-win-pp.dll = 1,,
+cxadc-win.sys    = 1
+cxadc-win-pp.dll = 1
+
 
 ;*****************************************
 ; Class Section
 ;*****************************************
-[ClassInstall32]
-Addreg = Class.AddReg
-CopyFiles = Class.InstallCopy
 
-[Class.AddReg]
-HKR,,,0,%ClassName%
+[ClassInstall32]
+Addreg    = ClassInstall.AddReg
+CopyFiles = ClassInstall.Copy
+
+[ClassInstall.AddReg]
+HKR,,,0,%DeviceClassName%
 HKR,,Icon,,-14
 HKR,,EnumPropPages32,,"cxadc-win-pp.dll,cx_prop_page_provider"
 
-[Class.InstallCopy]
+[ClassInstall.Copy]
 cxadc-win-pp.dll
 
 
@@ -44,39 +46,35 @@ cxadc-win-pp.dll
 ;*****************************************
 
 [Manufacturer]
-%ManufacturerName% = Standard,NT$ARCH$.10.0...16299
+%ManufacturernName% = DeviceList, NT$ARCH$.10.0...16299
 
-[Standard.NT$ARCH$.10.0...16299]
-%cxadc-win.DeviceDesc% = cxadc-win_Device, PCI\VEN_14F1&DEV_8800
+[DeviceList.NT$ARCH$.10.0...16299]
+%DeviceDesc% = DriverInstall, PCI\VEN_14F1&DEV_8800
 
-[cxadc-win_Device.NT]
-CopyFiles = Driver.InstallCopy
+[DriverInstall.NT]
+CopyFiles = DriverInstall.NT.Copy
 
-[Driver.InstallCopy]
+[DriverInstall.NT.Copy]
 cxadc-win.sys
 
 ;-------------- Service installation
-[cxadc-win_Device.NT.Services]
-AddService = cxadc-win,%SPSVCINST_ASSOCSERVICE%, cxadc-win_Service_Inst
+[DriverInstall.NT.Services]
+AddService = %DeviceDesc%, %SPSVCINST_ASSOCSERVICE%, DriverService
 
-; -------------- cxadc-win driver install sections
-[cxadc-win_Service_Inst]
-DisplayName    = %cxadc-win.SVCDESC%
-ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
-StartType      = 3               ; SERVICE_DEMAND_START
-ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+[DriverService]
+DisplayName    = %ServiceDesc%
+ServiceType    = 1
+StartType      = 3
+ErrorControl   = 1
 ServiceBinary  = %13%\cxadc-win.sys
 
-[cxadc-win_Device.NT.Wdf]
-KmdfService = cxadc-win, cxadc-win_wdfsect
-
-[cxadc-win_wdfsect]
-KmdfLibraryVersion = $KMDFVERSION$
 
 [Strings]
 SPSVCINST_ASSOCSERVICE = 0x00000002
-ManufacturerName = "Jitterbug"
-ClassName = "cxadc-win devices"
-DiskName = "cxadc-win drivers"
-cxadc-win.DeviceDesc = "cxadc-win device"
-cxadc-win.SVCDESC = "cxadc-win service"
+ProviderName           = "Jitterbug"
+ManufacturernName      = "Conexant"
+DeviceClassName        = "cxadc-win devices"
+DeviceDesc             = "cx2388x device"
+ServiceName            = "cxadc-win"
+ServiceDesc            = "cxadc-win service"
+DiskName               = "cxadc-win drivers"
