@@ -67,7 +67,6 @@ NTSTATUS cx_evt_device_add(
     PWDFDEVICE_INIT dev_init
 )
 {
-    UNREFERENCED_PARAMETER(driver);
     PAGED_CODE();
 
     WdfDeviceInitSetIoType(dev_init, WdfDeviceIoDirect);
@@ -93,6 +92,15 @@ NTSTATUS cx_evt_device_add(
     WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&dev_attrs, DEVICE_CONTEXT);
     dev_attrs.EvtCleanupCallback = cx_evt_device_cleanup;
 
+    // assign NT name
+    PDRIVER_CONTEXT driver_ctx = cx_driver_get_ctx(driver);
+    LONG dev_idx = InterlockedIncrement(&driver_ctx->dev_count) - 1;
+
+    DECLARE_UNICODE_STRING_SIZE(dev_path, 128);
+    RETURN_NTSTATUS_IF_FAILED(RtlUnicodeStringPrintf(&dev_path, L"%ws%d", NT_PATH, dev_idx));
+    RETURN_NTSTATUS_IF_FAILED(WdfDeviceInitAssignName(dev_init, &dev_path));
+
+    // create device
     WDFDEVICE dev = WDF_NO_HANDLE;
     RETURN_NTSTATUS_IF_FAILED(WdfDeviceCreate(&dev_init, &dev_attrs, &dev));
     RETURN_NTSTATUS_IF_FAILED(WdfDeviceCreateDeviceInterface(dev, (LPGUID)&GUID_DEVINTERFACE_CXADCWIN, NULL));
@@ -102,6 +110,7 @@ NTSTATUS cx_evt_device_add(
 
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(dev);
     dev_ctx->dev = dev;
+    dev_ctx->dev_idx = dev_idx;
 
     RETURN_NTSTATUS_IF_FAILED(cx_read_device_prop(dev_ctx, DevicePropertyBusNumber, &dev_ctx->bus_number));
     RETURN_NTSTATUS_IF_FAILED(cx_read_device_prop(dev_ctx, DevicePropertyAddress, &dev_ctx->dev_addr));
@@ -319,11 +328,6 @@ NTSTATUS cx_init_device_ctx(
 )
 {
     PAGED_CODE();
-
-    // set device idx and increment device count
-    PDRIVER_CONTEXT driver_ctx = cx_driver_get_ctx(WdfGetDriver());
-    dev_ctx->dev_idx = driver_ctx->dev_count;
-    InterlockedIncrement(&driver_ctx->dev_count);
 
     // create symlink
     DECLARE_UNICODE_STRING_SIZE(symlink_path, 128);
