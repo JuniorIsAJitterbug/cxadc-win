@@ -32,7 +32,7 @@
 
 #pragma alloc_text (PAGE, cx_init_mmio)
 #pragma alloc_text (PAGE, cx_init_interrupt)
-#pragma alloc_text (PAGE, cx_init_device_ctx)
+#pragma alloc_text (PAGE, cx_init_device)
 #pragma alloc_text (PAGE, cx_init_dma)
 #pragma alloc_text (PAGE, cx_init_queue)
 #pragma alloc_text (PAGE, cx_check_dev_info)
@@ -108,21 +108,14 @@ NTSTATUS cx_evt_device_add(
     // check valid pci id
     RETURN_NTSTATUS_IF_FAILED(cx_check_dev_info(dev));
 
-    PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(dev);
-    dev_ctx->dev = dev;
-    dev_ctx->dev_idx = dev_idx;
+    // create symlink
+    DECLARE_UNICODE_STRING_SIZE(symlink_path, 128);
+    RETURN_NTSTATUS_IF_FAILED(RtlUnicodeStringPrintf(&symlink_path, L"%ws%d", SYMLINK_PATH, dev_idx));
+    RETURN_NTSTATUS_IF_FAILED(WdfDeviceCreateSymbolicLink(dev, &symlink_path));
+    TRACE_INFO("created symlink %wZ", &symlink_path);
 
-    RETURN_NTSTATUS_IF_FAILED(cx_read_device_prop(dev_ctx, DevicePropertyBusNumber, &dev_ctx->bus_number));
-    RETURN_NTSTATUS_IF_FAILED(cx_read_device_prop(dev_ctx, DevicePropertyAddress, &dev_ctx->dev_addr));
-
-    TRACE_INFO("add device %02x:%02d.%01d PDO(0x%p) FDO(0x%p) ctx(0x%p)",
-        dev_ctx->bus_number, (dev_ctx->dev_addr >> 16) & 0x0000FFFF, dev_ctx->dev_addr & 0x0000FFFF,
-        WdfDeviceWdmGetPhysicalDevice(dev),
-        WdfDeviceWdmGetDeviceObject(dev),
-        dev_ctx);
-
-    RETURN_NTSTATUS_IF_FAILED(cx_init_device_ctx(dev_ctx));
-    RETURN_NTSTATUS_IF_FAILED(cx_wmi_register(dev_ctx));
+    // init device
+    RETURN_NTSTATUS_IF_FAILED(cx_init_device(dev, dev_idx));
 
     return STATUS_SUCCESS;
 }
@@ -252,7 +245,9 @@ NTSTATUS cx_init_interrupt(
     intr_cfg.EvtInterruptEnable = cx_evt_intr_enable;
     intr_cfg.EvtInterruptDisable = cx_evt_intr_disable;
 
-    return WdfInterruptCreate(dev_ctx->dev, &intr_cfg, WDF_NO_OBJECT_ATTRIBUTES, &dev_ctx->intr);
+    RETURN_NTSTATUS_IF_FAILED(WdfInterruptCreate(dev_ctx->dev, &intr_cfg, WDF_NO_OBJECT_ATTRIBUTES, &dev_ctx->intr));
+
+    return STATUS_SUCCESS;
 }
 
 _Use_decl_annotations_
@@ -323,28 +318,33 @@ NTSTATUS cx_evt_device_d0_exit(
 }
 
 _Use_decl_annotations_
-NTSTATUS cx_init_device_ctx(
-    PDEVICE_CONTEXT dev_ctx
+NTSTATUS cx_init_device(
+    WDFDEVICE dev,
+    LONG dev_idx
 )
 {
     PAGED_CODE();
 
-    // create symlink
-    DECLARE_UNICODE_STRING_SIZE(symlink_path, 128);
-    RETURN_NTSTATUS_IF_FAILED(RtlUnicodeStringPrintf(&symlink_path, L"%ws%d", SYMLINK_PATH, dev_ctx->dev_idx));
-    RETURN_NTSTATUS_IF_FAILED(WdfDeviceCreateSymbolicLink(dev_ctx->dev, &symlink_path));
-    TRACE_INFO("created symlink %wZ", &symlink_path);
+    PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(dev);
+    dev_ctx->dev = dev;
+    dev_ctx->dev_idx = dev_idx;
 
-    // init device
-    RETURN_NTSTATUS_IF_FAILED(cx_init_dma(dev_ctx));
-    RETURN_NTSTATUS_IF_FAILED(cx_init_queue(dev_ctx));
+    RETURN_NTSTATUS_IF_FAILED(cx_read_device_prop(dev_ctx, DevicePropertyBusNumber, &dev_ctx->bus_number));
+    RETURN_NTSTATUS_IF_FAILED(cx_read_device_prop(dev_ctx, DevicePropertyAddress, &dev_ctx->dev_addr));
+
+    TRACE_INFO("device idx: %d, bus location: %02d:%02d.%01d",
+        dev_idx, dev_ctx->bus_number, (dev_ctx->dev_addr >> 16) & 0x0000FFFF, dev_ctx->dev_addr & 0x0000FFFF);
 
     // init ctx data
     cx_init_config(dev_ctx);
-    cx_init_state(dev_ctx);
+    dev_ctx->state = (DEVICE_STATE){ 0 };
 
     // init interrupt event
     KeInitializeEvent(&dev_ctx->isr_event, NotificationEvent, FALSE);
+
+    RETURN_NTSTATUS_IF_FAILED(cx_init_dma(dev_ctx));
+    RETURN_NTSTATUS_IF_FAILED(cx_init_queue(dev_ctx));
+    RETURN_NTSTATUS_IF_FAILED(cx_wmi_register(dev_ctx));
 
     return STATUS_SUCCESS;
 }
@@ -447,14 +447,6 @@ VOID cx_init_config(
         .center_offset = NT_SUCCESS(cx_reg_get_value(dev_ctx->dev, CX_CTRL_CONFIG_CENTER_OFFSET_REG_KEY, &value)) ?
             value : CX_CTRL_CONFIG_CENTER_OFFSET_DEFAULT
     };
-}
-
-_Use_decl_annotations_
-VOID cx_init_state(
-    PDEVICE_CONTEXT dev_ctx
-)
-{
-    dev_ctx->state = (DEVICE_STATE){ 0 };
 }
 
 _Use_decl_annotations_
