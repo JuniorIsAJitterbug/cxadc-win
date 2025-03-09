@@ -315,6 +315,10 @@ VOID cx_evt_io_read(
     NTSTATUS status = STATUS_SUCCESS;
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfIoQueueGetDevice(queue));
     PFILE_CONTEXT file_ctx = cx_file_get_ctx(WdfRequestGetFileObject(req));
+    LARGE_INTEGER timeout =
+    {
+        .QuadPart = WDF_REL_TIMEOUT_IN_MS(READ_TIMEOUT)
+    };
 
     // start capture if idle
     if (!dev_ctx->state.is_capturing)
@@ -323,7 +327,7 @@ VOID cx_evt_io_read(
 
         cx_start_capture(dev_ctx);
 
-        RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, KeWaitForSingleObject(&dev_ctx->isr_event, Executive, KernelMode, FALSE, NULL));
+        RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, KeWaitForSingleObject(&dev_ctx->isr_event, Executive, KernelMode, FALSE, &timeout));
 
         InterlockedExchange((PLONG)&dev_ctx->state.initial_page, dev_ctx->state.last_gp_cnt);
     }
@@ -375,7 +379,7 @@ VOID cx_evt_io_read(
 
             // gp_cnt == page_no but read buffer is not filled
             // wait for interrupt to trigger and continue
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, KeWaitForSingleObject(&dev_ctx->isr_event, Executive, KernelMode, FALSE, NULL));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, KeWaitForSingleObject(&dev_ctx->isr_event, Executive, KernelMode, FALSE, &timeout));
         }
     }
 
