@@ -133,51 +133,51 @@ VOID cx_evt_io_ctrl(
 
     switch (ctrl_code)
     {
-        case CX_IOCTL_GET_CONFIG:
+        case CX_IOCTL_CONFIG_GET:
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->config, sizeof(dev_ctx->config)));
             break;
 
-        case CX_IOCTL_GET_STATE:
+        case CX_IOCTL_STATE_GET:
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->state, sizeof(dev_ctx->state)));
             break;
 
-        case CX_IOCTL_GET_CAPTURE_STATE:
+        case CX_IOCTL_STATE_CAPTURE_STATE_GET:
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->state.is_capturing, sizeof(dev_ctx->state.is_capturing)));
             break;
 
-        case CX_IOCTL_GET_OUFLOW_COUNT:
+        case CX_IOCTL_STATE_OUFLOW_GET:
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->state.ouflow_count, sizeof(dev_ctx->state.ouflow_count)));
             break;
 
-        case CX_IOCTL_GET_VMUX:
+        case CX_IOCTL_CONFIG_VMUX_GET:
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->config.vmux, sizeof(dev_ctx->config.vmux)));
             break;
 
-        case CX_IOCTL_GET_LEVEL:
+        case CX_IOCTL_CONFIG_LEVEL_GET:
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->config.level, sizeof(dev_ctx->config.level)));
             break;
 
-        case CX_IOCTL_GET_TENBIT:
+        case CX_IOCTL_CONFIG_TENBIT_GET:
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->config.tenbit, sizeof(dev_ctx->config.tenbit)));
             break;
 
-        case CX_IOCTL_GET_SIXDB:
+        case CX_IOCTL_CONFIG_SIXDB_GET:
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->config.sixdb, sizeof(dev_ctx->config.sixdb)));
             break;
 
-        case CX_IOCTL_GET_CENTER_OFFSET:
+        case CX_IOCTL_CONFIG_CENTER_OFFSET_GET:
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->config.center_offset, sizeof(dev_ctx->config.center_offset)));
             break;
 
-        case CX_IOCTL_GET_BUS_NUMBER:
+        case CX_IOCTL_HW_BUS_NUMBER_GET:
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->bus_number, sizeof(dev_ctx->bus_number)));
             break;
 
-        case CX_IOCTL_GET_DEVICE_ADDRESS:
+        case CX_IOCTL_HW_DEVICE_ADDRESS_GET:
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &dev_ctx->dev_addr, sizeof(dev_ctx->dev_addr)));
             break;
 
-        case CX_IOCTL_GET_WIN32_PATH:
+        case CX_IOCTL_STATE_WIN32_PATH_GET:
         {
             DECLARE_UNICODE_STRING_SIZE(symlink_path, 128);
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, RtlUnicodeStringPrintf(&symlink_path, L"%ws%d", WIN32_PATH, dev_ctx->dev_idx));
@@ -185,7 +185,7 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        case CX_IOCTL_GET_REGISTER:
+        case CX_IOCTL_HW_REGISTER_GET:
         {
             ULONG value = 0;
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, in_len, &value, sizeof(ULONG)));
@@ -202,11 +202,11 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        case CX_IOCTL_RESET_OUFLOW_COUNT:
+        case CX_IOCTL_STATE_OUFLOW_RESET:
             cx_ctrl_reset_ouflow_count(dev_ctx);
             break;
 
-        case CX_IOCTL_SET_VMUX:
+        case CX_IOCTL_CONFIG_VMUX_SET:
         {
             ULONG value = 0;
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, in_len, &value, sizeof(dev_ctx->config.vmux)));
@@ -214,7 +214,7 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        case CX_IOCTL_SET_LEVEL:
+        case CX_IOCTL_CONFIG_LEVEL_SET:
         {
             ULONG value = 0;
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, in_len, &value, sizeof(dev_ctx->config.level)));
@@ -222,7 +222,7 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        case CX_IOCTL_SET_TENBIT:
+        case CX_IOCTL_CONFIG_TENBIT_SET:
         {
             ULONG value = 0;
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, in_len, &value, sizeof(dev_ctx->config.tenbit)));
@@ -230,7 +230,7 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        case CX_IOCTL_SET_SIXDB:
+        case CX_IOCTL_CONFIG_SIXDB_SET:
         {
             ULONG value = 0;
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, in_len, &value, sizeof(dev_ctx->config.sixdb)));
@@ -238,7 +238,7 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        case CX_IOCTL_SET_CENTER_OFFSET:
+        case CX_IOCTL_CONFIG_CENTER_OFFSET_SET:
         {
             ULONG value = 0;
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, in_len, &value, sizeof(dev_ctx->config.center_offset)));
@@ -246,7 +246,7 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        case CX_IOCTL_SET_REGISTER:
+        case CX_IOCTL_HW_REGISTER_SET:
         {
             SET_REGISTER_DATA data = { 0 };
 
@@ -265,7 +265,7 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        case CX_IOCTL_MMAP:
+        case CX_IOCTL_HW_MMAP:
         {
             PFILE_CONTEXT file_ctx = cx_file_get_ctx(WdfRequestGetFileObject(req));
 
@@ -279,7 +279,7 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
-        case CX_IOCTL_MUNMAP:
+        case CX_IOCTL_HW_MUNMAP:
         {
             PFILE_CONTEXT file_ctx = cx_file_get_ctx(WdfRequestGetFileObject(req));
 

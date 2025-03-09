@@ -252,7 +252,7 @@ HRESULT cx_ctrl_level_on_change(
     DEBUG_LOG("level on_change, prev: %d, new: %d", prop_data->config.level, new_val);
 
     // set level ioctl
-    return cx_ioctl_set(prop_data, CX_IOCTL_SET_LEVEL, (DWORD)new_val);
+    return cx_ioctl_set(prop_data, CX_IOCTL_CONFIG_LEVEL_SET, (DWORD)new_val);
 }
 
 _Use_decl_annotations_
@@ -353,7 +353,7 @@ HRESULT cx_ctrl_vmux_on_change(
     RETURN_HR_IF_FAILED(cx_ctrl_vmux_set(parent, ctrl_id));
 
     // set vmux ioctl
-    return cx_ioctl_set(prop_data, CX_IOCTL_SET_VMUX, new_val);
+    return cx_ioctl_set(prop_data, CX_IOCTL_CONFIG_VMUX_SET, new_val);
 }
 
 _Use_decl_annotations_
@@ -442,7 +442,7 @@ HRESULT cx_ctrl_tenbit_on_change(
     RETURN_HR_IF_FAILED(cx_ctrl_tenbit_set(parent, new_val));
 
     // set tenbit ioctl
-    return cx_ioctl_set(prop_data, CX_IOCTL_SET_TENBIT, new_val);
+    return cx_ioctl_set(prop_data, CX_IOCTL_CONFIG_TENBIT_SET, new_val);
 }
 
 _Use_decl_annotations_
@@ -502,7 +502,7 @@ HRESULT cx_ctrl_sixdb_on_change(
     DEBUG_LOG("sixdb on_change, prev: %d, new: %d", prop_data->config.sixdb, new_val);
 
     // set sixdb ioctl
-    return cx_ioctl_set(prop_data, CX_IOCTL_SET_SIXDB, (DWORD)new_val);
+    return cx_ioctl_set(prop_data, CX_IOCTL_CONFIG_SIXDB_SET, (DWORD)new_val);
 }
 
 _Use_decl_annotations_
@@ -570,7 +570,7 @@ HRESULT cx_ctrl_center_offset_on_change(
     DEBUG_LOG("center_offset on_change, prev: %d, new: %d", prop_data->config.center_offset, new_val);
 
     // set center offset ioctl
-    return cx_ioctl_set(prop_data, CX_IOCTL_SET_CENTER_OFFSET, (DWORD)new_val);
+    return cx_ioctl_set(prop_data, CX_IOCTL_CONFIG_CENTER_OFFSET_SET, (DWORD)new_val);
 }
 
 _Use_decl_annotations_

@@ -39,7 +39,7 @@ HRESULT cx_init_prop_data(
     // get win32 path
     if (!DeviceIoControl(
         dev_handle,
-        CX_IOCTL_GET_WIN32_PATH,
+        CX_IOCTL_STATE_WIN32_PATH_GET,
         NULL,
         0,
         &prop_data->win32_path,
@@ -54,7 +54,7 @@ HRESULT cx_init_prop_data(
     // get state data
     if (!DeviceIoControl(
         dev_handle,
-        CX_IOCTL_GET_STATE,
+        CX_IOCTL_STATE_GET,
         NULL,
         0,
         &prop_data->state,
@@ -69,7 +69,7 @@ HRESULT cx_init_prop_data(
     // get config data
     if (!DeviceIoControl(
         dev_handle,
-        CX_IOCTL_GET_CONFIG,
+        CX_IOCTL_CONFIG_GET,
         NULL,
         0,
         &prop_data->config,

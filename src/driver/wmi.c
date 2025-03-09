@@ -104,7 +104,7 @@ NTSTATUS cx_wmi_state_exe(
 
     switch (method_id)
     {
-        case CX_CTRL_STATE_RESET_OUFLOW_WMI_ID:
+        case CX_CTRL_STATE_OUFLOW_RESET_WMI_ID:
         {
             if (out_buf_size != sizeof(ULONG))
             {
