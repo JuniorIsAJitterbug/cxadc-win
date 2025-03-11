@@ -131,7 +131,8 @@
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
     </DriverSign>
     <PreBuildEvent>
-      <Command>xcopy /y $(SolutionDir)$(Platform)\$(Configuration)\cxadc-win-pp.dll $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
     <Inf />
     <Inf>
@@ -159,9 +160,6 @@
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
     </DriverSign>
-    <PreBuildEvent>
-      <Command>xcopy /y $(SolutionDir)$(Platform)\$(Configuration)\cxadc-win-pp.dll $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</Command>
-    </PreBuildEvent>
     <Link>
       <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
@@ -206,4 +204,10 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <Target Name="CopyDll" BeforeTargets="Stampinf">
+    <ItemGroup>
+      <DllFiles Include="$(SolutionDir)$(Platform)\$(Configuration)\*.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(DllFiles)" DestinationFolder="$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\" />
+  </Target>
 </Project>
