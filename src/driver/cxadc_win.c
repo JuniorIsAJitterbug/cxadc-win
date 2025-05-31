@@ -69,8 +69,6 @@ NTSTATUS cx_evt_device_add(
 {
     PAGED_CODE();
 
-    WdfDeviceInitSetIoType(dev_init, WdfDeviceIoDirect);
-
     // pnp
     WDF_PNPPOWER_EVENT_CALLBACKS pnp_callbacks;
     WDF_PNPPOWER_EVENT_CALLBACKS_INIT(&pnp_callbacks);
@@ -99,6 +97,10 @@ NTSTATUS cx_evt_device_add(
     DECLARE_UNICODE_STRING_SIZE(dev_path, 128);
     RETURN_NTSTATUS_IF_FAILED(RtlUnicodeStringPrintf(&dev_path, L"%ws%d", NT_PATH, dev_idx));
     RETURN_NTSTATUS_IF_FAILED(WdfDeviceInitAssignName(dev_init, &dev_path));
+
+    // set io types
+    WdfDeviceInitSetIoType(dev_init, WdfDeviceIoDirect);
+    WdfDeviceInitSetDeviceType(dev_init, FILE_DEVICE_NAMED_PIPE); // lets non-Win32 functions (e.g. fread) read the device
 
     // create device
     WDFDEVICE dev = WDF_NO_HANDLE;
