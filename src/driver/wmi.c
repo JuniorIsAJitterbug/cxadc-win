@@ -225,7 +225,7 @@ NTSTATUS cx_wmi_path_query(
 {
     PDEVICE_CONTEXT dev_ctx = cx_device_get_ctx(WdfWmiInstanceGetDevice(instance));
 
-    DECLARE_UNICODE_STRING_SIZE(symlink_path, 128);
+    DECLARE_UNICODE_STRING_SIZE(symlink_path, MAX_PATH);
     RETURN_NTSTATUS_IF_FAILED(RtlUnicodeStringPrintf(&symlink_path, L"%ws%d", WIN32_PATH, dev_ctx->dev_idx));
 
     ULONG size = symlink_path.Length + sizeof(USHORT);

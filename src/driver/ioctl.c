@@ -179,7 +179,7 @@ VOID cx_evt_io_ctrl(
 
         case CX_IOCTL_STATE_WIN32_PATH_GET:
         {
-            DECLARE_UNICODE_STRING_SIZE(symlink_path, 128);
+            DECLARE_UNICODE_STRING_SIZE(symlink_path, MAX_PATH);
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, RtlUnicodeStringPrintf(&symlink_path, L"%ws%d", WIN32_PATH, dev_ctx->dev_idx));
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, symlink_path.Buffer, symlink_path.Length));
             break;

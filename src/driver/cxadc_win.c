@@ -94,7 +94,7 @@ NTSTATUS cx_evt_device_add(
     PDRIVER_CONTEXT driver_ctx = cx_driver_get_ctx(driver);
     LONG dev_idx = InterlockedIncrement(&driver_ctx->dev_count) - 1;
 
-    DECLARE_UNICODE_STRING_SIZE(dev_path, 128);
+    DECLARE_UNICODE_STRING_SIZE(dev_path, MAX_PATH);
     RETURN_NTSTATUS_IF_FAILED(RtlUnicodeStringPrintf(&dev_path, L"%ws%d", NT_PATH, dev_idx));
     RETURN_NTSTATUS_IF_FAILED(WdfDeviceInitAssignName(dev_init, &dev_path));
 
@@ -111,7 +111,7 @@ NTSTATUS cx_evt_device_add(
     RETURN_NTSTATUS_IF_FAILED(cx_check_dev_info(dev));
 
     // create symlink
-    DECLARE_UNICODE_STRING_SIZE(symlink_path, 128);
+    DECLARE_UNICODE_STRING_SIZE(symlink_path, MAX_PATH);
     RETURN_NTSTATUS_IF_FAILED(RtlUnicodeStringPrintf(&symlink_path, L"%ws%d", SYMLINK_PATH, dev_idx));
     RETURN_NTSTATUS_IF_FAILED(WdfDeviceCreateSymbolicLink(dev, &symlink_path));
     TRACE_INFO("created symlink %wZ", &symlink_path);

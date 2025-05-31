@@ -27,7 +27,7 @@ NTSTATUS cx_reg_get_value(
 
     RETURN_NTSTATUS_IF_FAILED(WdfDeviceOpenRegistryKey(dev, PLUGPLAY_REGKEY_DEVICE, STANDARD_RIGHTS_ALL, WDF_NO_OBJECT_ATTRIBUTES, &key));
 
-    DECLARE_UNICODE_STRING_SIZE(key_uc, 128);
+    DECLARE_UNICODE_STRING_SIZE(key_uc, MAX_PATH);
     NTSTATUS status = RtlUnicodeStringCopyString(&key_uc, key_cwstr);
 
     if (!NT_SUCCESS(status))
@@ -60,7 +60,7 @@ NTSTATUS cx_reg_set_value(
 
     RETURN_NTSTATUS_IF_FAILED(WdfDeviceOpenRegistryKey(dev, PLUGPLAY_REGKEY_DEVICE, STANDARD_RIGHTS_ALL, WDF_NO_OBJECT_ATTRIBUTES, &key));
 
-    DECLARE_UNICODE_STRING_SIZE(key_uc, 128);
+    DECLARE_UNICODE_STRING_SIZE(key_uc, MAX_PATH);
     NTSTATUS status = RtlUnicodeStringCopyString(&key_uc, key_cwstr);
 
     if (!NT_SUCCESS(status))

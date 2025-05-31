@@ -16,6 +16,7 @@
 #define NT_PATH                 L"\\Device\\cxadc"
 #define SYMLINK_PATH            L"\\DosDevices\\cxadc"
 #define WIN32_PATH              L"\\\\.\\cxadc"
+#define MAX_PATH                260
 #define READ_TIMEOUT            500
 
 typedef struct _DRIVER_CONTEXT
