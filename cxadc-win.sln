@@ -12,6 +12,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "tool", "src\tool\tool.cspro
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9875028E-5349-451B-A770-733DC59AF2A5}"
 	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
 		assets\cxcvbs.gif = assets\cxcvbs.gif
 		assets\ffplay.gif = assets\ffplay.gif
 		assets\gnuradio.gif = assets\gnuradio.gif

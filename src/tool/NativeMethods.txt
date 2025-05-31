@@ -1,4 +1,4 @@
-﻿DeviceIoControl
+DeviceIoControl
 
 SetupDiGetClassDevs
 SetupDiEnumDeviceInterfaces

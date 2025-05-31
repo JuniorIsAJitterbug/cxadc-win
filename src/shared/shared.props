@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 	<PropertyGroup>
 		<CxVersionMajor>1</CxVersionMajor>
@@ -29,7 +29,7 @@
 				<PreprocessorDefinitions>CX_VERSION_MAJOR=$(CxVersionMajor);CX_VERSION_MINOR=$(CxVersionMinor);CX_VERSION_BUILD=$(CxVersionBuild);CX_VERSION_REVISION=$(CxVersionRevision);CX_VERSION_STR=\"$(CxVersionStr)\";CX_VERSION_SEMVER_STR=\"$(CxVersionSemverStr)\";CX_VERSION_GIT_DESCRIPTION=\"$(CxVersionGitDescription)\";CX_VERSION_GIT_HASH=\"$(CxVersionGitHash)\";CX_VERSION_GIT_FULL=\"$(CxVersionGitFull)\";CX_PROJECT_URL=\"$(CxProjectUrl)\";CX_PROJECT_COPYRIGHT=\"$(CxProjectCopyright)\";%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
 			</ResourceCompile>
 			<ClCompile>
-				<PreprocessorDefinitions>CX_VERSION_MAJOR=$(CxVersionMajor);CX_VERSION_MINOR=$(CxVersionMinor);CX_VERSION_BUILD=$(CxVersionBuild);CX_VERSION_REVISION=$(CxVersionRevision);CX_VERSION_STR=$(CxVersionStr);CX_VERSION_SEMVER_STR=$(CxVersionSemverStr);CX_VERSION_GIT_DESCRIPTION=$(CxVersionGitDescription);CX_VERSION_GIT_HASH=$(CxVersionGitHash);CX_VERSION_GIT_FULL=$(CxVersionGitFull);CX_PROJECT_URL=$(CxProjectUrl);CX_PROJECT_COPYRIGHT=$(CxProjectCopyright);%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
+				<PreprocessorDefinitions>CX_VERSION_MAJOR=$(CxVersionMajor);CX_VERSION_MINOR=$(CxVersionMinor);CX_VERSION_BUILD=$(CxVersionBuild);CX_VERSION_REVISION=$(CxVersionRevision);CX_VERSION_STR="$(CxVersionStr)";CX_VERSION_SEMVER_STR="$(CxVersionSemverStr)";CX_VERSION_GIT_DESCRIPTION="$(CxVersionGitDescription)";CX_VERSION_GIT_HASH="$(CxVersionGitHash)";CX_VERSION_GIT_FULL="$(CxVersionGitFull)";CX_PROJECT_URL="$(CxProjectUrl)";CX_PROJECT_COPYRIGHT="$(CxProjectCopyright)";%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
 			</ClCompile>
 		</ItemGroup>
 	</Target>

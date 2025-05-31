@@ -1,4 +1,4 @@
-﻿# cxadc-win - CX2388x ADC DMA driver for Windows
+# cxadc-win - CX2388x ADC DMA driver for Windows
 > [!WARNING]  
 > ⚠️ **THIS IS EXPERIMENTAL** ⚠️  
 > *This software is provided "as-is" and without any warranty. I am not responsible for any instability, security issues, conflicts with anti-virus and anti-cheat software, or any other problems arising from its use. I do not guarantee the accuracy or reliability of any captures made by this software.*  

@@ -10,4 +10,6 @@
 #error this file is not editable by Visual C++
 #endif //APSTUDIO_INVOKED
 
+#pragma code_page(65001) // UTF-8
+
 CxadcWinWMI MOFDATA "cxadc-win.bmf"
