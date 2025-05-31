@@ -1,0 +1,45 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/*
+ * cxadc-win - CX2388x ADC DMA driver for Windows
+ *
+ * Copyright (C) 2024-2025 Jitterbug <jitterbug@posteo.co.uk>
+ */
+
+#pragma code_page(65001) // UTF-8
+
+#include <ntverp.h>
+#include <verrsrc.h>
+
+1 VERSIONINFO
+FILEVERSION     CX_VERSION_MAJOR, CX_VERSION_MINOR, CX_VERSION_BUILD, CX_VERSION_REVISION
+PRODUCTVERSION  CX_VERSION_MAJOR, CX_VERSION_MINOR, CX_VERSION_BUILD, CX_VERSION_REVISION
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+#ifdef _DEBUG
+    FILEFLAGS   VS_FF_DEBUG
+#else
+    FILEFLAGS   VS_FF_PRERELEASE
+#endif
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_DLL
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904E4"
+        BEGIN
+            VALUE "CompanyName",        CX_PROJECT_URL
+            VALUE "FileDescription",    CX_FILE_DESC
+            VALUE "FileVersion",        CX_VERSION_STR
+            VALUE "InternalName",       CX_INTERNAL_NAME
+            VALUE "LegalCopyright",     CX_PROJECT_COPYRIGHT
+            VALUE "OriginalFilename",   CX_FILE_NAME
+            VALUE "ProductName",        "cxadc-win"
+            VALUE "ProductVersion",     CX_VERSION_GIT_FULL
+        END
+    END
+
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1252
+    END
+END
