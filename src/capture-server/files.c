@@ -1,17 +1,23 @@
+/*
+ * capture-server - Windows port of cxadc_vhs_server
+ *
+ * Copyright (C) 2025 Jitterbug <jitterbug@posteo.co.uk>
+ * Copyright (C) 2024 namazso <admin@namazso.eu>
+ */
+
 #include "files.h"
 
-#include <alsa/asoundlib.h>
-#include <fcntl.h>
-#include <pthread.h>
-#include <sys/mman.h>
+#include "common.h"
+#include "network.h"
 
 #include <ctype.h>
-#include <stdatomic.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
+#include <time.h>
 
+#include "audio.h"
+#include "ringbuffer.h"
 #include "version.h"
+
+#define BUFFER_READ_SIZE    (65536 * 32)
 
 servefile_fn file_root;
 servefile_fn file_version;
@@ -32,642 +38,561 @@ struct served_file SERVED_FILES[] = {
   {NULL}
 };
 
-struct atomic_ringbuffer {
-  uint8_t* buf;
-  size_t buf_size;
-  _Atomic size_t written;
-  _Atomic size_t read;
-};
-
-bool atomic_ringbuffer_init(struct atomic_ringbuffer* ctx, size_t buf_size) {
-  static const int FLAGS = MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE;
-
-  void* buf = MAP_FAILED;
-
-#ifdef MAP_HUGE_SHIFT
-  static const size_t ONE_GB = (1u << 30);
-  static const size_t TWO_MB = (2u << 20);
-  if (buf_size % ONE_GB == 0 && buf_size > ONE_GB)
-    buf = mmap(NULL, buf_size, PROT_READ | PROT_WRITE, FLAGS | MAP_HUGETLB | (30 << MAP_HUGE_SHIFT), -1, 0);
-  if (MAP_FAILED == buf && buf_size % TWO_MB == 0 && buf_size > TWO_MB)
-    buf = mmap(NULL, buf_size, PROT_READ | PROT_WRITE, FLAGS | MAP_HUGETLB | (21 << MAP_HUGE_SHIFT), -1, 0);
-#endif
-  if (MAP_FAILED == buf)
-    buf = mmap(NULL, buf_size, PROT_READ | PROT_WRITE, FLAGS, -1, 0);
-
-  if (MAP_FAILED == buf) {
-    return false;
-  }
-
-  volatile uint8_t test = *(volatile uint8_t*)buf;
-  (void)test;
-
-  ctx->buf_size = buf_size;
-  ctx->read = 0;
-  ctx->written = 0;
-  ctx->buf = (uint8_t*)buf;
-  return true;
-}
-
-void atomic_ringbuffer_free(struct atomic_ringbuffer* ctx) {
-  if (ctx->buf)
-    munmap(ctx->buf, ctx->buf_size);
-  ctx->buf = NULL;
-}
-
-uint8_t* atomic_ringbuffer_get_write_ptr(struct atomic_ringbuffer* ctx) {
-  return ctx->buf + (ctx->written % ctx->buf_size);
-}
-
-size_t atomic_ringbuffer_get_write_size(struct atomic_ringbuffer* ctx) {
-  size_t buf_size = ctx->buf_size;
-  size_t written = ctx->written;
-  size_t read = ctx->read;
-  size_t till_end = buf_size - (written % buf_size);
-  size_t till_read = read + buf_size - written;
-  return till_end < till_read ? till_end : till_read;
-}
-
-void atomic_ringbuffer_advance_written(struct atomic_ringbuffer* ctx, size_t count) {
-  ctx->written += count;
-}
-
-uint8_t* atomic_ringbuffer_get_read_ptr(struct atomic_ringbuffer* ctx) {
-  return ctx->buf + (ctx->read % ctx->buf_size);
-}
-
-size_t atomic_ringbuffer_get_read_size(struct atomic_ringbuffer* ctx) {
-  size_t buf_size = ctx->buf_size;
-  size_t written = ctx->written;
-  size_t read = ctx->read;
-  size_t till_end = buf_size - (read % buf_size);
-  size_t till_written = written - read;
-  return till_end < till_written ? till_end : till_written;
-}
-
-void atomic_ringbuffer_advance_read(struct atomic_ringbuffer* ctx, size_t count) {
-  ctx->read += count;
-}
-
-// this is only usable for stats, do not rely on being correct
-void atomic_ringbuffer_get_stats(struct atomic_ringbuffer* ctx, size_t* read, size_t* written, size_t* difference) {
-  // we read `read` first, so that we never get negative results
-
-  size_t _read = atomic_load(&ctx->read);
-  size_t _written = atomic_load(&ctx->written);
-  size_t _difference = _written - _read;
-  if (_difference > ctx->buf_size)
-    _difference = ctx->buf_size;
-  if (read)
-    *read = _read;
-  if (written)
-    *written = _written;
-  if (difference)
-    *difference = _difference;
-}
-
 enum capture_state {
-  State_Idle = 0,
-  State_Starting,
-  State_Running,
-  State_Stopping,
+    State_Idle = 0,
+    State_Starting,
+    State_Running,
+    State_Stopping,
 
-  State_Failed
+    State_Failed
 };
 
 const char* capture_state_to_str(enum capture_state state) {
-  const char* NAMES[] = {"Idle", "Starting", "Running", "Stopping", "Failed"};
-  return NAMES[(int)state];
+    const char* NAMES[] = { "Idle", "Starting", "Running", "Stopping", "Failed" };
+    return NAMES[(int)state];
 }
 
-struct cxadc_state {
-  int fd;
-  pthread_t writer_thread;
-  struct atomic_ringbuffer ring_buffer;
+struct rb_threads {
+    _Atomic(thrd_t) reader; // This is special and not protected by cap_state
+    _Atomic(bool) is_reader_alive;
 
-  // This is special and not protected by cap_state
-  _Atomic pthread_t reader_thread;
+    thrd_t writer;
+    _Atomic(bool) is_writer_alive;
+};
+
+struct cxadc_state {
+    int fd;
+    char name[16];
+    thrd_t writer_thread;
+    ringbuffer_t ring_buffer;
+    struct rb_threads rb_threads;
+
+    // This is special and not protected by cap_state
+    _Atomic(thrd_t) reader_thread;
+};
+
+struct linear_state {
+    struct audio_device_info dev_info;
+
+    thrd_t writer_thread;
+    ringbuffer_t ring_buffer;
+
+    // This is special and not protected by cap_state
+    _Atomic(thrd_t) reader_thread;
+
+    // Some initialization happens in writer thread on win32
+    // Used to signal state
+    enum capture_state writer_thread_state;
 };
 
 struct {
-  _Atomic enum capture_state cap_state;
-  struct cxadc_state cxadc[256];
-  size_t cxadc_count;
-  _Atomic size_t overflow_counter;
+    _Atomic(enum capture_state)cap_state;
+    struct cxadc_state cxadc[256];
+    size_t cxadc_count;
+    _Atomic(size_t) overflow_counter;
 
-  struct {
-    snd_pcm_t* handle;
-    pthread_t writer_thread;
-    struct atomic_ringbuffer ring_buffer;
-
-    // This is special and not protected by cap_state
-    _Atomic pthread_t reader_thread;
-  } linear;
-
+    bool linear_enabled;
+    struct linear_state linear;
 } g_state;
 
-void* cxadc_writer_thread(void* id);
-void* linear_writer_thread(void*);
+int cxadc_writer_thread(void* id);
+int linear_writer_thread(void*);
 
 static ssize_t timespec_to_nanos(const struct timespec* ts) {
-  return (ssize_t)ts->tv_nsec + (ssize_t)ts->tv_sec * 1000000000;
+    return (ssize_t)ts->tv_nsec + (ssize_t)ts->tv_sec * 1000000000;
 }
 
 static void urldecode2(char* dst, const char* src) {
-  char a, b;
-  while (*src) {
-    if ((*src == '%') && ((a = src[1]) && (b = src[2])) && (isxdigit(a) && isxdigit(b))) {
-      if (a >= 'a')
-        a -= 'a' - 'A';
-      if (a >= 'A')
-        a -= ('A' - 10);
-      else
-        a -= '0';
-      if (b >= 'a')
-        b -= 'a' - 'A';
-      if (b >= 'A')
-        b -= ('A' - 10);
-      else
-        b -= '0';
-      *dst++ = (char)(16 * a + b);
-      src += 3;
-    } else if (*src == '+') {
-      *dst++ = ' ';
-      src++;
-    } else {
-      *dst++ = *src++;
+    char a, b;
+    while (*src) {
+        if ((*src == '%') && ((a = src[1]) && (b = src[2])) && (isxdigit(a) && isxdigit(b))) {
+            if (a >= 'a')
+                a -= 'a' - 'A';
+            if (a >= 'A')
+                a -= ('A' - 10);
+            else
+                a -= '0';
+            if (b >= 'a')
+                b -= 'a' - 'A';
+            if (b >= 'A')
+                b -= ('A' - 10);
+            else
+                b -= '0';
+            *dst++ = (char)(16 * a + b);
+            src += 3;
+        }
+        else if (*src == '+') {
+            *dst++ = ' ';
+            src++;
+        }
+        else {
+            *dst++ = *src++;
+        }
     }
-  }
-  *dst++ = '\0';
+    *dst++ = '\0';
 }
 
 void file_start(int fd, int argc, char** argv) {
-  static const int MODE = SND_PCM_NONBLOCK | SND_PCM_NO_AUTO_RESAMPLE | SND_PCM_NO_AUTO_CHANNELS | SND_PCM_NO_AUTO_FORMAT | SND_PCM_NO_SOFTVOL;
-
-  enum capture_state expected = State_Idle;
-  if (!atomic_compare_exchange_strong(&g_state.cap_state, &expected, State_Starting)) {
-    dprintf(fd, "{\"state\": \"%s\"}", capture_state_to_str(expected));
-    return;
-  }
-
-  char errstr[256];
-  memset(errstr, 0, sizeof(errstr));
-
-  unsigned cxadc_array[256];
-  unsigned cxadc_count = 0;
-
-  char linear_name[64];
-  strcpy(linear_name, "hw:CARD=CXADCADCClockGe");
-  unsigned int linear_rate = 0;
-  unsigned int linear_channels = 0;
-  snd_pcm_format_t linear_format = SND_PCM_FORMAT_UNKNOWN;
-  snd_pcm_t* handle = NULL;
-
-  for (int i = 0; i < argc; ++i) {
-    unsigned num;
-    if (1 == sscanf(argv[i], "cxadc%u", &num)) {
-      if (cxadc_count < sizeof(cxadc_array) / sizeof(*cxadc_array)) {
-        unsigned idx = cxadc_count++;
-        cxadc_array[idx] = num;
-        g_state.cxadc[idx].fd = -1;
-      }
-      continue;
+    enum capture_state expected = State_Idle;
+    if (!atomic_compare_exchange_strong(&g_state.cap_state, &expected, State_Starting)) {
+        _socket_printf(fd, "{\"state\": \"%s\"}", capture_state_to_str(expected));
+        return;
     }
-    char urlencoded[64];
-    if (1 == sscanf(argv[i], "lname=%63s", urlencoded)) {
-      urldecode2(linear_name, urlencoded);
-      continue;
+
+    char errstr[256];
+    memset(errstr, 0, sizeof(errstr));
+
+    unsigned cxadc_array[256];
+    unsigned cxadc_count = 0;
+
+    char linear_name[64];
+    g_state.linear_enabled = false;
+    strcpy(linear_name, AUDIO_DEFAULT_NAME);
+    g_state.linear.dev_info.format = AUDIO_DEFAULT_FORMAT;
+
+    for (int i = 0; i < argc; ++i) {
+        unsigned num;
+        if (1 == sscanf(argv[i], "cxadc%u", &num)) {
+            if (cxadc_count < sizeof(cxadc_array) / sizeof(*cxadc_array)) {
+                unsigned idx = cxadc_count++;
+                cxadc_array[idx] = num;
+                g_state.cxadc[idx].fd = -1;
+                sprintf(g_state.cxadc[idx].name, "cxadc%u", num);
+            }
+            continue;
+        }
+
+        if (0 == strncmp(argv[i], "linear", 6)) {
+            g_state.linear_enabled = true;
+            continue;
+        }
+
+        char urlencoded[64];
+        if (1 == sscanf(argv[i], "lname=%63s", urlencoded)) {
+            urldecode2(linear_name, urlencoded);
+            continue;
+        }
+        if (1 == sscanf(argv[i], "lformat=%63s", urlencoded)) {
+            audio_set_format_value(&g_state.linear.dev_info, urlencoded);
+            continue;
+        }
+        unsigned int rate = 0;
+        if (1 == sscanf(argv[i], "lrate=%u", &rate) && rate >= 22050 && rate <= 384000) {
+            g_state.linear.dev_info.rate = rate;
+            continue;
+        }
+        unsigned int channels = 0;
+        if (1 == sscanf(argv[i], "lchannels=%u", &channels) && channels >= 1 && channels <= 16) {
+            g_state.linear.dev_info.channels = channels;
+            continue;
+        }
     }
-    if (1 == sscanf(argv[i], "lformat=%63s", urlencoded)) {
-      linear_format = snd_pcm_format_value(urlencoded);
-      continue;
+
+    g_state.overflow_counter = 0;
+
+    for (size_t i = 0; i < cxadc_count; ++i) {
+        if (rb_init(&g_state.cxadc[i].ring_buffer, g_state.cxadc[i].name, 1 << 30) != 0) {
+            snprintf(errstr, sizeof(errstr) - 1, "failed to allocate ringbuffer: %s", _get_error());
+            goto error;
+        }
     }
-    unsigned int rate = 0;
-    if (1 == sscanf(argv[i], "lrate=%u", &rate) && rate >= 22050 && rate <= 384000) {
-      linear_rate = rate;
-      continue;
-    }
-    unsigned int channels = 0;
-    if (1 == sscanf(argv[i], "lchannels=%u", &channels) && channels >= 1 && channels <= 16) {
-      linear_channels = channels;
-      continue;
-    }
-  }
 
-  g_state.overflow_counter = 0;
-
-  for (size_t i = 0; i < cxadc_count; ++i) {
-    if (!atomic_ringbuffer_init(&g_state.cxadc[i].ring_buffer, 1 << 30)) {
-      snprintf(errstr, sizeof(errstr) - 1, "failed to allocate ringbuffer: %s", sys_errlist[errno]);
-      goto error;
-    }
-  }
-
-  int err = 0;
-
-  if ((err = snd_pcm_open(&handle, linear_name, SND_PCM_STREAM_CAPTURE, MODE)) < 0) {
-    snprintf(errstr, sizeof(errstr) - 1, "cannot open ALSA device: %s", snd_strerror(err));
-    goto error;
-  }
-
-  snd_pcm_hw_params_t* hw_params = NULL;
-  snd_pcm_hw_params_alloca(&hw_params);
-
-  if ((err = snd_pcm_hw_params_any(handle, hw_params)) < 0) {
-    snprintf(errstr, sizeof(errstr) - 1, "cannot initialize hardware parameter structure: %s", snd_strerror(err));
-    goto error;
-  }
-
-  if ((err = snd_pcm_hw_params_set_access(handle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED)) < 0) {
-    snprintf(errstr, sizeof(errstr) - 1, "cannot set access type: %s", snd_strerror(err));
-    goto error;
-  }
-
-  if (linear_rate) {
-set_rate:
-    if ((err = snd_pcm_hw_params_set_rate(handle, hw_params, linear_rate, 0)) < 0) {
-      snprintf(errstr, sizeof(errstr) - 1, "cannot set sample rate: %s", snd_strerror(err));
-      goto error;
-    }
-  } else {
-    if (snd_pcm_hw_params_get_rate(hw_params, &linear_rate, 0) < 0) {
-      if ((err = snd_pcm_hw_params_get_rate_max(hw_params, &linear_rate, 0)) < 0) {
-        snprintf(errstr, sizeof(errstr) - 1, "cannot get sample rate: %s", snd_strerror(err));
+    struct timespec time1;
+    if (timespec_get(&time1, TIME_UTC) == 0) {
         goto error;
-      } else {
-        goto set_rate;
-      }
     }
-  }
 
-  if (linear_channels) {
-    if ((err = snd_pcm_hw_params_set_channels(handle, hw_params, linear_channels)) < 0) {
-      snprintf(errstr, sizeof(errstr) - 1, "cannot set channel count: %s", snd_strerror(err));
-      goto error;
+    if (g_state.linear_enabled) {
+        if (audio_device_init(&g_state.linear.dev_info, linear_name) != 0) {
+            snprintf(errstr, sizeof(errstr) - 1, "failed to get audio device info: %s", _get_error());
+            goto error;
+        }
+
+        size_t sample_size = audio_get_sample_size(&g_state.linear.dev_info);
+
+        if (rb_init(&g_state.linear.ring_buffer, "linear", (2 << 20) * sample_size) != 0) {
+            snprintf(errstr, sizeof(errstr) - 1, "failed to allocate ringbuffer: %s", _get_error());
+            goto error;
+        }
     }
-  } else {
-    if ((err = snd_pcm_hw_params_get_channels(hw_params, &linear_channels)) < 0) {
-      snprintf(errstr, sizeof(errstr) - 1, "cannot get channel count: %s", snd_strerror(err));
-      goto error;
+
+    int err = 0;
+
+    struct timespec time2;
+    if (timespec_get(&time2, TIME_UTC) == 0) {
+        goto error;
     }
-  }
 
-  if (linear_format != SND_PCM_FORMAT_UNKNOWN) {
-    if ((err = snd_pcm_hw_params_set_format(handle, hw_params, linear_format)) < 0) {
-      snprintf(errstr, sizeof(errstr) - 1, "cannot set sample format: %s", snd_strerror(err));
-      goto error;
+    for (size_t i = 0; i < cxadc_count; ++i) {
+        char cxadc_name[32];
+        sprintf(cxadc_name, CX_DEVICE_PATH "%d", cxadc_array[i]);
+        int cxadc_fd = _file_open(cxadc_name, FILE_OPEN_FLAGS);
+        if (cxadc_fd < 0) {
+            snprintf(errstr, sizeof(errstr) - 1, "cannot open cxadc: %s", _file_get_error());
+            goto error;
+        }
+        g_state.cxadc[i].fd = cxadc_fd;
     }
-  } else {
-    if ((err = snd_pcm_hw_params_get_format(hw_params, &linear_format)) < 0) {
-      snprintf(errstr, sizeof(errstr) - 1, "cannot get sample format: %s", snd_strerror(err));
-      goto error;
+
+    g_state.cxadc_count = cxadc_count;
+
+    struct timespec time3;
+    if (timespec_get(&time3, TIME_UTC) == 0) {
+        goto error;
     }
-  }
 
-  ssize_t format_size;
-  if ((format_size = snd_pcm_format_size(linear_format, 1)) < 0) {
-    snprintf(errstr, sizeof(errstr) - 1, "cannot get format size: %s", snd_strerror(err));
-    goto error;
-  }
+    const size_t linear_ns = timespec_to_nanos(&time2) - timespec_to_nanos(&time1);
+    const ssize_t cxadc_ns = timespec_to_nanos(&time3) - timespec_to_nanos(&time2);
 
-  size_t sample_size = linear_channels * format_size;
-  if (!atomic_ringbuffer_init(&g_state.linear.ring_buffer, (2 << 20) * sample_size)) {
-    snprintf(errstr, sizeof(errstr) - 1, "failed to allocate ringbuffer: %s", sys_errlist[errno]);
-    goto error;
-  }
-
-  struct timespec time1;
-  clock_gettime(CLOCK_MONOTONIC_RAW, &time1);
-
-  if ((err = snd_pcm_hw_params(handle, hw_params)) < 0) {
-    snprintf(errstr, sizeof(errstr) - 1, "cannot set hw parameters: %s", snd_strerror(err));
-    goto error;
-  }
-
-  snd_pcm_sw_params_t* sw_params = NULL;
-  snd_pcm_sw_params_alloca(&sw_params);
-
-  if ((err = snd_pcm_sw_params_current(handle, sw_params)) < 0) {
-    snprintf(errstr, sizeof(errstr) - 1, "cannot query sw parameters: %s", snd_strerror(err));
-    goto error;
-  }
-
-  if ((err = snd_pcm_sw_params_set_tstamp_mode(handle, sw_params, SND_PCM_TSTAMP_ENABLE)) < 0) {
-    snprintf(errstr, sizeof(errstr) - 1, "cannot set tstamp mode: %s", snd_strerror(err));
-    goto error;
-  }
-
-  if ((err = snd_pcm_sw_params_set_tstamp_type(handle, sw_params, SND_PCM_TSTAMP_TYPE_MONOTONIC_RAW)) < 0) {
-    snprintf(errstr, sizeof(errstr) - 1, "cannot set tstamp type: %s", snd_strerror(err));
-    goto error;
-  }
-
-  if ((err = snd_pcm_sw_params(handle, sw_params)) < 0) {
-    snprintf(errstr, sizeof(errstr) - 1, "cannot set sw parameters: %s", snd_strerror(err));
-    goto error;
-  }
-
-  if ((err = snd_pcm_prepare(handle)) < 0) {
-    snprintf(errstr, sizeof(errstr) - 1, "cannot prepare audio interface for use: %s", snd_strerror(err));
-    goto error;
-  }
-
-  snd_pcm_start(handle);
-
-  struct timespec time2;
-  clock_gettime(CLOCK_MONOTONIC_RAW, &time2);
-
-  for (size_t i = 0; i < cxadc_count; ++i) {
-    char cxadc_name[32];
-    sprintf(cxadc_name, "/dev/cxadc%u", cxadc_array[i]);
-    const int cxadc_fd = open(cxadc_name, O_NONBLOCK);
-    if (cxadc_fd < 0) {
-      snprintf(errstr, sizeof(errstr) - 1, "cannot open cxadc: %s", sys_errlist[errno]);
-      goto error;
+    for (size_t i = 0; i < cxadc_count; ++i) {
+        thrd_t thread_id;
+        if ((err = thrd_create(&thread_id, cxadc_writer_thread, (void*)i) != 0)) {
+            snprintf(errstr, sizeof(errstr) - 1, "can't create cxadc writer thread: %s", _get_error());
+            goto error;
+        }
+        g_state.cxadc[i].writer_thread = thread_id;
     }
-    g_state.cxadc[i].fd = cxadc_fd;
-  }
 
-  g_state.cxadc_count = cxadc_count;
+    if (g_state.linear_enabled) {
+        thrd_t thread_id;
+        g_state.linear.writer_thread_state = State_Starting;
 
-  struct timespec time3;
-  clock_gettime(CLOCK_MONOTONIC_RAW, &time3);
-
-  const long linear_ns = timespec_to_nanos(&time2) - timespec_to_nanos(&time1);
-  const long cxadc_ns = timespec_to_nanos(&time3) - timespec_to_nanos(&time2);
-
-  g_state.linear.handle = handle;
-
-  for (size_t i = 0; i < cxadc_count; ++i) {
-    pthread_t thread_id;
-    if ((err = pthread_create(&thread_id, NULL, cxadc_writer_thread, (void*)i) != 0)) {
-      snprintf(errstr, sizeof(errstr) - 1, "can't create cxadc writer thread: %s", sys_errlist[err]);
-      goto error;
+        if ((err = thrd_create(&thread_id, linear_writer_thread, NULL) != 0)) {
+            snprintf(errstr, sizeof(errstr) - 1, "can't create linear writer thread: %s", _get_error());
+            goto error;
+        }
+        g_state.linear.writer_thread = thread_id;
     }
-    g_state.cxadc[i].writer_thread = thread_id;
-  }
 
-  pthread_t thread_id;
-  if ((err = pthread_create(&thread_id, NULL, linear_writer_thread, NULL) != 0)) {
-    snprintf(errstr, sizeof(errstr) - 1, "can't create linear writer thread: %s", sys_errlist[err]);
-    goto error;
-  }
-  g_state.linear.writer_thread = thread_id;
+    g_state.cap_state = State_Running;
 
-  g_state.cap_state = State_Running;
-  dprintf(
-    fd,
-    "{"
-    "\"state\": \"%s\","
-    "\"linear_ns\": %ld,"
-    "\"cxadc_ns\": %ld,"
-    "\"linear_rate\": %u,"
-    "\"linear_channels\": %u,"
-    "\"linear_format\": \"%s\""
-    "}",
-    capture_state_to_str(State_Running),
-    linear_ns,
-    cxadc_ns,
-    linear_rate,
-    linear_channels,
-    snd_pcm_format_name(linear_format)
-  );
-  return;
+    if (g_state.linear_enabled) {
+        // wait for writer thread to set state
+        while (g_state.linear.writer_thread_state == State_Starting)
+            _sleep_ms(1);
+
+        if (g_state.linear.writer_thread_state == State_Failed) {
+            snprintf(errstr, sizeof(errstr) - 1, "audio capture failed, check server log");
+            goto error;
+        }
+    }
+
+    _socket_printf(
+        fd,
+        "{"
+        "\"state\": \"%s\","
+        "\"cxadc_ns\": %ld,"
+        "\"linear_ns\": %ld,"
+        "\"linear_rate\": %u,"
+        "\"linear_channels\": %u,"
+        "\"linear_format\": \"%s\""
+        "}",
+        capture_state_to_str(State_Running),
+        cxadc_ns,
+        linear_ns,
+        g_state.linear.dev_info.rate,
+        g_state.linear.dev_info.channels,
+        audio_get_format_name(&g_state.linear.dev_info)
+    );
+    return;
 
 error:
-  g_state.cap_state = State_Failed;
-
-  if (g_state.linear.writer_thread) {
-    pthread_join(g_state.linear.writer_thread, NULL);
-    g_state.linear.writer_thread = 0;
-  }
-
-  for (size_t i = 0; i < cxadc_count; ++i) {
-    struct cxadc_state* cxadc = &g_state.cxadc[i];
-    if (cxadc->writer_thread) {
-      pthread_join(cxadc->writer_thread, NULL);
-      cxadc->writer_thread = 0;
+    g_state.cap_state = State_Failed;
+    if (_thread_is_init(g_state.linear.writer_thread)) {
+        thrd_join(g_state.linear.writer_thread, NULL);
+        g_state.linear.writer_thread = (thrd_t){ 0 };
     }
-  }
 
-  if (handle)
-    snd_pcm_close(handle);
+    audio_device_deinit(&g_state.linear.dev_info);
 
-  for (size_t i = 0; i < cxadc_count; ++i) {
-    struct cxadc_state* cxadc = &g_state.cxadc[i];
-    if (cxadc->fd != -1) {
-      close(cxadc->fd);
-      cxadc->fd = -1;
+    for (size_t i = 0; i < cxadc_count; ++i) {
+        struct cxadc_state* cxadc = &g_state.cxadc[i];
+        if (_thread_is_init(cxadc->writer_thread)) {
+            thrd_join(cxadc->writer_thread, NULL);
+            cxadc->writer_thread = (thrd_t){ 0 };
+        }
     }
-    atomic_ringbuffer_free(&cxadc->ring_buffer);
-  }
 
-  dprintf(fd, "{\"state\": \"%s\", \"fail_reason\": \"%s\"}", capture_state_to_str(State_Failed), errstr);
-  g_state.cap_state = State_Idle;
+    for (size_t i = 0; i < cxadc_count; ++i) {
+        struct cxadc_state* cxadc = &g_state.cxadc[i];
+        if (cxadc->fd != -1) {
+            _file_close(cxadc->fd);
+            cxadc->fd = -1;
+        }
+        rb_close(&cxadc->ring_buffer);
+    }
+
+    _socket_printf(fd, "{\"state\": \"%s\", \"fail_reason\": \"%s\"}", capture_state_to_str(State_Failed), errstr);
+    g_state.cap_state = State_Idle;
 }
 
-void* cxadc_writer_thread(void* id) {
-  while (g_state.cap_state == State_Starting)
-    usleep(1000);
+int cxadc_writer_thread(void* id) {
+    while (g_state.cap_state == State_Starting)
+        _sleep_ms(1);
 
-  if (g_state.cap_state == State_Failed)
-    return NULL;
+    if (g_state.cap_state == State_Failed)
+        return -1;
 
-  struct atomic_ringbuffer* buf = &g_state.cxadc[(size_t)id].ring_buffer;
-  const int fd = g_state.cxadc[(size_t)id].fd;
+    ringbuffer_t* rb = &g_state.cxadc[(size_t)id].ring_buffer;
+    const int fd = g_state.cxadc[(size_t)id].fd;
 
-  while (g_state.cap_state != State_Stopping) {
-    void* ptr = atomic_ringbuffer_get_write_ptr(buf);
-    size_t len = atomic_ringbuffer_get_write_size(buf);
-    if (len == 0) {
-      ++g_state.overflow_counter;
-      fprintf(stderr, "ringbuffer full, may be dropping samples!!! THIS IS BAD!\n");
-      usleep(1000);
-      continue;
+    while (g_state.cap_state != State_Stopping) {
+        void* ptr = rb_write_ptr(rb, BUFFER_READ_SIZE);
+        if (ptr == NULL) {
+            ++g_state.overflow_counter;
+            fprintf(stderr, "ringbuffer full, may be dropping samples!!! THIS IS BAD!\n");
+            _sleep_ms(1);
+            continue;
+        }
+        ssize_t count = read(fd, ptr, BUFFER_READ_SIZE);
+        if (count == 0) {
+            _sleep_us(1);
+            continue;
+        }
+        if (count < 0) {
+            fprintf(stderr, "read failed\n");
+            break;
+        }
+
+        rb_write_finished(rb, count);
     }
-    ssize_t count = read(fd, ptr, len);
-    if (count == 0) {
-      usleep(1);
-      continue;
-    }
-    if (count < 0) {
-      fprintf(stderr, "read failed\n");
-      break;
-    }
-
-    atomic_ringbuffer_advance_written(buf, count);
-  }
-  close(fd);
-  return NULL;
+    _file_close(fd);
+    return 0;
 }
 
-void* linear_writer_thread(void* arg) {
-  (void)arg;
+int linear_writer_thread(void* arg) {
+    (void)arg;
 
-  while (g_state.cap_state == State_Starting)
-    usleep(1000);
+    while (g_state.cap_state == State_Starting)
+        _sleep_ms(1);
 
-  if (g_state.cap_state == State_Failed)
-    return NULL;
-
-  struct atomic_ringbuffer* buf = &g_state.linear.ring_buffer;
-  snd_pcm_t* handle = g_state.linear.handle;
-
-  while (g_state.cap_state != State_Stopping) {
-    void* ptr = atomic_ringbuffer_get_write_ptr(buf);
-    size_t len = atomic_ringbuffer_get_write_size(buf);
-    size_t len_samples = snd_pcm_bytes_to_frames(handle, (ssize_t)len);
-    if (len_samples == 0) {
-      ++g_state.overflow_counter;
-      fprintf(stderr, "ringbuffer full, may be dropping samples!!! THIS IS BAD!\n");
-      usleep(1000);
-      continue;
-    }
-    long count = snd_pcm_readi(handle, ptr, len_samples);
-    if (count == 0 || count == -EAGAIN) {
-      usleep(1);
-      continue;
-    }
-    if (count < 0) {
-      fprintf(stderr, "snd_pcm_readi failed: %s\n", snd_strerror((int)count));
-      break;
+    if (g_state.cap_state == State_Failed) {
+        g_state.linear.writer_thread_state = State_Failed;
+        return -1;
     }
 
-    atomic_ringbuffer_advance_written(buf, snd_pcm_frames_to_bytes(handle, count));
-  }
-  snd_pcm_drop(handle);
-  snd_pcm_close(handle);
-  return NULL;
+    int ret = 0;
+    struct audio_capture_state state = { 0 };
+
+    if ((ret = audio_capture_init(&state, &g_state.linear.dev_info)) != 0) {
+        goto exit;
+    }
+
+    if ((ret = audio_capture_start(&state)) != 0) {
+        goto exit;
+    }
+
+    // throw away first buffer as it's not always full
+    audio_capture_fill_buffer(&state, NULL, audio_capture_get_next_frame_count(&state));
+
+    g_state.linear.writer_thread_state = State_Running;
+    ringbuffer_t* rb = &g_state.linear.ring_buffer;
+
+    while (g_state.cap_state != State_Stopping) {
+        ssize_t frame_count = audio_capture_get_next_frame_count(&state);
+
+        if (frame_count == 0) {
+            continue;
+        }
+
+        if (frame_count == -1) {
+            goto exit;
+        }
+
+        size_t buffer_sz = audio_get_sample_size(state.dev_info) * frame_count;
+
+        void* ptr = rb_write_ptr(rb, buffer_sz);
+
+        if (ptr == NULL) {
+            ++g_state.overflow_counter;
+            fprintf(stderr, "ringbuffer full, may be dropping samples!!! THIS IS BAD!\n");
+            _sleep_ms(1);
+            continue;
+        }
+
+        ssize_t count = audio_capture_fill_buffer(&state, ptr, frame_count);
+
+        if (count < 0) {
+            fprintf(stderr, "audio_capture_fill_buffer failed\n");
+            break;
+        }
+
+        rb_write_finished(rb, count);
+    }
+
+exit:
+    // if we're here but the main thread is running, likely err
+    if (g_state.cap_state == State_Running) {
+        g_state.linear.writer_thread_state = State_Failed;
+    }
+    else {
+        g_state.linear.writer_thread_state = State_Stopping;
+    }
+
+    audio_capture_stop(&state);
+    audio_capture_deinit(&state);
+    audio_device_deinit(&g_state.linear.dev_info);
+    return 0;
 }
 
 void file_stop(int fd, int argc, char** argv) {
-  (void)argc;
-  (void)argv;
-  enum capture_state expected = State_Running;
-  if (!atomic_compare_exchange_strong(&g_state.cap_state, &expected, State_Stopping)) {
-    dprintf(fd, "{\"state\": \"%s\"}", capture_state_to_str(expected));
-    return;
-  }
+    (void)argc;
+    (void)argv;
+    enum capture_state expected = State_Running;
+    if (!atomic_compare_exchange_strong(&g_state.cap_state, &expected, State_Stopping)) {
+        _socket_printf(fd, "{\"state\": \"%s\"}", capture_state_to_str(expected));
+        return;
+    }
 
-  for (size_t i = 0; i < g_state.cxadc_count; ++i)
-    pthread_join(g_state.cxadc[i].writer_thread, NULL);
+    for (size_t i = 0; i < g_state.cxadc_count; ++i)
+        thrd_join(g_state.cxadc[i].writer_thread, NULL);
 
-  pthread_join(g_state.linear.writer_thread, NULL);
+    if (g_state.linear_enabled) {
+        thrd_join(g_state.linear.writer_thread, NULL);
 
-  while (g_state.linear.reader_thread)
-    usleep(100000);
+        while (_thread_is_init(g_state.linear.reader_thread))
+            _sleep_ms(100);
+    }
 
-  for (size_t i = 0; i < g_state.cxadc_count; ++i) {
-    while (g_state.cxadc[i].reader_thread)
-      usleep(100000);
-    atomic_ringbuffer_free(&g_state.cxadc[i].ring_buffer);
-    g_state.cxadc[i].writer_thread = 0;
-    g_state.cxadc[i].reader_thread = 0;
-  }
+    for (size_t i = 0; i < g_state.cxadc_count; ++i) {
+        while (_thread_is_init(g_state.cxadc[i].reader_thread))
+            _sleep_ms(100);
 
-  atomic_ringbuffer_free(&g_state.linear.ring_buffer);
-  g_state.linear.writer_thread = 0;
-  g_state.linear.reader_thread = 0;
+        rb_close(&g_state.cxadc[i].ring_buffer);
 
-  g_state.cap_state = State_Idle;
+        g_state.cxadc[i].writer_thread = (thrd_t){ 0 };
+        g_state.cxadc[i].reader_thread = (thrd_t){ 0 };
+    }
 
-  dprintf(fd, "{\"state\": \"%s\", \"overflows\": %ld}", capture_state_to_str(State_Idle), g_state.overflow_counter);
+    if (g_state.linear_enabled) {
+        rb_close(&g_state.linear.ring_buffer);
+        g_state.linear.writer_thread = (thrd_t){ 0 };
+        g_state.linear.reader_thread = (thrd_t){ 0 };
+    }
+
+    g_state.cap_state = State_Idle;
+
+    _socket_printf(fd, "{\"state\": \"%s\", \"overflows\": %ld}", capture_state_to_str(State_Idle), g_state.overflow_counter);
 }
 
 void file_root(int fd, int argc, char** argv) {
-  (void)argc;
-  (void)argv;
-  dprintf(fd, "Hello World!\n");
+    (void)argc;
+    (void)argv;
+    _socket_printf(fd, "Hello World!\n");
 }
 
 void file_version(int fd, int argc, char** argv) {
-  (void)argc;
-  (void)argv;
-  dprintf(fd, "%s\n", CXADC_VHS_SERVER_VERSION);
+    (void)argc;
+    (void)argv;
+    _socket_printf(fd, "%s\n", CXADC_VHS_SERVER_VERSION);
 }
 
-void pump_ringbuffer_to_fd(int fd, struct atomic_ringbuffer* buf, _Atomic pthread_t* pt) {
-  pthread_t expected = 0;
-  if (!atomic_compare_exchange_strong(pt, &expected, pthread_self())) {
-    return;
-  }
-  while (g_state.cap_state != State_Running && g_state.cap_state != State_Stopping)
-    usleep(1);
-
-  while (g_state.cap_state == State_Running || g_state.cap_state == State_Stopping) {
-    void* ptr = atomic_ringbuffer_get_read_ptr(buf);
-    size_t len = atomic_ringbuffer_get_read_size(buf);
-    if (len == 0) {
-      if (g_state.cap_state == State_Stopping)
-        break;
-      usleep(1);
-      continue;
+void pump_ringbuffer_to_fd(int fd, ringbuffer_t* rb, _Atomic(thrd_t) *pt) {
+    thrd_t expected = { 0 };
+    if (!atomic_compare_exchange_strong(pt, &expected, thrd_current())) {
+        return;
     }
-    ssize_t count = write(fd, ptr, len);
-    if (count == 0) {
-      usleep(1);
-      continue;
-    }
-    if (count < 0) {
-      fprintf(stderr, "write failed: %s\n", sys_errlist[errno]);
-      break;
+    while (g_state.cap_state != State_Running && g_state.cap_state != State_Stopping)
+        _sleep_us(1);
+
+    while (g_state.cap_state == State_Running || g_state.cap_state == State_Stopping) {
+        size_t read_size = rb->tail - rb->head;
+
+        if (g_state.cap_state == State_Stopping) {
+            // flush data
+            if (read_size == 0) {
+                break;
+            }
+        }
+
+        const void* ptr = rb_read_ptr(rb, read_size);
+        if (ptr == NULL) {
+            if (g_state.cap_state == State_Stopping)
+                break;
+            _sleep_us(1);
+            continue;
+        }
+
+        ssize_t count = _socket_write(fd, ptr, read_size);
+        if (count < 0) {
+            fprintf(stderr, "write failed: %s\n", _get_network_error());
+            break;
+        }
+
+        if (count == 0) {
+            _sleep_us(1);
+            continue;
+        }
+        rb_read_finished(rb, count);
     }
 
-    atomic_ringbuffer_advance_read(buf, count);
-  }
-
-  *pt = 0;
+    *pt = (thrd_t){ 0 };
 }
 
 void file_cxadc(int fd, int argc, char** argv) {
-  if (argc != 1)
-    return;
-  unsigned id;
-  if (1 != sscanf(argv[0], "%u", &id) || id >= 256)
-    return;
-  pump_ringbuffer_to_fd(fd, &g_state.cxadc[id].ring_buffer, &g_state.cxadc[id].reader_thread);
+    if (argc != 1)
+        return;
+    unsigned id;
+    if (1 != sscanf(argv[0], "%u", &id) || id >= 256)
+        return;
+    pump_ringbuffer_to_fd(fd, &g_state.cxadc[id].ring_buffer, &g_state.cxadc[id].reader_thread);
 }
 
 void file_linear(int fd, int argc, char** argv) {
-  (void)argc;
-  (void)argv;
-  pump_ringbuffer_to_fd(fd, &g_state.linear.ring_buffer, &g_state.linear.reader_thread);
+    (void)argc;
+    (void)argv;
+    pump_ringbuffer_to_fd(fd, &g_state.linear.ring_buffer, &g_state.linear.reader_thread);
 }
 
 void file_stats(int fd, int argc, char** argv) {
-  const enum capture_state state = g_state.cap_state;
-  if (state != State_Running) {
-    dprintf(fd, "{\"state\":\"%s\"}", capture_state_to_str(state));
-  } else {
-    size_t linear_read, linear_written, linear_difference;
-    atomic_ringbuffer_get_stats(&g_state.linear.ring_buffer, &linear_read, &linear_written, &linear_difference);
-    dprintf(
-      fd,
-      "{\"state\":\"%s\",\"overflows\":%zu,\"linear\":{\"read\":%zu,\"written\":%zu,\"difference\":%zu,\"difference_pct\":%zu},\"cxadc\":[",
-      capture_state_to_str(state),
-      g_state.overflow_counter,
-      linear_read,
-      linear_written,
-      linear_difference,
-      linear_difference * 100 / g_state.linear.ring_buffer.buf_size
-    );
-    for (size_t i = 0; i < g_state.cxadc_count; ++i) {
-      size_t read, written, difference;
-      atomic_ringbuffer_get_stats(&g_state.cxadc[i].ring_buffer, &read, &written, &difference);
-      if (i != 0)
-        dprintf(fd, ",");
-      dprintf(
-        fd,
-        "{\"read\":%zu,\"written\":%zu,\"difference\":%zu,\"difference_pct\":%zu}",
-        read,
-        written,
-        difference,
-        difference * 100 / g_state.cxadc[i].ring_buffer.buf_size
-      );
+    const enum capture_state state = g_state.cap_state;
+    if (state != State_Running) {
+        _socket_printf(fd, "{\"state\":\"%s\"}", capture_state_to_str(state));
     }
-    dprintf(fd, "]}");
-  }
-  (void)fd;
-  (void)argc;
-  (void)argv;
+    else {
+        _socket_printf(
+            fd,
+            "{\"state\":\"%s\",\"overflows\":%zu,",
+            capture_state_to_str(state),
+            g_state.overflow_counter
+        );
+
+        if (g_state.linear_enabled) {
+            const size_t linear_read = atomic_load(&g_state.linear.ring_buffer.total_read);
+            const size_t linear_written = atomic_load(&g_state.linear.ring_buffer.total_write);
+            const size_t linear_difference = linear_written - linear_read;
+
+            _socket_printf(
+                fd,
+                "\"linear\":{\"read\":%zu,\"written\":%zu,\"difference\":%zu,\"difference_pct\":%zu},",
+                linear_read,
+                linear_written,
+                linear_difference,
+                linear_difference * 100 / g_state.linear.ring_buffer.buffer_size
+            );
+        }
+
+        _socket_printf(fd, "\"cxadc\":[");
+
+        for (size_t i = 0; i < g_state.cxadc_count; ++i) {
+            const size_t read = atomic_load(&g_state.cxadc[i].ring_buffer.total_read);
+            const size_t written = atomic_load(&g_state.cxadc[i].ring_buffer.total_write);
+            const size_t difference = written - read;
+
+            if (i != 0)
+                _socket_printf(fd, ",");
+            _socket_printf(
+                fd,
+                "{\"read\":%zu,\"written\":%zu,\"difference\":%zu,\"difference_pct\":%zu}",
+                read,
+                written,
+                difference,
+                difference * 100 / g_state.cxadc[i].ring_buffer.buffer_size
+            );
+        }
+        _socket_printf(fd, "]}");
+    }
+    (void)fd;
+    (void)argc;
+    (void)argv;
 }

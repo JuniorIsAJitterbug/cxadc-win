@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35327.3
@@ -42,6 +42,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build_driver", "build_drive
 		.github\actions\build_driver\action.yml = .github\actions\build_driver\action.yml
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "capture-server", "src\capture-server\capture-server.vcxproj", "{A9A8E9C4-4FC1-4DDC-A715-3C13D631A4F3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build_capture_server", "build_capture_server", "{F4E26B7E-78C6-490E-A794-A4792BEF1CD6}"
+	ProjectSection(SolutionItems) = preProject
+		.github\actions\build_capture_server\action.yml = .github\actions\build_capture_server\action.yml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -61,6 +68,10 @@ Global
 		{83090CE1-3EAD-40D1-AE6B-8394FDCD345C}.Debug|x64.Build.0 = Debug|x64
 		{83090CE1-3EAD-40D1-AE6B-8394FDCD345C}.Release|x64.ActiveCfg = Release|x64
 		{83090CE1-3EAD-40D1-AE6B-8394FDCD345C}.Release|x64.Build.0 = Release|x64
+		{A9A8E9C4-4FC1-4DDC-A715-3C13D631A4F3}.Debug|x64.ActiveCfg = Debug|x64
+		{A9A8E9C4-4FC1-4DDC-A715-3C13D631A4F3}.Debug|x64.Build.0 = Debug|x64
+		{A9A8E9C4-4FC1-4DDC-A715-3C13D631A4F3}.Release|x64.ActiveCfg = Release|x64
+		{A9A8E9C4-4FC1-4DDC-A715-3C13D631A4F3}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -71,6 +82,7 @@ Global
 		{39521916-A159-4165-B03C-7B15B7CEC109} = {50B7A4FE-A90B-47F9-BFD7-C6803F0E739C}
 		{6D0B652A-285F-417C-9ADA-40C1BE8F7366} = {39521916-A159-4165-B03C-7B15B7CEC109}
 		{3D0C0313-3B27-4F63-A65C-EF46D34478E3} = {39521916-A159-4165-B03C-7B15B7CEC109}
+		{F4E26B7E-78C6-490E-A794-A4792BEF1CD6} = {39521916-A159-4165-B03C-7B15B7CEC109}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A747CBA2-D23B-41C2-A0AB-18816F9B386B}
@@ -78,6 +90,7 @@ Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		src\shared\shared.vcxitems*{04143256-7542-4c95-99fc-f6d9081961a0}*SharedItemsImports = 9
 		src\shared\shared.vcxitems*{83090ce1-3ead-40d1-ae6b-8394fdcd345c}*SharedItemsImports = 4
+		src\shared\shared.vcxitems*{a9a8e9c4-4fc1-4ddc-a715-3c13d631a4f3}*SharedItemsImports = 4
 		src\shared\shared.vcxitems*{dae29972-c8c6-4850-9e52-45760bdd3e66}*SharedItemsImports = 4
 	EndGlobalSection
 EndGlobal

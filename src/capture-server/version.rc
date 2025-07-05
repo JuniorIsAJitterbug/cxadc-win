@@ -1,0 +1,17 @@
+/*
+ * capture-server - Windows port of cxadc_vhs_server
+ *
+ * Copyright (C) 2025 Jitterbug <jitterbug@posteo.co.uk>
+ */
+
+#ifdef APSTUDIO_INVOKED
+    #error this file is not editable by Visual C++
+#endif
+
+#pragma code_page(65001) // UTF-8
+
+#define CX_FILE_DESC        "cxadc-win capture server"
+#define CX_INTERNAL_NAME    "cxadc-win capture server"
+#define CX_FILE_NAME        "capture_server.exe"
+
+#include "version.rc2"
