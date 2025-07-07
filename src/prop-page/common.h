@@ -23,8 +23,11 @@
 #define HRESULT_FROM_LASTERROR          HRESULT_FROM_WIN32(GetLastError())
 #define HRESULT_FROM_ERRNO              HRESULT_FROM_WIN32(_doserrno)
 
+#define DEVICE_ID_STR                   L"VEN_14F1&DEV_8800"
+
 typedef struct _CX_PROP_DATA
 {
+    PWCHAR dev_id;
     PWCHAR dev_path;
     DEVICE_CONFIG config;
     DEVICE_CONFIG prev_config;

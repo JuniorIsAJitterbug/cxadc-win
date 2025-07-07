@@ -122,21 +122,14 @@ exit:
 }
 
 _Use_decl_annotations_
-HRESULT cx_get_device_path(
+HRESULT cx_get_device_id(
     HDEVINFO class_info,
     PSP_DEVINFO_DATA class_info_data,
-    PWCHAR* device_path
+    PWCHAR* dev_id
 )
 {
     HRESULT hr = S_OK;
-    PWSTR dev_id = NULL;
-    HDEVINFO dev_info = INVALID_HANDLE_VALUE;
-    SP_DEVICE_INTERFACE_DATA dev_data =
-    {
-        .cbSize = sizeof(SP_DEVICE_INTERFACE_DATA)
-    };
-    PSP_DEVICE_INTERFACE_DETAIL_DATA dev_detail_data = NULL;
-    *device_path = NULL;
+    *dev_id = NULL;
 
     // get device instance id length
     DEVPROPTYPE prop_type = 0;
@@ -155,14 +148,14 @@ HRESULT cx_get_device_path(
     if (GetLastError() != ERROR_INSUFFICIENT_BUFFER || dev_id_len == 0)
     {
         hr = HRESULT_FROM_LASTERROR;
-        goto exit;
+        goto error;
     }
 
     // get device instance id
-    if ((dev_id = _HeapAllocZero(dev_id_len)) == NULL)
+    if ((*dev_id = _HeapAllocZero(dev_id_len)) == NULL)
     {
         hr = E_OUTOFMEMORY;
-        goto exit;
+        goto error;
     }
 
     if (!SetupDiGetDevicePropertyW(
@@ -170,14 +163,41 @@ HRESULT cx_get_device_path(
         class_info_data,
         &DEVPKEY_Device_InstanceId,
         &prop_type,
-        (PBYTE)dev_id,
+        (PBYTE)*dev_id,
         dev_id_len,
         NULL,
         0))
     {
         hr = HRESULT_FROM_LASTERROR;
-        goto cleanup_1;
+        goto error;
     }
+
+    return hr;
+
+error:
+    if (*dev_id != NULL)
+    {
+        _HeapFree(*dev_id);
+        *dev_id = NULL;
+    }
+
+    return hr;
+}
+
+_Use_decl_annotations_
+HRESULT cx_get_device_path(
+    PCWSTR dev_id,
+    PWCHAR* device_path
+)
+{
+    HRESULT hr = S_OK;
+    HDEVINFO dev_info = INVALID_HANDLE_VALUE;
+    SP_DEVICE_INTERFACE_DATA dev_data =
+    {
+        .cbSize = sizeof(SP_DEVICE_INTERFACE_DATA)
+    };
+    PSP_DEVICE_INTERFACE_DETAIL_DATA dev_detail_data = NULL;
+    *device_path = NULL;
 
     // get device info
     if ((dev_info = SetupDiGetClassDevsW(
@@ -187,13 +207,13 @@ HRESULT cx_get_device_path(
         DIGCF_DEVICEINTERFACE)) == INVALID_HANDLE_VALUE)
     {
         hr = HRESULT_FROM_LASTERROR;
-        goto cleanup_1;
+        goto exit;
     }
 
     if (!SetupDiEnumDeviceInterfaces(dev_info, NULL, &GUID_DEVINTERFACE_CXADCWIN, 0, &dev_data))
     {
         hr = HRESULT_FROM_LASTERROR;
-        goto cleanup_2;
+        goto cleanup_1;
     }
 
     // get device interface detail length
@@ -204,14 +224,14 @@ HRESULT cx_get_device_path(
     if (GetLastError() != ERROR_INSUFFICIENT_BUFFER || dev_detail_data_len == 0)
     {
         hr = HRESULT_FROM_LASTERROR;
-        goto cleanup_2;
+        goto cleanup_1;
     }
 
     // get device interface detail
     if ((dev_detail_data = _HeapAllocZero(dev_detail_data_len)) == NULL)
     {
         E_OUTOFMEMORY;
-        goto cleanup_2;
+        goto cleanup_1;
     }
 
     dev_detail_data->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
@@ -219,7 +239,7 @@ HRESULT cx_get_device_path(
     if (!SetupDiGetDeviceInterfaceDetailW(dev_info, &dev_data, dev_detail_data, dev_detail_data_len, NULL, NULL))
     {
         hr = HRESULT_FROM_LASTERROR;
-        goto cleanup_3;
+        goto cleanup_2;
     }
 
     DEBUG_LOG("Found device %ws", dev_detail_data->DevicePath);
@@ -229,7 +249,7 @@ HRESULT cx_get_device_path(
     if ((*device_path = _HeapAllocZero(len * sizeof(WCHAR))) == NULL)
     {
         hr = E_OUTOFMEMORY;
-        goto cleanup_3;
+        goto cleanup_2;
     }
 
     if (wcscpy_s(*device_path, len, dev_detail_data->DevicePath) != 0)
@@ -238,14 +258,11 @@ HRESULT cx_get_device_path(
         _SafeHeapFree(*device_path);
     }
 
-cleanup_3:
+cleanup_2:
     _HeapFree(dev_detail_data);
 
-cleanup_2:
-    SetupDiDestroyDeviceInfoList(dev_info);
-
 cleanup_1:
-    _HeapFree(dev_id);
+    SetupDiDestroyDeviceInfoList(dev_info);
 
 exit:
     return hr;

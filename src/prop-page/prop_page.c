@@ -44,16 +44,31 @@ BOOL APIENTRY cx_prop_page_provider(
         goto error_1;
     }
 
+    PWCHAR device_id = NULL;
+
+    if (FAILED(cx_get_device_id(psp_req->DeviceInfoSet, psp_req->DeviceInfoData, &device_id)))
+    {
+        // non-cx device?
+        goto error_1;
+    }
+
+    if (wcsstr(device_id, DEVICE_ID_STR) == NULL)
+    {
+        // non-video function
+        _HeapFree(device_id);
+        goto error_1;
+    }
+
     if ((prop_data = _HeapAllocZero(sizeof(CX_PROP_DATA))) == NULL)
     {
-        goto error_1;
+        goto error_2;
     }
 
     prop_data->dev_path = NULL;
 
-    if (FAILED(cx_get_device_path(psp_req->DeviceInfoSet, psp_req->DeviceInfoData, &prop_data->dev_path)))
+    if (FAILED(cx_get_device_path(device_id, &prop_data->dev_path)))
     {
-        goto error_2;
+        goto error_3;
     }
 
     PROPSHEETPAGE ps_page =
@@ -69,26 +84,27 @@ BOOL APIENTRY cx_prop_page_provider(
 
     if ((hps_page = CreatePropertySheetPageW(&ps_page)) == NULL)
     {
-        goto error_2;
+        goto error_3;
     }
 
     if (!add_psp_fn(hps_page, lparam))
     {
-        goto error_3;
+        goto error_4;
     }
 
     return TRUE;
 
-error_3:
+error_4:
     DestroyPropertySheetPage(hps_page);
 
-error_2:
+error_3:
     _HeapFree(prop_data->dev_path);
     _HeapFree(prop_data);
 
-error_1:
+error_2:
     DEBUG_ERROR("Error creating property sheet");
 
+error_1:
     return FALSE;
 }
 
