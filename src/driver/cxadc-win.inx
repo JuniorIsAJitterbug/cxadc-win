@@ -57,6 +57,20 @@ CopyFiles = DriverInstall.NT.Copy
 [DriverInstall.NT.Copy]
 cxadc-win.sys
 
+[DriverInstall.NT.HW]
+AddReg = DriverInstall.NT.HW.AddReg
+
+[DriverInstall.NT.HW.AddReg]
+HKR,,Security,,"D:P%DefaultACLs%"
+
+[DriverInstall.NT.WMI]
+WMIInterface = {1F539677-2EA1-432E-A3BC-42D73BB9DA5C}, 1, DriverInstall.NT.WMI.Security ; CxadcWin_DeviceState
+WMIInterface = {E333ADBB-4FD1-4D13-A61A-144EADC2DC4D}, 1, DriverInstall.NT.WMI.Security ; CxadcWin_DeviceConfig
+WMIInterface = {C5DE3644-CB5A-4A18-9F42-47348AC8FC68}, 1, DriverInstall.NT.WMI.Security ; CxadcWin_DevicePath
+
+[DriverInstall.NT.WMI.Security]
+Security = "O:BAG:BAD:%DefaultACLs%" ; Owner: Built-in Administrators, Group: Built-in Administrators
+
 ;-------------- Service installation
 [DriverInstall.NT.Services]
 AddService = %DeviceDesc%, %SPSVCINST_ASSOCSERVICE%, DriverService
@@ -78,3 +92,4 @@ DeviceDesc             = "cx2388x device"
 ServiceName            = "cxadc-win"
 ServiceDesc            = "cxadc-win service"
 DiskName               = "cxadc-win drivers"
+DefaultACLs            = "(A;;GA;;;SY)(A;;GRGWGX;;;BA)(A;;GRGWGX;;;WD)" ; Local System: All, Built-in Administrators: RWX, Everyone: RWX
