@@ -187,18 +187,11 @@ VOID cx_evt_io_ctrl(
 
         case CX_IOCTL_HW_REGISTER_GET:
         {
+            ULONG address = 0;
             ULONG value = 0;
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, in_len, &value, sizeof(ULONG)));
-
-            if (value < CX_REGISTER_BASE || value > CX_REGISTER_END)
-            {
-                TRACE_ERROR("CX_IOCTL_GET_REGISTER address %08X out of range", value);
-                status = STATUS_INVALID_PARAMETER;
-                break;
-            }
-
-            ULONG reg_val = cx_read(&dev_ctx->mmio, value);
-            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &reg_val, sizeof(ULONG)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, in_len, &address, sizeof(address)));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_ctrl_get_register(dev_ctx, address, &value));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &value, sizeof(value)));
             break;
         }
 
@@ -251,17 +244,7 @@ VOID cx_evt_io_ctrl(
             SET_REGISTER_DATA data = { 0 };
 
             RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_get_input(req, in_len, &data, sizeof(SET_REGISTER_DATA)));
-
-            if (data.addr < CX_REGISTER_BASE || data.addr  > CX_REGISTER_END)
-            {
-                TRACE_ERROR("CX_IOCTL_SET_REGISTER address %08X out of range", data.addr);
-                status = STATUS_INVALID_PARAMETER;
-                break;
-            }
-
-            TRACE_INFO("CX_IOCTL_SET_REGISTER writing %08X to %08X", data.val, data.addr);
-            cx_write(&dev_ctx->mmio, data.addr, data.val);
-            WdfRequestSetInformation(req, 0);
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_ctrl_set_register(dev_ctx, &data));
             break;
         }
 

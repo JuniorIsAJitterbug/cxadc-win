@@ -24,13 +24,19 @@
 #define CX_IOCTL_STATE_OUFLOW_RESET             CTL_CODE_W(0x910)
 #define CX_CTRL_STATE_OUFLOW_RESET_WMI_ID       1
 
-// hardware/low level
-#define CX_IOCTL_HW_REGISTER_GET                CTL_CODE_R(0x82F)
-#define CX_IOCTL_HW_REGISTER_SET                CTL_CODE_W(0x92F)
+// hardware
 #define CX_IOCTL_HW_BUS_NUMBER_GET              CTL_CODE_R(0x830)
+#define CX_CTRL_HW_BUS_NUMBER_GET_WMI_ID        1
+
 #define CX_IOCTL_HW_DEVICE_ADDRESS_GET          CTL_CODE_R(0x831)
-#define CX_IOCTL_HW_MMAP                        CTL_CODE_R(0xA00)
-#define CX_IOCTL_HW_MUNMAP                      CTL_CODE_W(0xA01)
+#define CX_CTRL_HW_DEVICE_ADDRESS_GET_WMI_ID    2
+
+// registers
+#define CX_IOCTL_HW_REGISTER_GET                CTL_CODE_R(0x82F)
+#define CX_CTRL_HW_REGISTER_GET_WMI_ID          1
+
+#define CX_IOCTL_HW_REGISTER_SET                CTL_CODE_W(0x92F)
+#define CX_CTRL_HW_REGISTER_SET_WMI_ID          2
 
 // config
 #define CX_IOCTL_CONFIG_GET                     CTL_CODE_R(0x700)
@@ -79,3 +85,7 @@
 #define CX_CTRL_CONFIG_CENTER_OFFSET_DEFAULT    0
 #define CX_CTRL_CONFIG_CENTER_OFFSET_MIN        0
 #define CX_CTRL_CONFIG_CENTER_OFFSET_MAX        63
+
+// memory
+#define CX_IOCTL_HW_MMAP                        CTL_CODE_R(0xA00)
+#define CX_IOCTL_HW_MUNMAP                      CTL_CODE_W(0xA01)

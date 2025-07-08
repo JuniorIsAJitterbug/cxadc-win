@@ -32,8 +32,3 @@ ULONG cx_get_page_no(
     return (((off % CX_VBI_BUF_SIZE) / PAGE_SIZE) + initial_page) % CX_VBI_BUF_COUNT;
 }
 
-typedef struct _SET_REGISTER_DATA
-{
-    ULONG addr;
-    ULONG val;
-} SET_REGISTER_DATA, * PSET_REGISTER_DATA;

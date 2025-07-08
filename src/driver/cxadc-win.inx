@@ -12,9 +12,9 @@ DriverVer   = 01/01/1970,0.0.0.1; set by stampinf
 PnpLockdown = 1
 
 [DestinationDirs]
-DefaultDestDir      = 13 ; driver store
-DriverInstall.Copy  = 13 ; driver store
-ClassInstall.Copy   = 11 ; system32
+DefaultDestDir     = 13 ; driver store
+CopyFiles.Driver   = 13 ; driver store
+CopyFiles.PropPage = 11 ; system32
 
 [SourceDisksNames]
 1 = %DiskName%
@@ -30,15 +30,10 @@ cxadc-win-pp.dll = 1
 
 [ClassInstall32]
 Addreg    = ClassInstall.AddReg
-CopyFiles = ClassInstall.Copy
 
 [ClassInstall.AddReg]
 HKR,,,0,%DeviceClassName%
 HKR,,Icon,,-14
-HKR,,EnumPropPages32,,"cxadc-win-pp.dll,cx_prop_page_provider"
-
-[ClassInstall.Copy]
-cxadc-win-pp.dll
 
 
 ;*****************************************
@@ -51,36 +46,46 @@ cxadc-win-pp.dll
 [DeviceList.NT$ARCH$.10.0...16299]
 %DeviceDesc% = DriverInstall, PCI\VEN_14F1&DEV_8800
 
-[DriverInstall.NT]
-CopyFiles = DriverInstall.NT.Copy
 
-[DriverInstall.NT.Copy]
-cxadc-win.sys
+;-------------- Driver Installation
+[DriverInstall.NT]
+CopyFiles = CopyFiles.Driver, CopyFiles.PropPage
 
 [DriverInstall.NT.HW]
-AddReg = DriverInstall.NT.HW.AddReg
-
-[DriverInstall.NT.HW.AddReg]
-HKR,,Security,,"D:P%DefaultACLs%"
+AddReg = AddReg.DeviceSecurity, AddReg.PropPage
 
 [DriverInstall.NT.WMI]
-WMIInterface = {1F539677-2EA1-432E-A3BC-42D73BB9DA5C}, 1, DriverInstall.NT.WMI.Security ; CxadcWin_DeviceState
-WMIInterface = {E333ADBB-4FD1-4D13-A61A-144EADC2DC4D}, 1, DriverInstall.NT.WMI.Security ; CxadcWin_DeviceConfig
-WMIInterface = {C5DE3644-CB5A-4A18-9F42-47348AC8FC68}, 1, DriverInstall.NT.WMI.Security ; CxadcWin_DevicePath
+WMIInterface = {1F539677-2EA1-432E-A3BC-42D73BB9DA5C}, 1, WmiSecurity ; CxadcWin_State
+WMIInterface = {E333ADBB-4FD1-4D13-A61A-144EADC2DC4D}, 1, WmiSecurity ; CxadcWin_Config
+WMIInterface = {C5DE3644-CB5A-4A18-9F42-47348AC8FC68}, 1, WmiSecurity ; CxadcWin_Path
+WMIInterface = {6B08A64E-25FB-4112-A5C2-86D704A0527E}, 1, WmiSecurity ; CxadcWin_Registers
+WMIInterface = {A1D72BCC-01A9-4AED-A370-B376AB3C90AC}, 1, WmiSecurity ; CxadcWin_Hardware
 
-[DriverInstall.NT.WMI.Security]
+[DriverInstall.NT.Services]
+AddService = %ServiceName%, %SPSVCINST_ASSOCSERVICE%, DriverService
+
+
+[CopyFiles.Driver]
+cxadc-win.sys
+
+[CopyFiles.PropPage]
+cxadc-win-pp.dll
+
+[AddReg.DeviceSecurity]
+HKR,,Security,,"D:P%DefaultACLs%"
+
+[AddReg.PropPage]
+HKR,,EnumPropPages32,,"cxadc-win-pp.dll,cx_prop_page_provider"
+
+[WmiSecurity]
 Security = "O:BAG:BAD:%DefaultACLs%" ; Owner: Built-in Administrators, Group: Built-in Administrators
 
-;-------------- Service installation
-[DriverInstall.NT.Services]
-AddService = %DeviceDesc%, %SPSVCINST_ASSOCSERVICE%, DriverService
-
 [DriverService]
-DisplayName    = %ServiceDesc%
-ServiceType    = 1
-StartType      = 3
-ErrorControl   = 1
-ServiceBinary  = %13%\cxadc-win.sys
+DisplayName   = %ServiceDesc%
+ServiceType   = 1
+StartType     = 3
+ErrorControl  = 1
+ServiceBinary = %13%\cxadc-win.sys
 
 
 [Strings]
@@ -88,8 +93,8 @@ SPSVCINST_ASSOCSERVICE = 0x00000002
 ProviderName           = "Jitterbug"
 ManufacturernName      = "Conexant"
 DeviceClassName        = "cxadc-win devices"
-DeviceDesc             = "cx2388x device"
 ServiceName            = "cxadc-win"
 ServiceDesc            = "cxadc-win service"
 DiskName               = "cxadc-win drivers"
+DeviceDesc             = "cx2388x device"
 DefaultACLs            = "(A;;GA;;;SY)(A;;GRGWGX;;;BA)(A;;GRGWGX;;;WD)" ; Local System: All, Built-in Administrators: RWX, Everyone: RWX

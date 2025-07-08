@@ -1,8 +1,8 @@
 #pragma autorecover
 #pragma namespace("\\\\.\\Root\\WMI")
 
-[WMI, Dynamic, Provider("WMIProv"), Locale("MS\\0x409"), Description("Cxadc-Win Device State"), guid("{1F539677-2EA1-432E-A3BC-42D73BB9DA5C}")]
-class CxadcWin_DeviceState
+[WMI, Dynamic, Provider("WMIProv"), Locale("MS\\0x409"), Description("Cxadc-Win State"), guid("{1F539677-2EA1-432E-A3BC-42D73BB9DA5C}")]
+class CxadcWin_State
 {
   [key, read] string InstanceName;
   [read] boolean Active;
@@ -16,8 +16,8 @@ class CxadcWin_DeviceState
   [WmiMethodId(1), Implemented] void ResetOverUnderflowCount([Out] uint32 PreviousValue);
 };
 
-[WMI, Dynamic, Provider("WMIProv"), Locale("MS\\0x409"), Description("Cxadc-Win Device Config"), guid("{E333ADBB-4FD1-4D13-A61A-144EADC2DC4D}")]
-class CxadcWin_DeviceConfig
+[WMI, Dynamic, Provider("WMIProv"), Locale("MS\\0x409"), Description("Cxadc-Win Config"), guid("{E333ADBB-4FD1-4D13-A61A-144EADC2DC4D}")]
+class CxadcWin_Config
 {
   [key, read] string InstanceName;
   [read] boolean Active;
@@ -29,12 +29,31 @@ class CxadcWin_DeviceConfig
   [WmiDataId(5), read, write] sint32 CenterOffset;
 };
 
-
-[WMI, Dynamic, Provider("WMIProv"), Locale("MS\\0x409"), Description("Cxadc-Win Device Path"), guid("{C5DE3644-CB5A-4A18-9F42-47348AC8FC68}")]
-class CxadcWin_DevicePath
+[WMI, Dynamic, Provider("WMIProv"), Locale("MS\\0x409"), Description("Cxadc-Win Path"), guid("{C5DE3644-CB5A-4A18-9F42-47348AC8FC68}")]
+class CxadcWin_Path
 {
   [key, read] string InstanceName;
   [read] boolean Active;
 
   [WmiDataId(1), read] string Path;
+};
+
+[WMI, Dynamic, Provider("WMIProv"), Locale("MS\\0x409"), Description("Cxadc-Win Registers"), guid("{6B08A64E-25FB-4112-A5C2-86D704A0527E}")]
+class CxadcWin_Registers
+{
+  [key, read] string InstanceName;
+  [read] boolean Active;
+
+  [WmiMethodId(1), Implemented] void Get([In] uint32 Address, [Out] uint32 Value);
+  [WmiMethodId(2), Implemented] void Set([In] uint32 Address, [In] uint32 Value);
+};
+
+[WMI, Dynamic, Provider("WMIProv"), Locale("MS\\0x409"), Description("Cxadc-Win Hardware info"), guid("{A1D72BCC-01A9-4AED-A370-B376AB3C90AC}")]
+class CxadcWin_Hardware
+{
+  [key, read] string InstanceName;
+  [read] boolean Active;
+
+  [WmiDataId(1), read] uint32 PciBusNumber;
+  [WmiDataId(2), read] uint32 PciAddress;
 };

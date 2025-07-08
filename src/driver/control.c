@@ -117,3 +117,41 @@ NTSTATUS cx_ctrl_set_center_offset(
 
     return cx_reg_set_value(dev_ctx->dev, CX_CTRL_CONFIG_CENTER_OFFSET_REG_KEY, value);
 }
+
+_Use_decl_annotations_
+NTSTATUS cx_ctrl_get_register(
+    PDEVICE_CONTEXT dev_ctx,
+    ULONG address,
+    PULONG value
+)
+{
+    if (address < CX_REGISTER_BASE || address > CX_REGISTER_END)
+    {
+        TRACE_ERROR("get register %08X out of range", address);
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    *value = cx_read(&dev_ctx->mmio, address);
+    TRACE_INFO("register %08X is %08X", address, *value);
+
+    return STATUS_SUCCESS;
+}
+
+
+_Use_decl_annotations_
+NTSTATUS cx_ctrl_set_register(
+    PDEVICE_CONTEXT dev_ctx,
+    PSET_REGISTER_DATA data
+)
+{
+    if (data->addr < CX_REGISTER_BASE || data->addr  > CX_REGISTER_END)
+    {
+        TRACE_ERROR("set register %08X out of range", data->addr);
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    TRACE_INFO("setting register %08X to %08X", data->addr, data->val);
+    cx_write(&dev_ctx->mmio, data->addr, data->val);
+
+    return STATUS_SUCCESS;
+}
