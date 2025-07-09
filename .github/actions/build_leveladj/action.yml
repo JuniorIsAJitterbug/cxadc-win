@@ -1,0 +1,40 @@
+name: Build leveladj
+description: Build leveladj for cxadc-win driver
+
+inputs:
+  solution:
+    description: Path to solution file
+    required: true
+  configuration:
+    description: Build configuration
+    required: true
+  platform:
+    description: Target platform
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup msbuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Build
+      shell: pwsh
+      run: |
+        msbuild ${{ inputs.solution }} -target:leveladj -p:Configuration=${{ inputs.configuration }} -p:Platform=${{ inputs.platform }}
+
+    - name: Upload artifacts (bin)
+      uses: actions/upload-artifact@v4
+      with:
+        name: bin-leveladj
+        if-no-files-found: error
+        path: |
+          .\${{ inputs.platform }}\${{ inputs.configuration }}\leveladj.exe
+
+    - name: Upload artifacts (pdb)
+      uses: actions/upload-artifact@v4
+      with:
+        name: pdb-leveladj
+        if-no-files-found: error
+        path: |
+          .\${{ inputs.platform }}\${{ inputs.configuration }}\leveladj.pdb

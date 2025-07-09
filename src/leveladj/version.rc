@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/*
+ * leveladj - Windows port of the leveladj tool
+ *
+ * Copyright (C) 2024-2025 Jitterbug <jitterbug@posteo.co.uk>
+ *
+ * Based on the Linux version created by
+ * Copyright (C) 2005-2007 Hew How Chee <how_chee@yahoo.com>
+ * Copyright (C) 2013-2015 Chad Page <Chad.Page@gmail.com>
+ * Copyright (C) 2019-2023 Adam Sampson <ats@offog.org>
+ * Copyright (C) 2020-2022 Tony Anderson <tandersn@cs.washington.edu>
+ */
+
+#ifdef APSTUDIO_INVOKED
+    #error this file is not editable by Visual C++
+#endif
+
+#pragma code_page(65001) // UTF-8
+
+#define CX_FILE_DESC        "cxadc-win leveladj"
+#define CX_INTERNAL_NAME    "cxadc-win leveladj"
+#define CX_FILE_NAME        "leveladj.exe"
+
+#include "version.rc2"

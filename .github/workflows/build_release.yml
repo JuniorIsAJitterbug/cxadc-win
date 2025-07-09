@@ -13,6 +13,7 @@ on:
           - driver
           - tool
           - capture-server
+          - leveladj
 
       build_configuration:
         description: Build configuration
@@ -62,6 +63,14 @@ jobs:
       - name: Build capture-server
         uses: ./.github/actions/build_capture_server
         if: ${{ inputs.build_components == 'All' || inputs.build_components == 'capture-server' }}
+        with:
+          solution: .\cxadc-win.sln
+          configuration: ${{ inputs.build_configuration }}
+          platform: x64
+
+      - name: Build leveladj
+        uses: ./.github/actions/build_leveladj
+        if: ${{ inputs.build_components == 'All' || inputs.build_components == 'leveladj' }}
         with:
           solution: .\cxadc-win.sln
           configuration: ${{ inputs.build_configuration }}
