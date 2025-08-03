@@ -26,12 +26,27 @@ runs:
     - name: Upload artifacts (bin)
       uses: actions/upload-artifact@v4
       with:
+        name: driver
+        if-no-files-found: error
+        path: |
+          .\${{ inputs.platform }}\${{ inputs.configuration }}\driver\cxadc-win.cat
+          .\${{ inputs.platform }}\${{ inputs.configuration }}\driver\cxadc-win.inf
+          .\${{ inputs.platform }}\${{ inputs.configuration }}\driver\cxadc-win.sys
+          .\${{ inputs.platform }}\${{ inputs.configuration }}\driver\cxadc-win-pp.dll
+
+    - name: Upload artifacts (bin)
+      uses: actions/upload-artifact@v4
+      with:
         name: bin-driver
-        path: .\${{ inputs.platform }}\${{ inputs.configuration }}\driver\*.*
+        if-no-files-found: error
+        path: |
+          .\${{ inputs.platform }}\${{ inputs.configuration }}\CxadcWin.psm1
 
     - name: Upload artifacts (pdb)
       uses: actions/upload-artifact@v4
       with:
         name: pdb-driver
-        path: .\${{ inputs.platform }}\${{ inputs.configuration }}\*.pdb
         if-no-files-found: error
+        path: |
+          .\${{ inputs.platform }}\${{ inputs.configuration }}\cxadc-win.pdb
+          .\${{ inputs.platform }}\${{ inputs.configuration }}\cxadc-win-pp.pdb
