@@ -15,3 +15,6 @@
 
 NTSTATUS cx_reg_get_value(_In_ WDFDEVICE dev, _In_ PCWSTR key_cwstr, _Out_ PULONG value);
 NTSTATUS cx_reg_set_value(_In_ WDFDEVICE dev, _In_ PCWSTR key_cwstr, _In_ ULONG value);
+
+NTSTATUS cx_reg_get_ulong(_In_ WDFKEY key, _In_ PCWSTR key_cwstr, _Out_ PULONG value);
+NTSTATUS cx_reg_set_ulong(_In_ WDFKEY key, _In_ PCWSTR key_cwstr, _In_ ULONG value);

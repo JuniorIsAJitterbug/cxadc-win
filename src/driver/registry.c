@@ -23,28 +23,8 @@ NTSTATUS cx_reg_get_value(
 )
 {
     WDFKEY key = WDF_NO_HANDLE;
-    *value = 0;
-
     RETURN_NTSTATUS_IF_FAILED(WdfDeviceOpenRegistryKey(dev, PLUGPLAY_REGKEY_DEVICE, STANDARD_RIGHTS_ALL, WDF_NO_OBJECT_ATTRIBUTES, &key));
-
-    DECLARE_UNICODE_STRING_SIZE(key_uc, MAX_PATH);
-    NTSTATUS status = RtlUnicodeStringCopyString(&key_uc, key_cwstr);
-
-    if (!NT_SUCCESS(status))
-    {
-        TRACE_STATUS_ERROR(status, "RtlUnicodeStringCopyString");
-        WdfRegistryClose(key);
-        return status;
-    }
-
-    status = WdfRegistryQueryULong(key, &key_uc, value);
-
-    // only log errors if not about missing keys
-    if (!NT_SUCCESS(status) && status != STATUS_OBJECT_NAME_NOT_FOUND)
-    {
-        TRACE_STATUS_ERROR(status, "WdfRegistryQueryULong");
-    }
-
+    NTSTATUS status = cx_reg_get_ulong(key, key_cwstr, value);
     WdfRegistryClose(key);
     return status;
 }
@@ -59,24 +39,33 @@ NTSTATUS cx_reg_set_value(
     WDFKEY key = WDF_NO_HANDLE;
 
     RETURN_NTSTATUS_IF_FAILED(WdfDeviceOpenRegistryKey(dev, PLUGPLAY_REGKEY_DEVICE, STANDARD_RIGHTS_ALL, WDF_NO_OBJECT_ATTRIBUTES, &key));
-
-    DECLARE_UNICODE_STRING_SIZE(key_uc, MAX_PATH);
-    NTSTATUS status = RtlUnicodeStringCopyString(&key_uc, key_cwstr);
-
-    if (!NT_SUCCESS(status))
-    {
-        TRACE_STATUS_ERROR(status, "RtlUnicodeStringCopyString");
-        WdfRegistryClose(key);
-        return status;
-    }
-
-    status = WdfRegistryAssignULong(key, &key_uc, value);
-
-    if (!NT_SUCCESS(status))
-    {
-        TRACE_STATUS_ERROR(status, "WdfRegistryAssignULong");
-    }
-
+    NTSTATUS status = cx_reg_set_ulong(key, key_cwstr, value);
     WdfRegistryClose(key);
     return status;
+}
+
+_Use_decl_annotations_
+NTSTATUS cx_reg_get_ulong(
+    WDFKEY key,
+    PCWSTR key_cwstr,
+    PULONG value
+)
+{
+    DECLARE_UNICODE_STRING_SIZE(key_uc, MAX_PATH);
+    RETURN_NTSTATUS_IF_FAILED(RtlUnicodeStringCopyString(&key_uc, key_cwstr));
+    RETURN_NTSTATUS_IF_FAILED(WdfRegistryQueryULong(key, &key_uc, value));
+    return STATUS_SUCCESS;
+}
+
+_Use_decl_annotations_
+NTSTATUS cx_reg_set_ulong(
+    WDFKEY key,
+    PCWSTR key_cwstr,
+    ULONG value
+)
+{
+    DECLARE_UNICODE_STRING_SIZE(key_uc, MAX_PATH);
+    RETURN_NTSTATUS_IF_FAILED(RtlUnicodeStringCopyString(&key_uc, key_cwstr));
+    RETURN_NTSTATUS_IF_FAILED(WdfRegistryAssignULong(key, &key_uc, value));
+    return STATUS_SUCCESS;
 }
