@@ -62,6 +62,7 @@ struct rb_threads {
 
 struct cxadc_state {
     int fd;
+    unsigned num;
     char name[16];
     thrd_t writer_thread;
     ringbuffer_t ring_buffer;
@@ -142,7 +143,6 @@ void file_start(int fd, int argc, char** argv) {
     char errstr[256];
     memset(errstr, 0, sizeof(errstr));
 
-    unsigned cxadc_array[256];
     unsigned cxadc_count = 0;
 
     char linear_name[64];
@@ -153,9 +153,9 @@ void file_start(int fd, int argc, char** argv) {
     for (int i = 0; i < argc; ++i) {
         unsigned num;
         if (1 == sscanf(argv[i], "cxadc%u", &num)) {
-            if (cxadc_count < sizeof(cxadc_array) / sizeof(*cxadc_array)) {
+            if (cxadc_count < sizeof(g_state.cxadc) / sizeof(*g_state.cxadc)) {
                 unsigned idx = cxadc_count++;
-                cxadc_array[idx] = num;
+                g_state.cxadc[idx].num = num;
                 g_state.cxadc[idx].fd = -1;
                 sprintf(g_state.cxadc[idx].name, "cxadc%u", num);
             }
@@ -225,7 +225,7 @@ void file_start(int fd, int argc, char** argv) {
 
     for (size_t i = 0; i < cxadc_count; ++i) {
         char cxadc_name[32];
-        sprintf(cxadc_name, CX_DEVICE_PATH "%d", cxadc_array[i]);
+        sprintf(cxadc_name, CX_DEVICE_PATH "%d", g_state.cxadc[i].num);
         int cxadc_fd = _file_open(cxadc_name, FILE_OPEN_FLAGS);
         if (cxadc_fd < 0) {
             snprintf(errstr, sizeof(errstr) - 1, "cannot open cxadc: %s", _file_get_error());
@@ -533,9 +533,17 @@ void file_cxadc(int fd, int argc, char** argv) {
     if (argc != 1)
         return;
     unsigned id;
-    if (1 != sscanf(argv[0], "%u", &id) || id >= 256)
+    if (1 != sscanf(argv[0], "%u", &id))
         return;
-    pump_ringbuffer_to_fd(fd, &g_state.cxadc[id].ring_buffer, &g_state.cxadc[id].reader_thread);
+
+    // find card where id == num
+    for (size_t i = 0; i < sizeof(g_state.cxadc) / sizeof(*g_state.cxadc); i++) {
+        if (g_state.cxadc[i].fd > 0 && g_state.cxadc[i].num == id) {
+            pump_ringbuffer_to_fd(fd, &g_state.cxadc[i].ring_buffer, &g_state.cxadc[i].reader_thread);
+        }
+    }
+
+    return;
 }
 
 void file_linear(int fd, int argc, char** argv) {
