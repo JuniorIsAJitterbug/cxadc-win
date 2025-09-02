@@ -14,8 +14,8 @@ project(cxadc-clock-generator-audio-adc C CXX ASM)
 # Initialize the SDK
 pico_sdk_init()
 
-if (PICO_SDK_VERSION_STRING VERSION_LESS "1.3.0")
-    message(FATAL_ERROR "Raspberry Pi Pico SDK version 1.3.0 (or later) required. Your version is ${PICO_SDK_VERSION_STRING}")
+if (PICO_SDK_VERSION_STRING VERSION_LESS "2.1.1")
+    message(FATAL_ERROR "Raspberry Pi Pico SDK version 2.1.1 (or later) required. Your version is ${PICO_SDK_VERSION_STRING}")
 endif()
 
 add_compile_options(-Wall
@@ -25,4 +25,4 @@ add_compile_options(-Wall
         -Werror=return-type
         )
 
-add_subdirectory("firmware" "build")
+add_subdirectory("firmware")

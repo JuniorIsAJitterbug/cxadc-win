@@ -1,0 +1,57 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "pico_rp2040",
+            "displayName": "Raspberry Pi Pico 1 (RP2040)",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "installDir": "${sourceDir}/out/install/${presetName}",
+            "cacheVariables": {
+                "PICO_PLATFORM": "rp2040",
+                "PICO_BOARD": "pico"
+            },
+            "environment": {
+                "PICO_SDK_PATH": "${sourceDir}/external/pico-sdk",
+                "PICO_TINYUSB_PATH": "${sourceDir}/external/tinyusb",
+                "PICOTOOL_FETCH_FROM_GIT_PATH": "${sourceDir}/external/picotool"
+            }
+        },
+        {
+            "name": "pico_rp2040-Debug",
+            "displayName": "Raspberry Pi Pico 1 (RP2040) Debug",
+            "inherits": "pico_rp2040",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "pico_rp2040-Release",
+            "displayName": "Raspberry Pi Pico 1 (RP2040) Release",
+            "inherits": "pico_rp2040",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "pico_rp2040",
+            "displayName": "Raspberry Pi Pico 1 (RP2040)",
+            "hidden": true
+        },
+        {
+            "name": "pico_rp2040-Debug",
+            "displayName": "Raspberry Pi Pico 1 (RP2040) Debug",
+            "inherits": "pico_rp2040",
+            "configurePreset": "pico_rp2040-Debug"
+        },
+        {
+            "name": "pico_rp2040-Release",
+            "displayName": "Raspberry Pi Pico 1 (RP2040) Release",
+            "inherits": "pico_rp2040",
+            "configurePreset": "pico_rp2040-Release"
+        }
+    ]
+}

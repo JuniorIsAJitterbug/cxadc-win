@@ -1,0 +1,50 @@
+name: Build clockgen firmware
+description: Build clockgen firmware
+
+inputs:
+  configuration:
+    description: Build configuration
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout submodules
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        fetch-tags: true
+        submodules: true
+
+    - name: Install Arm GNU Toolchain (arm-none-eabi-gcc)
+      uses: carlosperate/arm-none-eabi-gcc-action@v1
+      with:
+        release: '14.2.Rel1'
+
+    - name: Configure
+      shell: pwsh
+      working-directory: .\src\clockgen
+      run: |
+        cmake --preset "pico_rp2040-${{ inputs.configuration }}"
+
+    - name: Build
+      shell: pwsh
+      working-directory: .\src\clockgen
+      run: |
+        cmake --build --preset "pico_rp2040-${{ inputs.configuration }}" --target install
+
+    - name: Upload artifacts (clockgen firmware)
+      uses: actions/upload-artifact@v4
+      with:
+        name: clockgen_firmware
+        if-no-files-found: error
+        path: |
+          .\src\clockgen\out\install\pico_rp2040-${{ inputs.configuration }}\firmware.uf2
+
+    - name: Upload artifacts (bin)
+      uses: actions/upload-artifact@v4
+      with:
+        name: bin-clockgen_firmware
+        if-no-files-found: error
+        path: |
+          .\src\clockgen\out\install\pico_rp2040-${{ inputs.configuration }}\CxadcClockGen.psm1

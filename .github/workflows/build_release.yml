@@ -13,6 +13,7 @@ on:
           - driver
           - capture-server
           - leveladj
+          - clockgen_firmware
 
       build_configuration:
         description: Build configuration
@@ -67,6 +68,12 @@ jobs:
           configuration: ${{ inputs.build_configuration }}
           platform: x64
 
+      - name: Build clockgen firmware
+        uses: ./.github/actions/build_clockgen_firmware
+        if: ${{ inputs.build_components == 'All' || inputs.build_components == 'clockgen_firmware' }}
+        with:
+          configuration: ${{ inputs.build_configuration }}
+
       - name: Download all artifacts (driver)
         uses: actions/download-artifact@v4
         if: ${{ inputs.create_release }}
@@ -91,6 +98,14 @@ jobs:
           pattern: pdb-*
           merge-multiple: true
 
+      - name: Download all artifacts (clockgen firmware)
+        uses: actions/download-artifact@v4
+        if: ${{ inputs.create_release }}
+        with:
+          path: clockgen_firmware
+          pattern: clockgen_firmware
+          merge-multiple: true
+
       - name: Create GitHub Release
         if: ${{ inputs.create_release }}
         env:
@@ -111,6 +126,10 @@ jobs:
 
           if (Test-Path 'bin') {
             Compress-Archive -Update -DestinationPath '${{ env.ASSET_NAME }}' -Path 'bin'
+          }
+
+          if (Test-Path 'clockgen_firmware') {
+            Compress-Archive -Update -DestinationPath '${{ env.ASSET_NAME }}' -Path 'clockgen_firmware'
           }
 
           if (Test-Path '${{ env.ASSET_NAME }}') {

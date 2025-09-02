@@ -23,3 +23,6 @@ target_link_libraries(firmware PRIVATE pico_stdlib pico_multicore pico_unique_id
 
 
 pico_add_extra_outputs(firmware)
+
+install(FILES ${CMAKE_SOURCE_DIR}/CxadcClockGen.psm1 DESTINATION .)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/firmware.uf2 DESTINATION .)
