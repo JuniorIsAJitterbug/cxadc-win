@@ -220,7 +220,7 @@ uint8_t const desc_configuration[] =
 	TUD_VENDOR_DESCRIPTOR(/*_itfnum*/ ITF_NUM_VENDOR, /*_stridx*/ STRD_IDX_VENDOR_PRODUCT, /*_epout*/ EPNUM_VENDOR, /*_epin*/ (0x80 | EPNUM_VENDOR), /*_epsize*/ 64),
 
 	/* Standard Interface Association Descriptor (IAD) */\
-	TUD_AUDIO_DESC_IAD(/*_firstitfs*/ ITF_NUM_AUDIO_CONTROL, /*_nitfs*/ 0x02, /*_stridx*/ STRD_IDX_VERSION),\
+	TUD_AUDIO_DESC_IAD(/*_firstitfs*/ ITF_NUM_AUDIO_CONTROL, /*_nitfs*/ 0x02, /*_stridx*/ 0x00),\
 	
 		/* Standard AC Interface Descriptor(4.7.1) */\
 		TUD_AUDIO_DESC_STD_AC(/*_itfnum*/ ITF_NUM_AUDIO_CONTROL, /*_nEPs*/ 0x00, /*_stridx*/ STRD_IDX_PRODUCT /* NOTE windows reports this as the device name, linux / ALSA uses the product everywhere */),\
