@@ -163,7 +163,7 @@ tusb_desc_device_t const desc_device =
 #warning THIS CODE IS USING A TEST PID, DO NOT REDISTRIBUTE!!! see here https://pid.codes/1209/0001/
 	// TODO request one here if this thing ever works https://pid.codes/howto/
 	.idVendor           = 0x1209,
-	.idProduct          = 0x0001,
+	.idProduct          = 0x0002,
 	.bcdDevice          = NFO_SEMVER_USB_DEV_BCD,
 
 	.iManufacturer      = STRD_IDX_MANUFACTURER,
