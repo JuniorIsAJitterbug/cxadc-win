@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2019 Ha Thach (tinyusb.org)
 // Copyright (c) 2023 Rene Wolf
+// Copyright (c) 2025 Jitterbug
 
 #ifndef _TUSB_CONFIG_H_
 #define _TUSB_CONFIG_H_
@@ -81,11 +82,12 @@ extern "C" {
 #define CFG_TUD_AUDIO_FUNC_1_CTRL_BUF_SZ                              64
 
 #define CFG_TUD_AUDIO_ENABLE_EP_IN                                    1
+#define CFG_TUD_AUDIO_FUNC_1_SAMPLE_RATE                              USB_AUDIO_SAMPLE_RATE_MAX
 #define CFG_TUD_AUDIO_FUNC_1_N_BYTES_PER_SAMPLE_TX                    USB_AUDIO_BYTES_PER_SAMPLE              // This value is not required by the driver, it parses this information from the descriptor once the alternate interface is set by the host - we use it for the setup
 #define CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_TX                            USB_AUDIO_CHANNELS   // This value is not required by the driver, it parses this information from the descriptor once the alternate interface is set by the host - we use it for the setup
-#define CFG_TUD_AUDIO_EP_SZ_IN                                        (USB_AUDIO_SAMPLES_PER_BUFFER + 1) * CFG_TUD_AUDIO_FUNC_1_N_BYTES_PER_SAMPLE_TX * CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_TX      // xx Samples (48 kHz) x 2 Bytes/Sample x CFG_TUD_AUDIO_N_CHANNELS_TX Channels - the Windows driver always needs an extra sample per channel of space more, otherwise it complains... found by trial and error
+#define CFG_TUD_AUDIO_EP_SZ_IN                                        TUD_AUDIO_EP_SIZE(CFG_TUD_AUDIO_FUNC_1_SAMPLE_RATE, CFG_TUD_AUDIO_FUNC_1_N_BYTES_PER_SAMPLE_TX, CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_TX)
 #define CFG_TUD_AUDIO_FUNC_1_EP_IN_SZ_MAX                             CFG_TUD_AUDIO_EP_SZ_IN
-#define CFG_TUD_AUDIO_FUNC_1_EP_IN_SW_BUF_SZ                          CFG_TUD_AUDIO_EP_SZ_IN
+#define CFG_TUD_AUDIO_FUNC_1_EP_IN_SW_BUF_SZ                          (TUD_OPT_HIGH_SPEED ? 32 : 4) * CFG_TUD_AUDIO_EP_SZ_IN // Example write FIFO every 1ms, so it should be 8 times larger for HS device
 #define CFG_TUD_AUDIO_ENABLE_TYPE_I_ENCODING                          1
 
 #ifdef __cplusplus
