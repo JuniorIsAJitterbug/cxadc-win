@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Jitterbug
+
+#ifndef _USB_VENDOR_H
+#define _USB_VENDOR_H
+
+#define VENDOR_REQUEST_CXADC_SAMPLE_RATE         0x10
+#define VENDOR_REQUEST_CXADC_SAMPLE_RATE_OPTIONS 0x11
+#define VENDOR_REQUEST_ADC_SAMPLE_RATE           0x12
+#define VENDOR_REQUEST_ADC_SAMPLE_RATE_OPTIONS   0x13
+
+#endif

@@ -18,10 +18,10 @@ void clock_gen_default();
 
 const uint32_t* clock_gen_get_adc_sample_rate_options(uint8_t* len);
 uint32_t        clock_gen_get_adc_sample_rate();
-void            clock_gen_set_adc_sample_rate(uint32_t rate_hz);
+bool            clock_gen_set_adc_sample_rate(uint32_t rate_hz);
 
 uint8_t clock_gen_get_cxadc_sample_rate(uint8_t output);
-void    clock_gen_set_cxadc_sample_rate(uint8_t output, uint8_t frequency_option);
+bool    clock_gen_set_cxadc_sample_rate(uint8_t output, uint8_t frequency_option);
 
 
 #endif

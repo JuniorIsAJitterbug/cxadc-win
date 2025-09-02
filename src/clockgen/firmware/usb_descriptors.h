@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2019 Ha Thach (tinyusb.org)
 // Copyright (c) 2023 Rene Wolf
+// Copyright (c) 2025 Jitterbug
 
 #ifndef _USB_DESCRIPTORS_H
 #define _USB_DESCRIPTORS_H
+
+#include <stdint.h>
 
 // Input terminal (line input)
 #define USB_DESCRIPTORS_ID_INPUT_PCM1802 0x01
@@ -29,6 +32,9 @@
 
 #define USB_DESCRIPTOR_SERIAL_LEN 16
 void usb_descriptor_set_serial(const char* serial);
+
+const uint16_t* usb_descriptor_get_strd_idx_input_freqs(uint8_t* len);
+const uint8_t* usb_descriptor_get_ms_os_20(uint8_t* len);
 
 /* 4.7.2.7 Selector Unit Descriptor */
 #define TUD_AUDIO_DESC_SELECTOR_UNIT_4_LEN (7+4)
@@ -83,5 +89,35 @@ void usb_descriptor_set_serial(const char* serial);
 		+ TUD_AUDIO_DESC_STD_AS_ISO_EP_LEN \
 		+ TUD_AUDIO_DESC_CS_AS_ISO_EP_LEN \
 	)
+
+
+#define MS_OS_20_SET_HEADER_DESCRIPTOR_LEN        (0x0A)
+#define MS_OS_20_SUBSET_HEADER_CONFIGURATION_LEN  (0x08)
+#define MS_OS_20_SUBSET_HEADER_FUNCTION_LEN       (0x08)
+#define MS_OS_20_FEATURE_COMPATIBLE_ID_LEN        (0x14)
+
+#define MS_OS_20_FEATURE_REG_PROPERTY_NAME_LEN    (0x2A)
+#define MS_OS_20_FEATURE_REG_PROPERTY_DATA_LEN    (0x50)
+#define MS_OS_20_FEATURE_REG_PROPERTY_LEN         (0x0A + MS_OS_20_FEATURE_REG_PROPERTY_NAME_LEN + MS_OS_20_FEATURE_REG_PROPERTY_DATA_LEN)
+
+#define MS_OS_20_SUBSET_HEADER_FUNCTION_LEN_TOTAL ( \
+	MS_OS_20_SUBSET_HEADER_FUNCTION_LEN \
+	+ MS_OS_20_FEATURE_COMPATIBLE_ID_LEN \
+	+ MS_OS_20_FEATURE_REG_PROPERTY_LEN \
+)
+
+#define MS_OS_20_SUBSET_HEADER_CONFIGURATION_LEN_TOTAL ( \
+	MS_OS_20_SUBSET_HEADER_CONFIGURATION_LEN \
+	+ MS_OS_20_SUBSET_HEADER_FUNCTION_LEN_TOTAL \
+)
+
+#define MS_OS_20_SET_HEADER_DESCRIPTOR_LEN_TOTAL ( \
+	MS_OS_20_SET_HEADER_DESCRIPTOR_LEN \
+	+ MS_OS_20_SUBSET_HEADER_CONFIGURATION_LEN_TOTAL \
+)
+
+#define MS_OS_20_DESC_LEN        (MS_OS_20_SET_HEADER_DESCRIPTOR_LEN_TOTAL)
+#define BOS_TOTAL_LEN            (TUD_BOS_DESC_LEN + TUD_BOS_MICROSOFT_OS_DESC_LEN)
+#define VENDOR_REQUEST_MICROSOFT (0x01)
 
 #endif

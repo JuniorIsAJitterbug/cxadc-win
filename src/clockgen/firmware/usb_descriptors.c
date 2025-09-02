@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2019 Ha Thach (tinyusb.org)
 // Copyright (c) 2023 Rene Wolf
+// Copyright (c) 2025 Jitterbug
 
 #include "tusb.h"
 #include "tusb_config.h"
@@ -67,6 +68,18 @@ char const* string_desc_arr [] =
 	"CXADC-Clock 0 Out",
 	#define STRD_IDX_OUT_1          14
 	"CXADC-Clock 1 Out",
+
+	// vendor
+	#define STRD_IDX_VENDOR_PRODUCT 15
+	"CXADC+ADC-ClockGen-Control",
+	#define STRD_IDX_INPUT_20_FREQ  16
+	CLOCK_GEN_CXADC_CLOCK_F0_STR,
+	#define STRD_IDX_INPUT_28_FREQ  17
+	CLOCK_GEN_CXADC_CLOCK_F1_STR,
+	#define STRD_IDX_INPUT_40_FREQ  18
+	CLOCK_GEN_CXADC_CLOCK_F2_STR,
+	#define STRD_IDX_INPUT_50_FREQ  19
+	CLOCK_GEN_CXADC_CLOCK_F3_STR,
 };
 
 #define STRING_DESCRIPTOR_BUFFER 32
@@ -116,6 +129,20 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid)
 
 #undef STRING_DESCRIPTOR_BUFFER
 
+static const uint16_t strd_idx_input_freqs[] =
+{
+	STRD_IDX_INPUT_20_FREQ,
+	STRD_IDX_INPUT_28_FREQ,
+	STRD_IDX_INPUT_40_FREQ,
+	STRD_IDX_INPUT_50_FREQ
+};
+
+const uint16_t* usb_descriptor_get_strd_idx_input_freqs(uint8_t* len)
+{
+	*len = sizeof(strd_idx_input_freqs) / sizeof(strd_idx_input_freqs[0]);
+	return strd_idx_input_freqs;
+}
+
 //--------------------------------------------------------------------+
 // Device Descriptors
 //--------------------------------------------------------------------+
@@ -123,7 +150,7 @@ tusb_desc_device_t const desc_device =
 {
 	.bLength            = sizeof(tusb_desc_device_t),
 	.bDescriptorType    = TUSB_DESC_DEVICE,
-	.bcdUSB             = 0x0200,
+	.bcdUSB             = 0x0201,
 
 	// Use Interface Association Descriptor (IAD) for CDC
 	// As required by USB Specs IAD's subclass must be common class (2) and protocol must be IAD (1)
@@ -170,9 +197,12 @@ uint8_t const * tud_descriptor_device_cb(void)
 	#define EPNUM_AUDIO   0x01
 #endif
 
+#define EPNUM_VENDOR      0x02
+
 enum
 {
-	ITF_NUM_AUDIO_CONTROL = 0,
+	ITF_NUM_VENDOR = 0,
+	ITF_NUM_AUDIO_CONTROL,
 	ITF_NUM_AUDIO_STREAMING,
 	ITF_NUM_TOTAL
 };
@@ -183,9 +213,12 @@ enum
 // Adapted from TUD_AUDIO_MIC_FOUR_CH_DESCRIPTOR
 uint8_t const desc_configuration[] =
 {
-	// Interface count, string index, total length, attribute, power in mA
-	TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, (TUD_CONFIG_DESC_LEN + CFG_TUD_AUDIO * TUD_AUDIO_DESC_TOTAL_LEN), 0x00, 100),
-	
+	/* Configuration Descriptor */
+	TUD_CONFIG_DESCRIPTOR(/*config_num*/ 1, /*_itfcount*/ ITF_NUM_TOTAL, /*_stridx*/ 0x00, /*_total_len*/ (TUD_CONFIG_DESC_LEN + (CFG_TUD_AUDIO * TUD_AUDIO_DESC_TOTAL_LEN) + TUD_VENDOR_DESC_LEN), /*_attribute*/ 0x00, /*_power_ma*/ 100),
+
+	/* Interface Descriptor */
+	TUD_VENDOR_DESCRIPTOR(/*_itfnum*/ ITF_NUM_VENDOR, /*_stridx*/ STRD_IDX_VENDOR_PRODUCT, /*_epout*/ EPNUM_VENDOR, /*_epin*/ (0x80 | EPNUM_VENDOR), /*_epsize*/ 64),
+
 	/* Standard Interface Association Descriptor (IAD) */\
 	TUD_AUDIO_DESC_IAD(/*_firstitfs*/ ITF_NUM_AUDIO_CONTROL, /*_nitfs*/ 0x02, /*_stridx*/ STRD_IDX_VERSION),\
 	
@@ -238,4 +271,74 @@ uint8_t const * tud_descriptor_configuration_cb(uint8_t index)
 {
 	(void) index; // for multiple configurations
 	return desc_configuration;
+}
+
+//--------------------------------------------------------------------+
+// BOS Descriptor
+//--------------------------------------------------------------------+
+
+// Microsoft OS 2.0 registry property descriptor
+// Per MS requirements https://msdn.microsoft.com/en-us/library/windows/hardware/hh450799(v=vs.85).aspx
+// device should create DeviceInterfaceGUIDs. It can be done by driver and
+// in case of real PnP solution device should expose MS "Microsoft OS 2.0
+// registry property descriptor". Such descriptor can insert any record
+// into Windows registry per device/configuration/interface. In our case it
+// will insert "DeviceInterfaceGUIDs" multistring property.
+// https://developers.google.com/web/fundamentals/native-hardware/build-for-webusb/
+// (Section Microsoft OS compatibility descriptors)
+static uint8_t const desc_ms_os_20[] =
+{
+	/* Microsoft OS 2.0 descriptor set header */
+	/*wLength*/ U16_TO_U8S_LE(MS_OS_20_SET_HEADER_DESCRIPTOR_LEN), /*wDescriptorType*/ U16_TO_U8S_LE(MS_OS_20_SET_HEADER_DESCRIPTOR), /*dwWindowsVersion*/ U32_TO_U8S_LE(0x06030000), /*wTotalLength*/ U16_TO_U8S_LE(MS_OS_20_SET_HEADER_DESCRIPTOR_LEN_TOTAL),
+
+	/* Configuration subset header */
+	/*wLength*/ U16_TO_U8S_LE(MS_OS_20_SUBSET_HEADER_CONFIGURATION_LEN), /*wDescriptorType*/ U16_TO_U8S_LE(MS_OS_20_SUBSET_HEADER_CONFIGURATION), /*bConfigurationValue*/ 0, /*bReserved*/ 0, /*wTotalLength*/ U16_TO_U8S_LE(MS_OS_20_SUBSET_HEADER_CONFIGURATION_LEN_TOTAL),
+
+	/* Function subset header */
+	/*wLength*/ U16_TO_U8S_LE(MS_OS_20_SUBSET_HEADER_FUNCTION_LEN), /*wDescriptorType*/ U16_TO_U8S_LE(MS_OS_20_SUBSET_HEADER_FUNCTION), /*bFirstInterface*/ ITF_NUM_VENDOR, /*bReserved*/ 0, /*wSubsetLength*/ U16_TO_U8S_LE(MS_OS_20_SUBSET_HEADER_FUNCTION_LEN_TOTAL),
+
+	/* Feature descriptors */
+	/* Compatible ID */
+	/*wLength*/ U16_TO_U8S_LE(MS_OS_20_FEATURE_COMPATIBLE_ID_LEN), /*wDescriptorType*/ U16_TO_U8S_LE(MS_OS_20_FEATURE_COMPATBLE_ID),
+	/*CompatibleID: WINUSB\0*/
+	'W', 'I', 'N', 'U', 'S', 'B', 0x00, 0x00,
+	/*SubCompatibleID*/
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    
+	/* Registry property descriptor */
+	/*wLength*/ U16_TO_U8S_LE(MS_OS_20_FEATURE_REG_PROPERTY_LEN), /*wDescriptorType*/ U16_TO_U8S_LE(MS_OS_20_FEATURE_REG_PROPERTY),
+	/*wPropertyDataType: REG_MULTI_SZ*/ U16_TO_U8S_LE(0x0007),
+	/*wPropertyNameLength*/ U16_TO_U8S_LE(MS_OS_20_FEATURE_REG_PROPERTY_NAME_LEN),
+	/*PropertyName: DeviceInterfaceGUIDs\0*/
+	'D', 0x00, 'e', 0x00, 'v', 0x00, 'i', 0x00, 'c', 0x00, 'e', 0x00, 'I', 0x00, 'n', 0x00, 't', 0x00, 'e', 0x00,
+	'r', 0x00, 'f', 0x00, 'a', 0x00, 'c', 0x00, 'e', 0x00, 'G', 0x00, 'U', 0x00, 'I', 0x00, 'D', 0x00, 's', 0x00, 0x00, 0x00,
+
+	/*wPropertyDataLength*/ U16_TO_U8S_LE(MS_OS_20_FEATURE_REG_PROPERTY_DATA_LEN),
+	/*PropertyData: {9DED1FD1-C739-4D2A-A1E5-E060342724DE}\0\0*/
+	'{', 0x00, '9', 0x00, 'D', 0x00, 'E', 0x00, 'D', 0x00, '1', 0x00, 'F', 0x00, 'D', 0x00, '1', 0x00, '-', 0x00,
+	'C', 0x00, '7', 0x00, '3', 0x00, '9', 0x00, '-', 0x00, '4', 0x00, 'D', 0x00, '2', 0x00, 'A', 0x00, '-', 0x00,
+	'A', 0x00, '1', 0x00, 'E', 0x00, '5', 0x00, '-', 0x00, 'E', 0x00, '0', 0x00, '6', 0x00, '0', 0x00, '3', 0x00,
+	'4', 0x00, '2', 0x00, '7', 0x00, '2', 0x00, '4', 0x00, 'D', 0x00, 'E', 0x00, '}', 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+TU_VERIFY_STATIC(sizeof(desc_ms_os_20) == MS_OS_20_DESC_LEN, "Incorrect size");
+
+const uint8_t* usb_descriptor_get_ms_os_20(uint8_t* len)
+{
+	*len = MS_OS_20_DESC_LEN;
+	return desc_ms_os_20;
+}
+
+uint8_t const desc_bos[] =
+{
+	/* Binary Device Object Store (BOS) */
+	TUD_BOS_DESCRIPTOR(/*wTotalLength*/ BOS_TOTAL_LEN, /*bNumDeviceCaps*/ 0x01),
+
+	/* Descriptor set information structure */
+	TUD_BOS_MS_OS_20_DESCRIPTOR(/*wMSOSDescriptorSetTotalLength*/ MS_OS_20_DESC_LEN, /*bMS_VendorCode*/ VENDOR_REQUEST_MICROSOFT)
+};
+
+uint8_t const* tud_descriptor_bos_cb(void)
+{
+	return desc_bos;
 }

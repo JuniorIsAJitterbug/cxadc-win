@@ -214,10 +214,10 @@ uint32_t clock_gen_get_adc_sample_rate()
 #define xstr(s) str(s)
 #define str(s) #s
 
-void clock_gen_set_adc_sample_rate(uint32_t rate_hz)
+bool clock_gen_set_adc_sample_rate(uint32_t rate_hz)
 {
 	if( not_initialized() )
-		return;
+		return false;
 	
 	dbg_say("adc=");
 	
@@ -225,18 +225,19 @@ void clock_gen_set_adc_sample_rate(uint32_t rate_hz)
 	{
 		ouput2 = set_multisynth(ouput2, &setup_12m288hz, 2);
 		dbg_say(xstr(adc_rate_12m288hz) "\n");
-		return;
+		return true;
 	}
 	
 	if( adc_rate_12mhz == rate_hz)
 	{
 		ouput2 = set_multisynth(ouput2, &setup_12mhz, 2);
 		dbg_say(xstr(adc_rate_12mhz) "\n");
-		return;
+		return true;
 	}
 	
 	dbg_u32(rate_hz);
 	dbg_say("???\n");
+	return false;
 }
 
 #undef str
@@ -263,10 +264,10 @@ uint8_t clock_gen_get_cxadc_sample_rate(uint8_t output)
 	return 0;
 }
 
-void clock_gen_set_cxadc_sample_rate(uint8_t output, uint8_t frequency_option)
+bool clock_gen_set_cxadc_sample_rate(uint8_t output, uint8_t frequency_option)
 {
 	if( not_initialized() ) 
-		return;
+		return false;
 	
 	if( (output == 0 || output == 1) && (frequency_option < setup_cxadc_map_len))
 	{
@@ -281,7 +282,7 @@ void clock_gen_set_cxadc_sample_rate(uint8_t output, uint8_t frequency_option)
 			ouput1 = set_multisynth(ouput1, new_settings, 1);
 		}
 		
-		return;
+		return true;
 	}
 	
 	dbg_say("clock_gen_set_cxadc_sample_rate(");
@@ -289,6 +290,7 @@ void clock_gen_set_cxadc_sample_rate(uint8_t output, uint8_t frequency_option)
 	dbg_say(",");
 	dbg_u8(frequency_option);
 	dbg_say(")???\n");
+	return false;
 }
 
 #undef adc_rate_12m288hz
