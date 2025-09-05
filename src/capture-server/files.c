@@ -16,8 +16,7 @@
 #include "audio.h"
 #include "ringbuffer.h"
 #include "version.h"
-
-#define BUFFER_READ_SIZE    (65536 * 32)
+#include <winioctl.h>
 
 servefile_fn file_root;
 servefile_fn file_version;
@@ -337,14 +336,15 @@ int cxadc_writer_thread(void* id) {
     const int fd = g_state.cxadc[(size_t)id].fd;
 
     while (g_state.cap_state != State_Stopping) {
-        void* ptr = rb_write_ptr(rb, BUFFER_READ_SIZE);
+        size_t len = rb->buffer_size - (rb->tail - rb->head);
+        void* ptr = rb_write_ptr(rb, len);
         if (ptr == NULL) {
             ++g_state.overflow_counter;
             fprintf(stderr, "ringbuffer full, may be dropping samples!!! THIS IS BAD!\n");
             _sleep_ms(1);
             continue;
         }
-        ssize_t count = read(fd, ptr, BUFFER_READ_SIZE);
+        ssize_t count = read(fd, ptr, (unsigned int)len);
         if (count == 0) {
             _sleep_us(1);
             continue;

@@ -34,16 +34,18 @@
 #ifdef _WIN32
     #define WIN32_LEAN_AND_MEAN
     #include <windows.h>
+    #include <winioctl.h>
     #include <io.h>
     #include <malloc.h>
+    #include <cx_ctl_codes.h>
 
     #define CX_DEVICE_PATH          "\\\\.\\cxadc"
     #define FILE_OPEN_FLAGS         (_O_BINARY)
 
     #define _get_error()            win32_get_err_msg(GetLastError())
 
-    #define _file_get_error()       strerror(errno)
-    #define _file_open              _open
+    #define _file_get_error()       (errno > 0 ? strerror(errno) : _get_error())
+    #define _file_open              win32_file_open_non_blocking
     #define _file_read              _read
     #define _file_close             _close
 
@@ -76,6 +78,16 @@
         }
 
         return msg_buf;
+    }
+
+    static int win32_file_open_non_blocking(char* file_name, int flags) {
+        int fd = _open(file_name, (flags | _O_RDWR));
+
+        if (!DeviceIoControl((HANDLE)_get_osfhandle(fd), CX_IOCTL_IO_NON_BLOCKING_SET, NULL, 0, NULL, 0, NULL, NULL)) {
+            return -1;
+        }
+
+        return fd;
     }
 #else
     #include <alloca.h>
