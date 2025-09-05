@@ -74,6 +74,7 @@ typedef struct _FILE_CONTEXT
 {
     size_t read_offset;
     PUINT_PTR ptr;
+    BOOLEAN non_blocking;
 } FILE_CONTEXT, * PFILE_CONTEXT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(FILE_CONTEXT, cx_file_get_ctx)

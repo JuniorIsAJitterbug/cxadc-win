@@ -89,3 +89,7 @@
 // memory
 #define CX_IOCTL_HW_MMAP                        CTL_CODE_R(0xA00)
 #define CX_IOCTL_HW_MUNMAP                      CTL_CODE_W(0xA01)
+
+// io
+#define CX_IOCTL_IO_NON_BLOCKING_GET            CTL_CODE_R(0xB01)
+#define CX_IOCTL_IO_NON_BLOCKING_SET            CTL_CODE_W(0xB02)

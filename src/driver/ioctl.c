@@ -37,7 +37,8 @@ VOID cx_evt_file_create(
 
     *file_ctx = (FILE_CONTEXT){
         .read_offset = 0,
-        .ptr = NULL
+        .ptr = NULL,
+        .non_blocking = FALSE
     };
 
     WdfRequestComplete(req, STATUS_SUCCESS);
@@ -278,6 +279,20 @@ VOID cx_evt_io_ctrl(
             break;
         }
 
+        case CX_IOCTL_IO_NON_BLOCKING_GET:
+        {
+            PFILE_CONTEXT file_ctx = cx_file_get_ctx(WdfRequestGetFileObject(req));
+            RETURN_COMPLETE_WDFREQUEST_IF_FAILED(req, cx_evt_set_output(req, out_len, &file_ctx->non_blocking, sizeof(file_ctx->non_blocking)));
+            break;
+        }
+
+        case CX_IOCTL_IO_NON_BLOCKING_SET:
+        {
+            PFILE_CONTEXT file_ctx = cx_file_get_ctx(WdfRequestGetFileObject(req));
+            InterlockedExchange8((PCHAR)&file_ctx->non_blocking, TRUE);
+            break;
+        }
+
         default:
             TRACE_ERROR("unknown ioctl %X", ctrl_code);
             status = STATUS_INVALID_DEVICE_REQUEST;
@@ -358,6 +373,11 @@ VOID cx_evt_io_read(
 
         if (count)
         {
+            if (file_ctx->non_blocking)
+            {
+                break;
+            }
+
             KeClearEvent(&dev_ctx->isr_event);
 
             // gp_cnt == page_no but read buffer is not filled
