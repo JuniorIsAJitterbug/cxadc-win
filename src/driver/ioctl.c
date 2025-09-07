@@ -344,7 +344,7 @@ VOID cx_evt_io_read(
     size_t count = req_len;
     size_t offset = file_ctx->read_offset;
     size_t tgt_off = 0;
-    ULONG page_no = cx_get_page_no(dev_ctx->state.initial_page, offset);
+    ULONG page_no = cx_get_page_no(InterlockedCompareExchange((PLONG)&dev_ctx->state.initial_page, 0, 0), offset);
 
     while (count && dev_ctx->state.is_capturing)
     {
@@ -363,7 +363,7 @@ VOID cx_evt_io_read(
             tgt_off += len;
             offset += len;
 
-            page_no = cx_get_page_no(dev_ctx->state.initial_page, offset);
+            page_no = cx_get_page_no(InterlockedCompareExchange((PLONG)&dev_ctx->state.initial_page, 0, 0), offset);
         }
 
         // check over/underflow, increment count if set
