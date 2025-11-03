@@ -26,7 +26,13 @@
 
 .PARAMETER VideoBaseRate
     The sample rate of the video capture device. (DEFAULT: 40000)
-    This is only used when compression is enabled.
+    This is only used when compression or resampling is enabled.
+
+.PARAMETER ResampleVideo
+    Enable resampling of the video signal.
+
+.PARAMETER VideoResampleRate
+    Set the target rate for resampling. (DEFAULT: 20000)
 
 .PARAMETER CompressVideo
     Enable FLAC compression for the video data.
@@ -43,10 +49,10 @@
     This is only used when compression or resampling is enabled.
 
 .PARAMETER ResampleHifi
-    Enable SoX resampling of the hifi signal.
+    Enable resampling of the hifi signal.
 
 .PARAMETER HifiResampleRate
-    Set the target rate for SoX resampling. (DEFAULT: 10000)
+    Set the target rate for resampling. (DEFAULT: 10000)
 
 .PARAMETER CompressHifi
     Enable FLAC compression for the hifi data.
@@ -130,6 +136,8 @@ param(
 
     [int] $Video,
     [int] $VideoBaseRate = 40000,
+    [switch] $ResampleVideo = $false,
+    [int] $VideoResampleRate = 20000,
     [switch] $CompressVideo = $false,
     [int] $VideoCompressionLevel = 4,
 
@@ -428,9 +436,11 @@ if ($PSBoundParameters.ContainsKey("Video")) {
         Rate = $VideoBaseRate
         EnableCompression = $CompressVideo
         CompressionLevel = $VideoCompressionLevel
+        EnableResampling = $ResampleVideo
+        ResampleRate = $VideoResampleRate
         FlacThreadCount = $FlacThreadCount
         FFmpegThreadCount = $FFmpegThreadCount
-        EnableResampling = $false
+        UseSox = $UseSox
     }
 }
 
@@ -497,11 +507,11 @@ try {
         $BinaryPaths.Flac = $FindBinary.Invoke("flac")
     }
 
-    if ($ResampleHifi -and $UseSox) {
+    if (($ResampleVideo -or $ResampleHifi) -and $UseSox) {
         $BinaryPaths.Sox = $FindBinary.Invoke("sox")
     }
 
-    if ($Baseband -or ($ResampleHifi -and !$UseSox)) {
+    if ($Baseband -or (($ResampleVideo -or $ResampleHifi) -and !$UseSox)) {
         $BinaryPaths.FFmpeg = $FindBinary.Invoke("ffmpeg")
     }
 } catch {
@@ -545,7 +555,7 @@ try {
     $PSStyle.Progress.MaxWidth = $ProgressWidth
     $ProgressLoopLimitCount = 3
 
-    if ($ResampleHifi) {
+    if ($ResampleVideo -or $ResampleHifi) {
         Write-Warning "resampling may result in dropped samples."
     }
 
