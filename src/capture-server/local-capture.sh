@@ -73,20 +73,20 @@ for i in "$@"; do
 		CXADC_HIFI="${i#*=}"
 		shift # past argument=value
 		;;
-	--linear=*)
-		LINEAR_DEVICE="${i#*=}"
+	--baseband=*)
+		BASEBAND_DEVICE="${i#*=}"
 		shift # past argument=value
 		;;
-	--linear-rate=*)
-		LINEAR_RATE="${i#*=}"
+	--baseband-rate=*)
+		BASEBAND_RATE="${i#*=}"
 		shift # past argument=value
 		;;
 	--add-date)
 		ADD_DATE="YES"
 		shift # past argument with no value
 		;;
-	--convert-linear)
-		CONVERT_LINEAR="YES"
+	--convert-baseband)
+		CONVERT_BASEBAND="YES"
 		shift # past argument with no value
 		;;
 	--compress-video)
@@ -130,10 +130,10 @@ function usage {
 	echo "Usage: $SCRIPT_NAME [options] <basepath>" >&2
 	printf "\t--video=                Number of CX card to use for video capture (unset=disabled)\n" >&2
 	printf "\t--hifi=                 Number of CX card to use for hifi capture (unset=disabled)\n" >&2
-	printf "\t--linear=               ALSA device identifier for linear (unset=default)\n" >&2
-	printf "\t--linear-rate=          Linear sample rate (unset=46875)\n" >&2
+	printf "\t--baseband=             ALSA device identifier for baseband (unset=default)\n" >&2
+	printf "\t--baseband-rate=        baseband sample rate (unset=46875)\n" >&2
 	printf "\t--add-date              Add current date and time to the filenames\n" >&2
-	printf "\t--convert-linear        Convert linear to flac+u8\n" >&2
+	printf "\t--convert-baseband      Convert baseband to flac+u8\n" >&2
 	printf "\t--compress-video        Compress video\n" >&2
 	printf "\t--compress-video-level  Video compression level (unset=4)\n" >&2
 	printf "\t--compress-hifi         Compress hifi\n" >&2
@@ -154,7 +154,7 @@ if [[ -z "${1-}" ]]; then
 fi
 
 if [ -z "${FFMPEG_CMD-}" ]; then
-	[ -n "${CONVERT_LINEAR-}" ] || echo "Converting linear requires ffmpeg." && exit 1
+	[ -n "${CONVERT_BASEBAND-}" ] || echo "Converting baseband requires ffmpeg." && exit 1
 fi
 
 if [ -z "${FLAC_CMD-}" ]; then
@@ -183,8 +183,8 @@ function die {
 	if [[ -n "${HIFI_PID-}" ]]; then
 		kill "$HIFI_PID" || true
 	fi
-	if [[ -n "${LINEAR_PID-}" ]]; then
-		kill "$LINEAR_PID" || true
+	if [[ -n "${BASEBAND_PID-}" ]]; then
+		kill "$BASEBAND_PID" || true
 	fi
 	exit 1
 }
@@ -201,9 +201,9 @@ sleep 0.5
 curl -X GET --unix-socket "$SOCKET" -s "http:/d/" >/dev/null || die "Server unreachable: $?"
 
 CXADC_COUNTER=0
-LINEAR_RATE=${LINEAR_RATE:=46875}
+BASEBAND_RATE=${BASEBAND_RATE:=46875}
 
-START_URL="http:/d/start?lrate=${LINEAR_RATE}&"
+START_URL="http:/d/start?lrate=${BASEBAND_RATE}&"
 if [[ -n "${CXADC_VIDEO-}" ]]; then
 	VIDEO_IDX="$CXADC_COUNTER"
 	((CXADC_COUNTER += 1))
@@ -216,13 +216,13 @@ if [[ -n "${CXADC_HIFI-}" ]]; then
 	START_URL="${START_URL}cxadc$CXADC_HIFI&"
 fi
 
-if [[ -n "${LINEAR_DEVICE-}" ]]; then
-	START_URL="${START_URL}lname=$LINEAR_DEVICE&"
+if [[ -n "${BASEBAND_DEVICE-}" ]]; then
+	START_URL="${START_URL}lname=$BASEBAND_DEVICE&"
 fi
 
 START_RESULT=$(curl -X GET --unix-socket "$SOCKET" -s "$START_URL" || die "Cannot send start request to server: $?")
 echo "$START_RESULT" | jq -r .state | xargs test "Running" "=" || die "Server failed to start capture: $(echo "$START_RESULT" | jq -r .fail_reason)"
-RET_LINEAR_RATE="$(echo "$START_RESULT" | jq -r .linear_rate)"
+RET_BASEBAND_RATE="$(echo "$START_RESULT" | jq -r .baseband_rate)"
 
 if [[ -n "${VIDEO_IDX-}" ]]; then
 	if [[ -z "${COMPRESS_VIDEO-}" ]]; then
@@ -275,22 +275,22 @@ if [[ -n "${HIFI_IDX-}" ]]; then
 	echo "PID $HIFI_PID is capturing hifi to $HIFI_PATH"
 fi
 
-if [[ -n "${CONVERT_LINEAR-}" ]]; then
+if [[ -n "${CONVERT_BASEBAND-}" ]]; then
 	HEADSWITCH_PATH="$OUTPUT_BASEPATH-headswitch.u8"
-	LINEAR_PATH="$OUTPUT_BASEPATH-linear.flac"
-	curl -X GET --unix-socket "$SOCKET" -s --output - "http:/d/linear" | "$FFMPEG_CMD" \
+	BASEBAND_PATH="$OUTPUT_BASEPATH-baseband.flac"
+	curl -X GET --unix-socket "$SOCKET" -s --output - "http:/d/baseband" | "$FFMPEG_CMD" \
 		-hide_banner -loglevel error \
-		-ar "$RET_LINEAR_RATE" -ac 3 -f s24le -i - \
-		-filter_complex "[0:a]channelsplit=channel_layout=2.1[FL][FR][headswitch],[FL][FR]amerge=inputs=2[linear]" \
-		-map "[linear]" -compression_level 0 "$LINEAR_PATH" \
+		-ar "$RET_BASEBAND_RATE" -ac 3 -f s24le -i - \
+		-filter_complex "[0:a]channelsplit=channel_layout=2.1[FL][FR][headswitch],[FL][FR]amerge=inputs=2[baseband]" \
+		-map "[baseband]" -compression_level 0 "$BASEBAND_PATH" \
 		-map "[headswitch]" -f u8 "$HEADSWITCH_PATH" &
-	LINEAR_PID=$!
-	echo "PID $LINEAR_PID is capturing linear to $LINEAR_PATH, headswitch to $HEADSWITCH_PATH"
+	BASEBAND_PID=$!
+	echo "PID $BASEBAND_PID is capturing baseband to $BASEBAND_PATH, headswitch to $HEADSWITCH_PATH"
 else
-	LINEAR_PATH="$OUTPUT_BASEPATH-linear.s24"
-	curl -X GET --unix-socket "$SOCKET" -s --output "$LINEAR_PATH" "http:/d/linear" &
-	LINEAR_PID=$!
-	echo "PID $LINEAR_PID is capturing linear+headswitch to $LINEAR_PATH"
+	BASEBAND_PATH="$OUTPUT_BASEPATH-baseband.s24"
+	curl -X GET --unix-socket "$SOCKET" -s --output "$BASEBAND_PATH" "http:/d/baseband" &
+	BASEBAND_PID=$!
+	echo "PID $BASEBAND_PID is capturing baseband+headswitch to $BASEBAND_PATH"
 fi
 
 SECONDS=0
@@ -303,7 +303,7 @@ while true; do
 	if [[ -z "${STATS-}" ]]; then
 		STATS_MSG="Failed to get stats."
 	else
-		STATS_MSG="Buffers: $(echo "$STATS" | jq .linear.difference_pct | xargs printf '% 2s%% ')$(echo "$STATS" | jq .cxadc[].difference_pct | xargs printf '% 2s%% ')"
+		STATS_MSG="Buffers: $(echo "$STATS" | jq .baseband.difference_pct | xargs printf '% 2s%% ')$(echo "$STATS" | jq .cxadc[].difference_pct | xargs printf '% 2s%% ')"
 	fi
 	echo "Capturing for $((ELAPSED / 60))m $((ELAPSED % 60))s... $STATS_MSG"
 	if read -r -t 5 -n 1 key; then
@@ -322,7 +322,7 @@ echo "$STOP_RESULT" | jq -r .overflows | xargs printf "Encountered %d overflows 
 
 echo "Waiting for writes to finish..."
 
-for PID in ${VIDEO_PID-} ${HIFI_PID-} $LINEAR_PID; do
+for PID in ${VIDEO_PID-} ${HIFI_PID-} $BASEBAND_PID; do
 	wait "$PID" || true
 done
 

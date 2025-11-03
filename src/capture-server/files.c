@@ -21,7 +21,7 @@
 servefile_fn file_root;
 servefile_fn file_version;
 servefile_fn file_cxadc;
-servefile_fn file_linear;
+servefile_fn file_baseband;
 servefile_fn file_start;
 servefile_fn file_stop;
 servefile_fn file_stats;
@@ -30,7 +30,7 @@ struct served_file SERVED_FILES[] = {
   {"/", "Content-Type: text/html; charset=utf-8\r\n", file_root},
   {"/version", "Content-Type: text/plain; charset=utf-8\r\n", file_version},
   {"/cxadc", "Content-Disposition: attachment\r\n", file_cxadc},
-  {"/linear", "Content-Disposition: attachment\r\n", file_linear},
+  {"/baseband", "Content-Disposition: attachment\r\n", file_baseband},
   {"/start", "Content-Type: text/json; charset=utf-8\r\n", file_start},
   {"/stop", "Content-Type: text/json; charset=utf-8\r\n", file_stop},
   {"/stats", "Content-Type: text/json; charset=utf-8\r\n", file_stats},
@@ -71,7 +71,7 @@ struct cxadc_state {
     _Atomic(thrd_t) reader_thread;
 };
 
-struct linear_state {
+struct baseband_state {
     struct audio_device_info dev_info;
 
     thrd_t writer_thread;
@@ -91,12 +91,12 @@ struct {
     size_t cxadc_count;
     _Atomic(size_t) overflow_counter;
 
-    bool linear_enabled;
-    struct linear_state linear;
+    bool baseband_enabled;
+    struct baseband_state baseband;
 } g_state;
 
 int cxadc_writer_thread(void* id);
-int linear_writer_thread(void*);
+int baseband_writer_thread(void*);
 
 static ssize_t timespec_to_nanos(const struct timespec* ts) {
     return (ssize_t)ts->tv_nsec + (ssize_t)ts->tv_sec * 1000000000;
@@ -144,10 +144,10 @@ void file_start(int fd, int argc, char** argv) {
 
     unsigned cxadc_count = 0;
 
-    char linear_name[64];
-    g_state.linear_enabled = false;
-    strcpy(linear_name, AUDIO_DEFAULT_NAME);
-    g_state.linear.dev_info.format = AUDIO_DEFAULT_FORMAT;
+    char baseband_name[64];
+    g_state.baseband_enabled = false;
+    strcpy(baseband_name, AUDIO_DEFAULT_NAME);
+    g_state.baseband.dev_info.format = AUDIO_DEFAULT_FORMAT;
 
     for (int i = 0; i < argc; ++i) {
         unsigned num;
@@ -161,28 +161,28 @@ void file_start(int fd, int argc, char** argv) {
             continue;
         }
 
-        if (0 == strncmp(argv[i], "linear", 6)) {
-            g_state.linear_enabled = true;
+        if (0 == strncmp(argv[i], "baseband", 6)) {
+            g_state.baseband_enabled = true;
             continue;
         }
 
         char urlencoded[64];
         if (1 == sscanf(argv[i], "lname=%63s", urlencoded)) {
-            urldecode2(linear_name, urlencoded);
+            urldecode2(baseband_name, urlencoded);
             continue;
         }
         if (1 == sscanf(argv[i], "lformat=%63s", urlencoded)) {
-            audio_set_format_value(&g_state.linear.dev_info, urlencoded);
+            audio_set_format_value(&g_state.baseband.dev_info, urlencoded);
             continue;
         }
         unsigned int rate = 0;
         if (1 == sscanf(argv[i], "lrate=%u", &rate) && rate >= 22050 && rate <= 384000) {
-            g_state.linear.dev_info.rate = rate;
+            g_state.baseband.dev_info.rate = rate;
             continue;
         }
         unsigned int channels = 0;
         if (1 == sscanf(argv[i], "lchannels=%u", &channels) && channels >= 1 && channels <= 16) {
-            g_state.linear.dev_info.channels = channels;
+            g_state.baseband.dev_info.channels = channels;
             continue;
         }
     }
@@ -201,15 +201,15 @@ void file_start(int fd, int argc, char** argv) {
         goto error;
     }
 
-    if (g_state.linear_enabled) {
-        if (audio_device_init(&g_state.linear.dev_info, linear_name) != 0) {
+    if (g_state.baseband_enabled) {
+        if (audio_device_init(&g_state.baseband.dev_info, baseband_name) != 0) {
             snprintf(errstr, sizeof(errstr) - 1, "failed to get audio device info: %s", _get_error());
             goto error;
         }
 
-        size_t sample_size = audio_get_sample_size(&g_state.linear.dev_info);
+        size_t sample_size = audio_get_sample_size(&g_state.baseband.dev_info);
 
-        if (rb_init(&g_state.linear.ring_buffer, "linear", (2 << 20) * sample_size) != 0) {
+        if (rb_init(&g_state.baseband.ring_buffer, "baseband", (2 << 20) * sample_size) != 0) {
             snprintf(errstr, sizeof(errstr) - 1, "failed to allocate ringbuffer: %s", _get_error());
             goto error;
         }
@@ -240,7 +240,7 @@ void file_start(int fd, int argc, char** argv) {
         goto error;
     }
 
-    const size_t linear_ns = timespec_to_nanos(&time2) - timespec_to_nanos(&time1);
+    const size_t baseband_ns = timespec_to_nanos(&time2) - timespec_to_nanos(&time1);
     const ssize_t cxadc_ns = timespec_to_nanos(&time3) - timespec_to_nanos(&time2);
 
     for (size_t i = 0; i < cxadc_count; ++i) {
@@ -252,25 +252,25 @@ void file_start(int fd, int argc, char** argv) {
         g_state.cxadc[i].writer_thread = thread_id;
     }
 
-    if (g_state.linear_enabled) {
+    if (g_state.baseband_enabled) {
         thrd_t thread_id;
-        g_state.linear.writer_thread_state = State_Starting;
+        g_state.baseband.writer_thread_state = State_Starting;
 
-        if ((err = thrd_create(&thread_id, linear_writer_thread, NULL) != 0)) {
-            snprintf(errstr, sizeof(errstr) - 1, "can't create linear writer thread: %s", _get_error());
+        if ((err = thrd_create(&thread_id, baseband_writer_thread, NULL) != 0)) {
+            snprintf(errstr, sizeof(errstr) - 1, "can't create baseband writer thread: %s", _get_error());
             goto error;
         }
-        g_state.linear.writer_thread = thread_id;
+        g_state.baseband.writer_thread = thread_id;
     }
 
     g_state.cap_state = State_Running;
 
-    if (g_state.linear_enabled) {
+    if (g_state.baseband_enabled) {
         // wait for writer thread to set state
-        while (g_state.linear.writer_thread_state == State_Starting)
+        while (g_state.baseband.writer_thread_state == State_Starting)
             _sleep_ms(1);
 
-        if (g_state.linear.writer_thread_state == State_Failed) {
+        if (g_state.baseband.writer_thread_state == State_Failed) {
             snprintf(errstr, sizeof(errstr) - 1, "audio capture failed, check server log");
             goto error;
         }
@@ -281,28 +281,28 @@ void file_start(int fd, int argc, char** argv) {
         "{"
         "\"state\": \"%s\","
         "\"cxadc_ns\": %ld,"
-        "\"linear_ns\": %ld,"
-        "\"linear_rate\": %u,"
-        "\"linear_channels\": %u,"
-        "\"linear_format\": \"%s\""
+        "\"baseband_ns\": %ld,"
+        "\"baseband_rate\": %u,"
+        "\"baseband_channels\": %u,"
+        "\"baseband_format\": \"%s\""
         "}",
         capture_state_to_str(State_Running),
         cxadc_ns,
-        linear_ns,
-        g_state.linear.dev_info.rate,
-        g_state.linear.dev_info.channels,
-        audio_get_format_name(&g_state.linear.dev_info)
+        baseband_ns,
+        g_state.baseband.dev_info.rate,
+        g_state.baseband.dev_info.channels,
+        audio_get_format_name(&g_state.baseband.dev_info)
     );
     return;
 
 error:
     g_state.cap_state = State_Failed;
-    if (_thread_is_init(g_state.linear.writer_thread)) {
-        thrd_join(g_state.linear.writer_thread, NULL);
-        g_state.linear.writer_thread = (thrd_t){ 0 };
+    if (_thread_is_init(g_state.baseband.writer_thread)) {
+        thrd_join(g_state.baseband.writer_thread, NULL);
+        g_state.baseband.writer_thread = (thrd_t){ 0 };
     }
 
-    audio_device_deinit(&g_state.linear.dev_info);
+    audio_device_deinit(&g_state.baseband.dev_info);
 
     for (size_t i = 0; i < cxadc_count; ++i) {
         struct cxadc_state* cxadc = &g_state.cxadc[i];
@@ -360,21 +360,21 @@ int cxadc_writer_thread(void* id) {
     return 0;
 }
 
-int linear_writer_thread(void* arg) {
+int baseband_writer_thread(void* arg) {
     (void)arg;
 
     while (g_state.cap_state == State_Starting)
         _sleep_ms(1);
 
     if (g_state.cap_state == State_Failed) {
-        g_state.linear.writer_thread_state = State_Failed;
+        g_state.baseband.writer_thread_state = State_Failed;
         return -1;
     }
 
     int ret = 0;
     struct audio_capture_state state = { 0 };
 
-    if ((ret = audio_capture_init(&state, &g_state.linear.dev_info)) != 0) {
+    if ((ret = audio_capture_init(&state, &g_state.baseband.dev_info)) != 0) {
         goto exit;
     }
 
@@ -385,8 +385,8 @@ int linear_writer_thread(void* arg) {
     // throw away first buffer as it's not always full
     audio_capture_fill_buffer(&state, NULL, audio_capture_get_next_frame_count(&state));
 
-    g_state.linear.writer_thread_state = State_Running;
-    ringbuffer_t* rb = &g_state.linear.ring_buffer;
+    g_state.baseband.writer_thread_state = State_Running;
+    ringbuffer_t* rb = &g_state.baseband.ring_buffer;
 
     while (g_state.cap_state != State_Stopping) {
         ssize_t frame_count = audio_capture_get_next_frame_count(&state);
@@ -423,15 +423,15 @@ int linear_writer_thread(void* arg) {
 exit:
     // if we're here but the main thread is running, likely err
     if (g_state.cap_state == State_Running) {
-        g_state.linear.writer_thread_state = State_Failed;
+        g_state.baseband.writer_thread_state = State_Failed;
     }
     else {
-        g_state.linear.writer_thread_state = State_Stopping;
+        g_state.baseband.writer_thread_state = State_Stopping;
     }
 
     audio_capture_stop(&state);
     audio_capture_deinit(&state);
-    audio_device_deinit(&g_state.linear.dev_info);
+    audio_device_deinit(&g_state.baseband.dev_info);
     return 0;
 }
 
@@ -447,10 +447,10 @@ void file_stop(int fd, int argc, char** argv) {
     for (size_t i = 0; i < g_state.cxadc_count; ++i)
         thrd_join(g_state.cxadc[i].writer_thread, NULL);
 
-    if (g_state.linear_enabled) {
-        thrd_join(g_state.linear.writer_thread, NULL);
+    if (g_state.baseband_enabled) {
+        thrd_join(g_state.baseband.writer_thread, NULL);
 
-        while (_thread_is_init(g_state.linear.reader_thread))
+        while (_thread_is_init(g_state.baseband.reader_thread))
             _sleep_ms(100);
     }
 
@@ -464,10 +464,10 @@ void file_stop(int fd, int argc, char** argv) {
         g_state.cxadc[i].reader_thread = (thrd_t){ 0 };
     }
 
-    if (g_state.linear_enabled) {
-        rb_close(&g_state.linear.ring_buffer);
-        g_state.linear.writer_thread = (thrd_t){ 0 };
-        g_state.linear.reader_thread = (thrd_t){ 0 };
+    if (g_state.baseband_enabled) {
+        rb_close(&g_state.baseband.ring_buffer);
+        g_state.baseband.writer_thread = (thrd_t){ 0 };
+        g_state.baseband.reader_thread = (thrd_t){ 0 };
     }
 
     g_state.cap_state = State_Idle;
@@ -546,10 +546,10 @@ void file_cxadc(int fd, int argc, char** argv) {
     return;
 }
 
-void file_linear(int fd, int argc, char** argv) {
+void file_baseband(int fd, int argc, char** argv) {
     (void)argc;
     (void)argv;
-    pump_ringbuffer_to_fd(fd, &g_state.linear.ring_buffer, &g_state.linear.reader_thread);
+    pump_ringbuffer_to_fd(fd, &g_state.baseband.ring_buffer, &g_state.baseband.reader_thread);
 }
 
 void file_stats(int fd, int argc, char** argv) {
@@ -565,18 +565,18 @@ void file_stats(int fd, int argc, char** argv) {
             g_state.overflow_counter
         );
 
-        if (g_state.linear_enabled) {
-            const size_t linear_read = atomic_load(&g_state.linear.ring_buffer.total_read);
-            const size_t linear_written = atomic_load(&g_state.linear.ring_buffer.total_write);
-            const size_t linear_difference = linear_written - linear_read;
+        if (g_state.baseband_enabled) {
+            const size_t baseband_read = atomic_load(&g_state.baseband.ring_buffer.total_read);
+            const size_t baseband_written = atomic_load(&g_state.baseband.ring_buffer.total_write);
+            const size_t baseband_difference = baseband_written - baseband_read;
 
             _socket_printf(
                 fd,
-                "\"linear\":{\"read\":%zu,\"written\":%zu,\"difference\":%zu,\"difference_pct\":%zu},",
-                linear_read,
-                linear_written,
-                linear_difference,
-                linear_difference * 100 / g_state.linear.ring_buffer.buffer_size
+                "\"baseband\":{\"read\":%zu,\"written\":%zu,\"difference\":%zu,\"difference_pct\":%zu},",
+                baseband_read,
+                baseband_written,
+                baseband_difference,
+                baseband_difference * 100 / g_state.baseband.ring_buffer.buffer_size
             );
         }
 

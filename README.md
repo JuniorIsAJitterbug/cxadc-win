@@ -208,7 +208,7 @@ PS> Set-CxadcClockGenRate -Output ADC -Rate 46875
 
 ### Capture
 The capture-server is a [Windows port](src/capture-server#readme) of [cxadc_vhs_server](https://github.com/namazso/cxadc_vhs_server).  
-Use `LocalCapture.ps1` to capture video, hifi and linear audio, with optional resampling and compression.  
+Use `LocalCapture.ps1` to capture video, hifi and baseband audio, with optional resampling and compression.  
 
 ![capture-server example](assets/capture-server.gif)
 
@@ -240,7 +240,7 @@ PS> .\LocalCapture.ps1 -Name TestCapture `
 ```
 PS> .\LocalCapture.ps1 -Name TestCapture `
                        -Video 0 `
-                       -Linear
+                       -Baseband
 ```
 
 <details>
@@ -255,7 +255,7 @@ PS> .\LocalCapture.ps1 -Name TestCapture `
 
   ```
   TestCapture-video.u8
-  TestCapture-linear.s24
+  TestCapture-baseband.s24
   ```
 </details>
 
@@ -263,7 +263,7 @@ PS> .\LocalCapture.ps1 -Name TestCapture `
 ```
 PS> .\LocalCapture.ps1 -Name TestCapture `
                        -Video 0 -CompressVideo `
-                       -Linear -LinearRate 46875 -ConvertLinear
+                       -Baseband -BasebandRate 46875 -ConvertBaseband
 ```
 
 <details>
@@ -278,7 +278,7 @@ PS> .\LocalCapture.ps1 -Name TestCapture `
 
   ```
   TestCapture-video.flac
-  TestCapture-linear.flac
+  TestCapture-baseband.flac
   TestCapture-headswitch.u8
   ```
 </details>
@@ -287,8 +287,8 @@ PS> .\LocalCapture.ps1 -Name TestCapture `
 ```
 PS> .\LocalCapture.ps1 -Name TestCapture -AddDate `
                        -Video 0 -CompressVideo `
-                       -Hifi 1 -CompressHifi -ResampleHifi
-                       -Linear -LinearRate 46875 -ConvertLinear
+                       -Hifi 1 -CompressHifi -ResampleHifi `
+                       -Baseband -BasebandRate 46875 -ConvertBaseband
 ```
 
 <details>
@@ -306,7 +306,7 @@ PS> .\LocalCapture.ps1 -Name TestCapture -AddDate `
   ```
   TestCapture-20250601T1217596850-video.flac
   TestCapture-20250601T1217596850-hifi.flac
-  TestCapture-20250601T1217596850-linear.flac
+  TestCapture-20250601T1217596850-baseband.flac
   TestCapture-20250601T1217596850-headswitch.u8
   ```
 </details>
