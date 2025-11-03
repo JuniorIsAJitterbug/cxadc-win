@@ -279,7 +279,7 @@ PS> .\LocalCapture.ps1 -Name TestCapture `
   ```
   TestCapture-video.flac
   TestCapture-baseband.flac
-  TestCapture-headswitch.u8
+  TestCapture-headswitch.flac
   ```
 </details>
 
@@ -307,7 +307,7 @@ PS> .\LocalCapture.ps1 -Name TestCapture -AddDate `
   TestCapture-20250601T1217596850-video.flac
   TestCapture-20250601T1217596850-hifi.flac
   TestCapture-20250601T1217596850-baseband.flac
-  TestCapture-20250601T1217596850-headswitch.u8
+  TestCapture-20250601T1217596850-headswitch.flac
   ```
 </details>
 
