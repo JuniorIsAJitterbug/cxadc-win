@@ -100,7 +100,7 @@
     Files
     TestCapture-video.flac
     TestCapture-baseband.flac
-    TestCapture-headswitch.u8
+    TestCapture-headswitch.flac
 
 
 .EXAMPLE
@@ -115,7 +115,7 @@
     TestCapture-20250601T1217596850-video.flac
     TestCapture-20250601T1217596850-hifi.flac
     TestCapture-20250601T1217596850-baseband.flac
-    TestCapture-20250601T1217596850-headswitch.u8
+    TestCapture-20250601T1217596850-headswitch.flac
 
 .EXAMPLE
     PS> .\LocalCapture.ps1 -Name TestCapture -Video 0 -CompressVideo -VideoBaseRate 28636
@@ -151,6 +151,7 @@ param(
     [switch] $Baseband = $false,
     [int] $BasebandRate = 48000,
     [switch] $ConvertBaseband = $false,
+    [switch] $CompressHeadSwitch = $true,
 
     [int] $FlacThreadCount = 4,
     [int] $FFmpegThreadCount = 4,
@@ -189,6 +190,7 @@ class CxDeviceData : DeviceData {
 
 class BasebandDeviceData : DeviceData {
     [ValidateNotNullOrEmpty()][string] $HeadSwitchFileName
+    [ValidateNotNullOrEmpty()][boolean] $CompressHeadSwitch
     [ValidateNotNullOrEmpty()][boolean] $EnableConversion
 }
 
@@ -381,7 +383,8 @@ Class CxCaptureServer {
         if ($Device.EnableConversion) {
             $CurlOut = "-"
             $FFmpegOutBaseband = ($Device.FilePrefix + ".flac")
-            $FFmpegOutHeadSwitch = ($Device.HeadSwitchFileName + ".u8")
+            $FFmpegOutHeadSwitchFileType = (($Device.CompressHeadSwitch) ? "flac" : "u8")
+            $FFmpegOutHeadSwitch = ($Device.HeadSwitchFileName + "." + $FFmpegOutHeadSwitchFileType)
             $FFmpegCommand = @(
                 "|", "&", $this.BinaryPaths.FFmpeg,
                 "-hide_banner", "-y", "-loglevel", "error",
@@ -390,7 +393,7 @@ Class CxCaptureServer {
                 "-i", "-",
                 "-filter_complex", "`"[0:a]channelsplit=channel_layout=2.1[FL][FR][headswitch],[FL][FR]amerge=inputs=2[baseband]`"",
                 "-map", "`"[baseband]`"", "-compression_level", 0, $FFmpegOutBaseband,
-                "-map", "`"[headswitch]`"", "-f", "u8", $FFmpegOutHeadSwitch
+                "-map", "`"[headswitch]`"", "-f", $FFmpegOutHeadSwitchFileType, $FFmpegOutHeadSwitch
             )
 
             $OutputFiles += $FFmpegOutBaseband
@@ -466,6 +469,7 @@ if ($Baseband) {
         Name = "baseband"
         FilePrefix = ($BasePath + "-baseband")
         HeadSwitchFileName = ($BasePath + "-headswitch")
+        CompressHeadSwitch = $CompressHeadSwitch
         Rate = $BasebandRate
         EnableConversion = $ConvertBaseband
         FFmpegThreadCount = $FFmpegThreadCount
@@ -614,9 +618,16 @@ try {
                 } elseif ($Device -is [BasebandDeviceData]) { 
                     if ($OutputFile -match $Device.HeadSwitchFileName) {
                         $ActivityString = "Head Switch (ClockGen)"
+
+                        if ($Device.CompressHeadSwitch) {
+                            $CompressedString += "Compressed"
+                        }
                     } else {
                         $ActivityString = "Baseband (ClockGen)"
-                        $CompressedString += "Compressed"
+
+                        if ($Device.EnableConversion) {
+                            $CompressedString += "Compressed"
+                        }
                     }
                 }
 
