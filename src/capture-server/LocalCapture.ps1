@@ -55,14 +55,14 @@
 .PARAMETER HifiCompressionLevel
     Set the FLAC compression level for the hifi file. (DEFAULT: 4)
 
-.PARAMETER Linear
+.PARAMETER Baseband
     Enable audio capture.
 
-.PARAMETER LinearRate
+.PARAMETER BasebandRate
     Set the sample rate of the audio capture. (DEFAULT: 48000)
     This has to be supported by the device.
 
-.PARAMETER ConvertLinear
+.PARAMETER ConvertBaseband
     Convert the audio data to a 2-channel FLAC file (L+R) and a 1-channel u8 file (HSW).
     Without conversion the output file is 3-channel s24le.
 
@@ -76,29 +76,29 @@
     Use SoX for resampling instead of FFmpeg.
 
 .EXAMPLE
-    PS> .\LocalCapture.ps1 -Name TestCapture -Video 0 -Linear
+    PS> .\LocalCapture.ps1 -Name TestCapture -Video 0 -Baseband
 
     - Video data is captured from \\.\cxadc0
     - Audio is captured from a clockgen device
 
     Files
     TestCapture-video.u8
-    TestCapture-linear.s24
+    TestCapture-baseband.s24
 
 .EXAMPLE
-    PS> .\LocalCapture.ps1 -Name TestCapture -Video 0 -CompressVideo -Linear -LinearRate 46875 -ConvertLinear
+    PS> .\LocalCapture.ps1 -Name TestCapture -Video 0 -CompressVideo -Baseband -BasebandRate 46875 -ConvertBaseband
 
     - Video data is captured from \\.\cxadc0 and is compressed
     - Audio is captured from a clockgen device with a sample rate of 46875 and is converted and compressed
 
     Files
     TestCapture-video.flac
-    TestCapture-linear.flac
+    TestCapture-baseband.flac
     TestCapture-headswitch.u8
 
 
 .EXAMPLE
-    PS> .\LocalCapture.ps1 -Name TestCapture -AddDate -Video 0 -CompressVideo -Hifi 1 -CompressHifi -ResampleHifi -Linear -LinearRate 46875 -ConvertLinear
+    PS> .\LocalCapture.ps1 -Name TestCapture -AddDate -Video 0 -CompressVideo -Hifi 1 -CompressHifi -ResampleHifi -Baseband -BasebandRate 46875 -ConvertBaseband
 
     - Video data is captured from \\.\cxadc0 and is compressed
     - Hifi data is captured from \\.\cxadc1 and is resampled and compressed
@@ -108,7 +108,7 @@
     Files
     TestCapture-20250601T1217596850-video.flac
     TestCapture-20250601T1217596850-hifi.flac
-    TestCapture-20250601T1217596850-linear.flac
+    TestCapture-20250601T1217596850-baseband.flac
     TestCapture-20250601T1217596850-headswitch.u8
 
 .EXAMPLE
@@ -140,9 +140,9 @@ param(
     [switch] $CompressHifi = $false,
     [int] $HifiCompressionLevel = 0,
 
-    [switch] $Linear = $false,
-    [int] $LinearRate = 48000,
-    [switch] $ConvertLinear = $false,
+    [switch] $Baseband = $false,
+    [int] $BasebandRate = 48000,
+    [switch] $ConvertBaseband = $false,
 
     [int] $FlacThreadCount = 4,
     [int] $FFmpegThreadCount = 4,
@@ -151,7 +151,7 @@ param(
 
 enum DeviceType {
     CxDevice
-    LinearDevice
+    BasebandDevice
 }
 
 enum CxCaptureType {
@@ -179,7 +179,7 @@ class CxDeviceData : DeviceData {
     [ValidateNotNullOrEmpty()][int] $FlacThreadCount
 }
 
-class LinearDeviceData : DeviceData {
+class BasebandDeviceData : DeviceData {
     [ValidateNotNullOrEmpty()][string] $HeadSwitchFileName
     [ValidateNotNullOrEmpty()][boolean] $EnableConversion
 }
@@ -243,7 +243,7 @@ Class CxCaptureServer {
         ForEach ($Device in $Devices) {
             $Params += $Device.Name
 
-            if ($Device -is [LinearDeviceData]) {
+            if ($Device -is [BasebandDeviceData]) {
                 $Params += ("lrate=" + $Device.Rate)
             }
         }
@@ -357,14 +357,14 @@ Class CxCaptureServer {
         $this.CaptureJobs += $Job
     }
 
-    [void] CaptureLinear([LinearDeviceData] $Device) {
-        $JobName = "CaptureLinearJob"
+    [void] CaptureBaseband([BasebandDeviceData] $Device) {
+        $JobName = "CaptureBasebandJob"
         $CurlOut = ($Device.FilePrefix + ".s24")
         $CurlCommand = @(
             "&", $this.BinaryPaths.Curl, "-s",
             "-X", "GET",
             "--unix-socket", $this.Socket,
-            "--url", ($this.BaseUrl + "/linear"),
+            "--url", ($this.BaseUrl + "/baseband"),
             "-o"
         )
         $FFmpegCommand = ""
@@ -372,7 +372,7 @@ Class CxCaptureServer {
 
         if ($Device.EnableConversion) {
             $CurlOut = "-"
-            $FFmpegOutLinear = ($Device.FilePrefix + ".flac")
+            $FFmpegOutBaseband = ($Device.FilePrefix + ".flac")
             $FFmpegOutHeadSwitch = ($Device.HeadSwitchFileName + ".u8")
             $FFmpegCommand = @(
                 "|", "&", $this.BinaryPaths.FFmpeg,
@@ -380,12 +380,12 @@ Class CxCaptureServer {
                 "-threads", $Device.FFmpegThreadCount,
                 "-ar", $Device.Rate, "-ac", 3, "-f", "s24le",
                 "-i", "-",
-                "-filter_complex", "`"[0:a]channelsplit=channel_layout=2.1[FL][FR][headswitch],[FL][FR]amerge=inputs=2[linear]`"",
-                "-map", "`"[linear]`"", "-compression_level", 0, $FFmpegOutLinear,
+                "-filter_complex", "`"[0:a]channelsplit=channel_layout=2.1[FL][FR][headswitch],[FL][FR]amerge=inputs=2[baseband]`"",
+                "-map", "`"[baseband]`"", "-compression_level", 0, $FFmpegOutBaseband,
                 "-map", "`"[headswitch]`"", "-f", "u8", $FFmpegOutHeadSwitch
             )
 
-            $OutputFiles += $FFmpegOutLinear
+            $OutputFiles += $FFmpegOutBaseband
             $OutputFiles += $FFmpegOutHeadSwitch
         }
 
@@ -451,13 +451,13 @@ if ($PSBoundParameters.ContainsKey("Hifi")) {
     }
 }
 
-if ($Linear) {
-    $Devices += [LinearDeviceData]@{
-        Name = "linear"
-        FilePrefix = ($BasePath + "-linear")
+if ($Baseband) {
+    $Devices += [BasebandDeviceData]@{
+        Name = "baseband"
+        FilePrefix = ($BasePath + "-baseband")
         HeadSwitchFileName = ($BasePath + "-headswitch")
-        Rate = $LinearRate
-        EnableConversion = $ConvertLinear
+        Rate = $BasebandRate
+        EnableConversion = $ConvertBaseband
         FFmpegThreadCount = $FFmpegThreadCount
     }
 }
@@ -501,7 +501,7 @@ try {
         $BinaryPaths.Sox = $FindBinary.Invoke("sox")
     }
 
-    if ($Linear -or ($ResampleHifi -and !$UseSox)) {
+    if ($Baseband -or ($ResampleHifi -and !$UseSox)) {
         $BinaryPaths.FFmpeg = $FindBinary.Invoke("ffmpeg")
     }
 } catch {
@@ -532,8 +532,8 @@ try {
             $CxCaptureServer.CaptureCx($Device)
         }
         
-        if ($Device -is [LinearDeviceData]) {
-            $CxCaptureServer.CaptureLinear($Device)
+        if ($Device -is [BasebandDeviceData]) {
+            $CxCaptureServer.CaptureBaseband($Device)
         }
     }
 
@@ -601,11 +601,11 @@ try {
                             $Device.Rate, `
                             ($Device.EnableResampling ? ("-> {0}Hz" -f $Device.ResampleRate) : ""))
                     }
-                } elseif ($Device -is [LinearDeviceData]) { 
+                } elseif ($Device -is [BasebandDeviceData]) { 
                     if ($OutputFile -match $Device.HeadSwitchFileName) {
                         $ActivityString = "Head Switch (ClockGen)"
                     } else {
-                        $ActivityString = "Linear (ClockGen)"
+                        $ActivityString = "Baseband (ClockGen)"
                         $CompressedString += "Compressed"
                     }
                 }
