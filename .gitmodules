@@ -1,9 +1,3 @@
-[submodule "src/clockgen/tinyusb"]
-	path = src/clockgen/external/tinyusb
-	url = https://github.com/hathach/tinyusb
-[submodule "src/clockgen/pico-sdk"]
-	path = src/clockgen/external/pico-sdk
-	url = https://github.com/raspberrypi/pico-sdk
 [submodule "src/clockgen/external/pico-sdk"]
 	path = src/clockgen/external/pico-sdk
 	url = https://github.com/raspberrypi/pico-sdk
