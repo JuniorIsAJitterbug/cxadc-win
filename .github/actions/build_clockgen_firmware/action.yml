@@ -5,6 +5,10 @@ inputs:
   configuration:
     description: Build configuration
     required: true
+  code_signing_cert_hash:
+    description: Code signing certificate hash
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -32,6 +36,14 @@ runs:
       working-directory: .\src\clockgen
       run: |
         cmake --build --preset "pico_rp2040-${{ inputs.configuration }}" --target install
+
+    - name: Sign
+      uses: ./.github/actions/sign_files
+      if: ${{ inputs.code_signing_cert_hash != '' }}
+      with:
+        code_signing_cert_hash: ${{ inputs.code_signing_cert_hash }}
+        files: |
+          .\src\clockgen\out\install\pico_rp2040-${{ inputs.configuration }}\CxadcClockGen.psm1
 
     - name: Upload artifacts (clockgen firmware)
       uses: actions/upload-artifact@v4

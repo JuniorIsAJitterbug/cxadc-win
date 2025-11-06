@@ -1,0 +1,37 @@
+name: Import code signing certificate
+description: Import code signing certificate
+
+inputs:
+  code_signing_cert:
+    description: Certificate data
+    required: true
+
+  code_signing_cert_pass:
+    description: Certificate password
+    required: true
+
+outputs:
+  code_signing_cert_hash:
+    description: Code signing certificate hash
+    value: ${{ steps.import_cert.outputs.code_signing_cert_hash }}
+
+runs:
+  using: composite
+  steps:
+      - name: Import code signing certificate
+        id: import_cert
+        shell: pwsh
+        run: |
+          $CertFile = $env:TEMP + "\certificate.pfx"
+          Set-Content -AsByteStream -Path $CertFile -Value ([System.Convert]::FromBase64String('${{ inputs.code_signing_cert }}'))
+          $CertPass = ConvertTo-SecureString -AsPlainText -String '${{ inputs.code_signing_cert_pass }}'
+          $Cert = Get-PfxCertificate -Password $CertPass -FilePath $CertFile
+
+          @(
+            "Cert:\CurrentUser\My",
+            "Cert:\LocalMachine\Root"
+          ) | ForEach-Object {
+            Import-PfxCertificate -FilePath $CertFile -Password $CertPass -CertStoreLocation $PSItem
+          }
+
+          Write-Output "code_signing_cert_hash=$($Cert.Thumbprint)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append

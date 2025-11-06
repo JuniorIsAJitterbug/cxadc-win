@@ -1,0 +1,25 @@
+name: Sign files using code signing certificate
+description: Sign files using code signing certificate
+
+inputs:
+  files:
+    description: Files to sign
+    required: true
+
+  code_signing_cert_hash:
+    description: Code signing certificate hash
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Sign
+      shell: pwsh
+      run: |
+        "${{ inputs.files }}".Split("`n") | `
+          Where-Object { $PSItem.Split("") } | `
+          ForEach-Object {
+            Set-AuthenticodeSignature `
+              -Certificate (Get-Item Cert:\LocalMachine\Root\${{ inputs.code_signing_cert_hash }}) `
+              -FilePath "$($PSItem.Trim())"
+          }
