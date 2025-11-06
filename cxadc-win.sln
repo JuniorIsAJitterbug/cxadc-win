@@ -58,6 +58,21 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build_clockgen_firmware", "
 		.github\actions\build_clockgen_firmware\action.yml = .github\actions\build_clockgen_firmware\action.yml
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sign_create_wdk_config", "sign_create_wdk_config", "{DCB6059B-E2D1-44A5-9010-799D6DC58BE2}"
+	ProjectSection(SolutionItems) = preProject
+		.github\actions\sign_create_wdk_config\action.yml = .github\actions\sign_create_wdk_config\action.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sign_import_certificate", "sign_import_certificate", "{CB97202D-06A3-46C1-B14B-DD36245D318B}"
+	ProjectSection(SolutionItems) = preProject
+		.github\actions\sign_import_certificate\action.yml = .github\actions\sign_import_certificate\action.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sign_files", "sign_files", "{E1FF143E-3125-40EC-AC73-C855B344173F}"
+	ProjectSection(SolutionItems) = preProject
+		.github\actions\sign_files\action.yml = .github\actions\sign_files\action.yml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -94,7 +109,9 @@ Global
 		{F4E26B7E-78C6-490E-A794-A4792BEF1CD6} = {39521916-A159-4165-B03C-7B15B7CEC109}
 		{056BD0E2-00A3-4DB2-B4E8-8D157577B089} = {39521916-A159-4165-B03C-7B15B7CEC109}
 		{5FF8F6D7-0817-4DF0-A509-08C628107771} = {39521916-A159-4165-B03C-7B15B7CEC109}
-		{02EA681E-C7D8-13C7-8484-4AC65E1B71E8} = {9875028E-5349-451B-A770-733DC59AF2A5}
+		{DCB6059B-E2D1-44A5-9010-799D6DC58BE2} = {39521916-A159-4165-B03C-7B15B7CEC109}
+		{CB97202D-06A3-46C1-B14B-DD36245D318B} = {39521916-A159-4165-B03C-7B15B7CEC109}
+		{E1FF143E-3125-40EC-AC73-C855B344173F} = {39521916-A159-4165-B03C-7B15B7CEC109}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A747CBA2-D23B-41C2-A0AB-18816F9B386B}

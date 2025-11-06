@@ -1,0 +1,36 @@
+name: Create code signing configuration for WDK
+description: Creates a vcxproj.user for configuring driver signing
+
+inputs:
+  project_name:
+    description: Name of driver project
+    required: true
+  
+  project_path:
+    description: Path to project
+    required: false
+    default: src
+
+  code_signing_cert_hash:
+    description: Certificate hash
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Create code signing configuration for WDK
+      shell: pwsh
+      run: |
+        $FilePath = ($env:GITHUB_WORKSPACE + "\${{ inputs.project_path }}\${{ inputs.project_name }}\${{ inputs.project_name }}.vcxproj.user")
+        $XmlNamespace = [System.Xml.Linq.XNamespace]"http://schemas.microsoft.com/developer/msbuild/2003"
+
+        ([System.Xml.Linq.XDocument]::new(
+          [System.Xml.Linq.XDeclaration]::new("1.0", "utf-8", $null),
+          [System.Xml.Linq.XElement]::new($XmlNamespace + "Project",
+            [System.Xml.Linq.XAttribute]::new("ToolsVersion", "Current"),
+            [System.Xml.Linq.XElement]::new($XmlNamespace + "PropertyGroup",
+              [System.Xml.Linq.XElement]::new($XmlNamespace + "SignMode", "TestSign"),
+              [System.Xml.Linq.XElement]::new($XmlNamespace + "TestCertificate", "${{ inputs.code_signing_cert_hash }}")
+            )
+          )
+        )).Save($FilePath)

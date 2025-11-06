@@ -24,6 +24,12 @@ on:
           - Debug
           - Release
 
+      sign_binaries:
+        description: Sign binaries
+        required: true
+        default: true
+        type: boolean
+
       create_release:
         description: Create GitHub release
         required: true
@@ -44,6 +50,14 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
+      - name: Import code signing certificate
+        id: import_cert
+        uses: ./.github/actions/sign_import_certificate
+        if: ${{ inputs.sign_binaries }}
+        with:
+          code_signing_cert: ${{ secrets.CODE_SIGNING_CERT }}
+          code_signing_cert_pass: ${{ secrets.CODE_SIGNING_CERT_PASS }}
+
       - name: Build driver
         uses: ./.github/actions/build_driver
         if: ${{ inputs.build_components == 'All' || inputs.build_components == 'driver' }}
@@ -51,6 +65,7 @@ jobs:
           solution: .\cxadc-win.sln
           configuration: ${{ inputs.build_configuration }}
           platform: x64
+          code_signing_cert_hash: ${{ inputs.sign_binaries && steps.import_cert.outputs.code_signing_cert_hash || '' }}
 
       - name: Build capture-server
         uses: ./.github/actions/build_capture_server
@@ -59,6 +74,7 @@ jobs:
           solution: .\cxadc-win.sln
           configuration: ${{ inputs.build_configuration }}
           platform: x64
+          code_signing_cert_hash: ${{ inputs.sign_binaries && steps.import_cert.outputs.code_signing_cert_hash || '' }}
 
       - name: Build leveladj
         uses: ./.github/actions/build_leveladj
@@ -67,12 +83,14 @@ jobs:
           solution: .\cxadc-win.sln
           configuration: ${{ inputs.build_configuration }}
           platform: x64
+          code_signing_cert_hash: ${{ inputs.sign_binaries && steps.import_cert.outputs.code_signing_cert_hash || '' }}
 
       - name: Build clockgen firmware
         uses: ./.github/actions/build_clockgen_firmware
         if: ${{ inputs.build_components == 'All' || inputs.build_components == 'clockgen_firmware' }}
         with:
           configuration: ${{ inputs.build_configuration }}
+          code_signing_cert_hash: ${{ inputs.sign_binaries && steps.import_cert.outputs.code_signing_cert_hash || '' }}
 
       - name: Download all artifacts (driver)
         uses: actions/download-artifact@v4

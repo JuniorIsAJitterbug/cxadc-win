@@ -11,6 +11,10 @@ inputs:
   platform:
     description: Target platform
     required: true
+  code_signing_cert_hash:
+    description: Code signing certificate hash
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -18,10 +22,26 @@ runs:
     - name: Setup msbuild
       uses: microsoft/setup-msbuild@v2
 
+    - name: Create code signing configuration for WDK
+      uses: ./.github/actions/sign_create_wdk_config
+      if: ${{ inputs.code_signing_cert_hash != '' }}
+      with:
+        project_name: driver
+        code_signing_cert_hash: ${{ inputs.code_signing_cert_hash }}
+
     - name: Build
       shell: pwsh
       run: |
-        msbuild ${{ inputs.solution }} -target:driver -p:Configuration=${{ inputs.configuration }} -p:Platform=${{ inputs.platform }}
+        msbuild ${{ inputs.solution }} -target:driver -p:Configuration=${{ inputs.configuration }},Platform=${{ inputs.platform }}
+
+    - name: Sign
+      uses: ./.github/actions/sign_files
+      if: ${{ inputs.code_signing_cert_hash != '' }}
+      with:
+        code_signing_cert_hash: ${{ inputs.code_signing_cert_hash }}
+        files: |
+          .\${{ inputs.platform }}\${{ inputs.configuration }}\driver\cxadc-win-pp.dll
+          .\${{ inputs.platform }}\${{ inputs.configuration }}\CxadcWin.psm1
 
     - name: Upload artifacts (bin)
       uses: actions/upload-artifact@v4
