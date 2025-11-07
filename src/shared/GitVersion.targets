@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <UsingTask
+        TaskName="ParseVersion"
+        TaskFactory="RoslynCodeTaskFactory"
+        AssemblyFile="$(MSBuildBinPath)\Microsoft.Build.Tasks.Core.dll">
+        <ParameterGroup>
+            <GitTag ParameterType="System.String" Required="true" />
+            <VersionMajor ParameterType="System.Int32" Output="true" />
+            <VersionMinor ParameterType="System.Int32" Output="true" />
+            <ExitCode ParameterType="System.Int32" Output="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System" />
+            <Code Type="Fragment" Language="cs">
+                <![CDATA[
+                    Version v = null;
+                    try {
+                        v = new(GitTag.TrimStart('v'));
+                        VersionMajor = v.Major;
+                        VersionMinor = v.Minor;
+                    } catch { }
+                    ExitCode = v != null ? 0 : 1;
+                ]]>
+            </Code>
+        </Task>
+    </UsingTask>
+
+    <Target Name="GitVersion" BeforeTargets="PreBuildEvent">
+        <PropertyGroup>
+            <!-- defaults -->
+            <!-- NOTE: version must be greater than 0.0.0.0 else stampinf will fail -->
+            <GitVersionMajor>0</GitVersionMajor>
+            <GitVersionMinor>0</GitVersionMinor>
+            <GitVersionBuild>1</GitVersionBuild>
+            <GitVersionRevision>0</GitVersionRevision>
+            <GitVersionDescription>unknown</GitVersionDescription>
+            <GitVersionHash>unknown</GitVersionHash>
+        </PropertyGroup>
+        
+        <PropertyGroup>
+            <_GitVersionCommitCountCommand><![CDATA[git rev-list --count HEAD]]></_GitVersionCommitCountCommand>
+            <_GitVersionDescriptionCommand><![CDATA[git describe --all --dirty]]></_GitVersionDescriptionCommand>
+            <_GitVersionHashCommand><![CDATA[git rev-parse HEAD]]></_GitVersionHashCommand>
+            <_GitVersionTagCommand><![CDATA[git describe --tags --exclude=*[!v0-9.]* --exclude=*\.*\.* --match=v[0-9]*\.[0-9]*]]></_GitVersionTagCommand>
+        </PropertyGroup>
+
+        <Exec
+            Command="$(_GitVersionCommitCountCommand)"
+            IgnoreExitCode="true"
+            ConsoleToMSBuild="true"
+            StandardOutputImportance="Low"
+            StandardErrorImportance="Low">
+            <Output PropertyName="_GitVersionCommitCount" TaskParameter="ConsoleOutput" />
+            <Output PropertyName="_GitVersionCommitCountCommandExitCode" TaskParameter="ExitCode" />
+        </Exec>
+        
+        <Message
+            Text="[GitVersion] Unable to get total commit count"
+            Condition="'$(_GitVersionCommitCountCommandExitCode)' != '' AND '$(_GitVersionCommitCountCommandExitCode)' != '0'"
+            Importance="High" />
+
+        <Exec
+            Command="$(_GitVersionDescriptionCommand)"
+            Condition="'$(_GitVersionCommitCountCommandExitCode)' == '0'"
+            ConsoleToMSBuild="true"
+            StandardOutputImportance="Low"
+            StandardErrorImportance="Low">
+            <Output PropertyName="_GitVersionDescription" TaskParameter="ConsoleOutput" />
+            <Output PropertyName="_GitVersionDescriptionCommandExitCode" TaskParameter="ExitCode" />
+        </Exec>
+
+        <Message
+            Text="[GitVersion] Unable to get description"
+            Condition="'$(_GitVersionDescriptionCommandExitCode)' != '' AND '$(_GitVersionDescriptionCommandExitCode)' != '0'"
+            Importance="High" />
+
+        <Exec
+            Command="$(_GitVersionHashCommand)"
+            Condition="'$(_GitVersionDescriptionCommandExitCode)' == '0'"
+            ConsoleToMSBuild="true"
+            StandardOutputImportance="Low"
+            StandardErrorImportance="Low">
+            <Output PropertyName="_GitVersionHash" TaskParameter="ConsoleOutput" />
+            <Output PropertyName="_GitVersionHashCommandExitCode" TaskParameter="ExitCode" />
+        </Exec>
+
+        <Message
+            Text="[GitVersion] Unable to get hash"
+            Condition="'$(_GitVersionHashCommandExitCode)' != '' AND '$(_GitVersionHashCommandExitCode)' != '0'"
+            Importance="High" />
+
+        <!-- Check tag exists -->
+        <Exec
+            Command="$(_GitVersionTagCommand)"
+            Condition="'$(_GitVersionHashCommandExitCode)' == '0'"
+            IgnoreExitCode="true"
+            ConsoleToMSBuild="true"
+            StandardOutputImportance="Low"
+            StandardErrorImportance="Low">
+            <Output PropertyName="_GitVersionTag" TaskParameter="ConsoleOutput" />
+            <Output PropertyName="_GitVersionTagCommandExitCode" TaskParameter="ExitCode" />
+        </Exec>
+
+        <Message
+            Text="[GitVersion] No suitable tags found"
+            Condition="'$(_GitVersionTagCommandExitCode)' != '' AND '$(_GitVersionTagCommandExitCode)' != '0'"
+            Importance="High" />
+
+        <!-- Get commit count since tag -->
+        <PropertyGroup Condition="'$(_GitVersionTagCommandExitCode)' == '0'">
+            <_GitVersionCommitCountSinceTagCommand><![CDATA[git rev-list --count "$(_GitVersionTag)..HEAD"]]></_GitVersionCommitCountSinceTagCommand>
+        </PropertyGroup>
+        <Exec
+            Command="$(_GitVersionCommitCountSinceTagCommand)"
+            Condition="'$(_GitVersionTagCommandExitCode)' == '0'"
+            IgnoreExitCode="true"
+            ConsoleToMSBuild="true"
+            StandardOutputImportance="Low"
+            StandardErrorImportance="Low">
+            <Output PropertyName="_GitVersionCommitCountSinceTag" TaskParameter="ConsoleOutput" />
+            <Output PropertyName="_GitVersionCommitCountSinceTagCommandExitCode" TaskParameter="ExitCode" />
+        </Exec>
+
+        <Message
+            Text="[GitVersion] Unable to get commit count since tag"
+            Condition="'$(_GitVersionCommitCountSinceTagCommandExitCode)' != '' AND '$(_GitVersionCommitCountSinceTagCommandExitCode)' != '0'"
+            Importance="High" />
+
+        <!-- Parse tag -->
+        <ParseVersion
+            Condition="'$(_GitVersionCommitCountSinceTagCommandExitCode)' == '0'"
+            GitTag="$(_GitVersionTag)">
+            <Output PropertyName="_GitVersionMajor" TaskParameter="VersionMajor" />
+            <Output PropertyName="_GitVersionMinor" TaskParameter="VersionMinor" />
+            <Output PropertyName="_GitVersionParseVersionExitCode" TaskParameter="ExitCode" />
+        </ParseVersion>
+
+        <Message
+            Text="[GitVersion] Unable to parse version from tag"
+            Condition="'$(_GitVersionParseVersionExitCode)' != '' AND '$(_GitVersionParseVersionExitCode)' != '0'"
+            Importance="High" />
+
+        <!-- Set props/defs -->
+        
+        <PropertyGroup>
+            <GitVersionDescription Condition="'$(_GitVersionDescriptionCommandExitCode)' == '0'">$(_GitVersionDescription)</GitVersionDescription>
+            <GitVersionHash Condition="'$(_GitVersionHashCommandExitCode)' == '0'">$(_GitVersionHash)</GitVersionHash>
+            
+            <!-- replaced if valid tag is found -->
+            <GitVersionBuild Condition="'$(_GitVersionCommitCountCommandExitCode)' == '0'">$(_GitVersionCommitCount)</GitVersionBuild>
+        </PropertyGroup>
+
+        <PropertyGroup>
+            <!-- valid tag found -->
+            <GitVersionMajor Condition="'$(_GitVersionParseVersionExitCode)' == '0'">$(_GitVersionMajor)</GitVersionMajor>
+            <GitVersionMinor Condition="'$(_GitVersionParseVersionExitCode)' == '0'">$(_GitVersionMinor)</GitVersionMinor>
+            <GitVersionBuild Condition="'$(_GitVersionCommitCountSinceTagCommandExitCode)' == '0'">$(_GitVersionCommitCountSinceTag)</GitVersionBuild>
+        </PropertyGroup>
+
+        <PropertyGroup>            
+            <GitVersion>$(GitVersionMajor).$(GitVersionMinor).$(GitVersionBuild).$(GitVersionRevision)</GitVersion>
+            <GitVersionFull>$(GitVersionDescription) $(GitVersion) ($(GitVersionHash))</GitVersionFull>
+        </PropertyGroup>
+
+        <ItemGroup>
+            <ResourceCompile>
+                <PreprocessorDefinitions>CX_VERSION_MAJOR=$(GitVersionMajor);CX_VERSION_MINOR=$(GitVersionMinor);CX_VERSION_BUILD=$(GitVersionBuild);CX_VERSION_REVISION=$(GitVersionRevision);CX_VERSION_STR=\"$(GitVersion)\";CX_VERSION_GIT_DESCRIPTION=\"$(GitVersionDescription)\";CX_VERSION_GIT_HASH=\"$(GitVersionHash)\";CX_VERSION_GIT_FULL=\"$(GitVersionFull)\";CX_PROJECT_URL=\"$(CxProjectUrl)\";CX_PROJECT_COPYRIGHT=\"$(CxProjectCopyright)\";%(ResourceCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
+            </ResourceCompile>
+            <ClCompile>
+                <PreprocessorDefinitions>CX_VERSION_MAJOR=$(GitVersionMajor);CX_VERSION_MINOR=$(GitVersionMinor);CX_VERSION_BUILD=$(GitVersionBuild);CX_VERSION_REVISION=$(GitVersionRevision);CX_VERSION_STR="$(GitVersion)";CX_VERSION_GIT_DESCRIPTION="$(GitVersionDescription)";CX_VERSION_GIT_HASH="$(GitVersionHash)";CX_VERSION_GIT_FULL="$(GitVersionFull)";CX_PROJECT_URL="$(CxProjectUrl)";CX_PROJECT_COPYRIGHT="$(CxProjectCopyright)";%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
+            </ClCompile>
+            <Inf>
+                <Timestamp>$(GitVersion)</Timestamp>
+            </Inf>
+        </ItemGroup>
+
+        <Message Text="[GitVersion] Version: $(GitVersion)" Importance="high" />
+        <Message Text="[GitVersion] Full: $(GitVersionFull)" Importance="high" />
+    </Target>
+</Project>
