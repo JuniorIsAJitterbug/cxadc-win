@@ -92,4 +92,9 @@
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="CxadcWin.psm1">
+      <Filter>Scripts</Filter>
+    </None>
+  </ItemGroup>
 </Project>
