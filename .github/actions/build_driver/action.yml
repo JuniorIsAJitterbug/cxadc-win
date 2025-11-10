@@ -5,12 +5,15 @@ inputs:
   solution:
     description: Path to solution file
     required: true
+
   configuration:
     description: Build configuration
     required: true
+
   platform:
     description: Target platform
     required: true
+
   code_signing_cert_hash:
     description: Code signing certificate hash
     required: false
@@ -46,7 +49,7 @@ runs:
     - name: Upload artifacts (bin)
       uses: actions/upload-artifact@v4
       with:
-        name: driver
+        name: ${{ inputs.configuration }}-${{ inputs.platform }}-driver
         if-no-files-found: error
         path: |
           .\${{ inputs.platform }}\${{ inputs.configuration }}\driver\cxadc-win.cat
@@ -57,7 +60,7 @@ runs:
     - name: Upload artifacts (bin)
       uses: actions/upload-artifact@v4
       with:
-        name: bin-driver
+        name: ${{ inputs.configuration }}-${{ inputs.platform }}-bin-driver
         if-no-files-found: error
         path: |
           .\${{ inputs.platform }}\${{ inputs.configuration }}\CxadcWin.psm1
@@ -65,7 +68,7 @@ runs:
     - name: Upload artifacts (pdb)
       uses: actions/upload-artifact@v4
       with:
-        name: pdb-driver
+        name: ${{ inputs.configuration }}-${{ inputs.platform }}-pdb-driver
         if-no-files-found: error
         path: |
           .\${{ inputs.platform }}\${{ inputs.configuration }}\cxadc-win.pdb

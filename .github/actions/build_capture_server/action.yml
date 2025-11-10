@@ -5,12 +5,15 @@ inputs:
   solution:
     description: Path to solution file
     required: true
+
   configuration:
     description: Build configuration
     required: true
+
   platform:
     description: Target platform
     required: true
+
   code_signing_cert_hash:
     description: Code signing certificate hash
     required: false
@@ -39,7 +42,7 @@ runs:
     - name: Upload artifacts (bin)
       uses: actions/upload-artifact@v4
       with:
-        name: bin-capture-server
+        name: ${{ inputs.configuration }}-${{ inputs.platform }}-bin-capture-server
         if-no-files-found: error
         path: |
           .\${{ inputs.platform }}\${{ inputs.configuration }}\capture-server.exe
@@ -48,7 +51,7 @@ runs:
     - name: Upload artifacts (pdb)
       uses: actions/upload-artifact@v4
       with:
-        name: pdb-capture-server
+        name: ${{ inputs.configuration }}-${{ inputs.platform }}-pdb-capture-server
         if-no-files-found: error
         path: |
           .\${{ inputs.platform }}\${{ inputs.configuration }}\capture-server.pdb
