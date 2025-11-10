@@ -21,8 +21,17 @@ on:
         default: Debug
         type: choice
         options:
+          - All
           - Debug
           - Release
+
+      build_platform:
+        description: Build platform
+        required: true
+        default: x64
+        type: choice
+        options:
+          - x64
 
       sign_binaries:
         description: Sign binaries
@@ -38,11 +47,15 @@ on:
    
 jobs:
   build:
-    name: Build ${{ inputs.build_components }} (${{ inputs.build_configuration }})
+    name: Build ${{ inputs.build_components }} (${{ matrix.build_configuration }})
     runs-on: windows-2022
     permissions:
         contents: write
-
+    strategy:
+      matrix:
+        build_configuration: ${{ fromJson(format('[{0}]', inputs.build_configuration == 'All' && '"Debug","Release"' || format('"{0}"', inputs.build_configuration))) }}
+    env:
+      SOLUTION_FILE: .\cxadc-win.sln
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -62,94 +75,108 @@ jobs:
         uses: ./.github/actions/build_driver
         if: ${{ inputs.build_components == 'All' || inputs.build_components == 'driver' }}
         with:
-          solution: .\cxadc-win.sln
-          configuration: ${{ inputs.build_configuration }}
-          platform: x64
+          solution: ${{ env.SOLUTION_FILE }}
+          configuration: ${{ matrix.build_configuration }}
+          platform: ${{ inputs.build_platform }}
           code_signing_cert_hash: ${{ inputs.sign_binaries && steps.import_cert.outputs.code_signing_cert_hash || '' }}
 
       - name: Build capture-server
         uses: ./.github/actions/build_capture_server
         if: ${{ inputs.build_components == 'All' || inputs.build_components == 'capture-server' }}
         with:
-          solution: .\cxadc-win.sln
-          configuration: ${{ inputs.build_configuration }}
-          platform: x64
+          solution: ${{ env.SOLUTION_FILE }}
+          configuration: ${{ matrix.build_configuration }}
+          platform: ${{ inputs.build_platform }}
           code_signing_cert_hash: ${{ inputs.sign_binaries && steps.import_cert.outputs.code_signing_cert_hash || '' }}
 
       - name: Build leveladj
         uses: ./.github/actions/build_leveladj
         if: ${{ inputs.build_components == 'All' || inputs.build_components == 'leveladj' }}
         with:
-          solution: .\cxadc-win.sln
-          configuration: ${{ inputs.build_configuration }}
-          platform: x64
+          solution: ${{ env.SOLUTION_FILE }}
+          configuration: ${{ matrix.build_configuration }}
+          platform: ${{ inputs.build_platform }}
           code_signing_cert_hash: ${{ inputs.sign_binaries && steps.import_cert.outputs.code_signing_cert_hash || '' }}
 
       - name: Build clockgen firmware
         uses: ./.github/actions/build_clockgen_firmware
         if: ${{ inputs.build_components == 'All' || inputs.build_components == 'clockgen_firmware' }}
         with:
-          configuration: ${{ inputs.build_configuration }}
+          configuration: ${{ matrix.build_configuration }}
           code_signing_cert_hash: ${{ inputs.sign_binaries && steps.import_cert.outputs.code_signing_cert_hash || '' }}
 
       - name: Download all artifacts (driver)
         uses: actions/download-artifact@v4
         if: ${{ inputs.create_release }}
         with:
-          path: driver
-          pattern: driver
+          path: .\release\driver
+          pattern: ${{ matrix.build_configuration }}-${{ inputs.build_platform }}-driver
           merge-multiple: true
 
       - name: Download all artifacts (bin)
         uses: actions/download-artifact@v4
         if: ${{ inputs.create_release }}
         with:
-          path: bin
-          pattern: bin-*
+          path: .\release\bin
+          pattern: ${{ matrix.build_configuration }}-${{ inputs.build_platform }}-bin-*
           merge-multiple: true
 
       - name: Download all artifacts (pdb)
         uses: actions/download-artifact@v4
         if: ${{ inputs.create_release }}
         with:
-          path: pdb
-          pattern: pdb-*
+          path: .\release-pdb
+          pattern: ${{ matrix.build_configuration }}-${{ inputs.build_platform }}-pdb-*
           merge-multiple: true
 
       - name: Download all artifacts (clockgen firmware)
         uses: actions/download-artifact@v4
         if: ${{ inputs.create_release }}
         with:
-          path: clockgen_firmware
-          pattern: clockgen_firmware
+          path: .\release\clockgen_firmware
+          pattern: ${{ matrix.build_configuration }}-clockgen_firmware
           merge-multiple: true
 
       - name: Create GitHub Release
         if: ${{ inputs.create_release }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          ASSET_NAME: cxadc-win-x64.zip
-          ASSET_NAME_PDB: cxadc-win-x64-pdb.zip
-          ASSET_LABEL: cxadc-win-${{ github.ref_name }}-x64.zip
-          ASSET_LABEL_PDB: cxadc-win-${{ github.ref_name }}-x64-pdb.zip
         shell: pwsh
         run: |
-          gh release create '${{ github.ref_name }}' --title '${{ github.ref_name }}' --draft
+          # get release name
+          $ReleaseName = "${{ github.ref_name }}"
 
-          Compress-Archive -DestinationPath '${{ env.ASSET_NAME }}' -Path 'LICENSE.txt'
-
-          if (Test-Path 'driver') {
-            Compress-Archive -Update -DestinationPath '${{ env.ASSET_NAME }}' -Path 'driver'
+          if ("${{ github.ref_type }}" -ne "tag") {
+            $ReleaseName += ("-" + (git rev-parse --short HEAD))
           }
 
-          if (Test-Path 'bin') {
-            Compress-Archive -Update -DestinationPath '${{ env.ASSET_NAME }}' -Path 'bin'
+          $FileNameBase = ("cxadc-win-" + $ReleaseName + "-${{ inputs.build_platform }}")
+          $FileNameSuffix = ""
+
+          if ("${{ matrix.build_configuration }}" -ne "Release") {
+            $FileNameSuffix += ("-${{ matrix.build_configuration }}")
           }
 
-          if (Test-Path 'clockgen_firmware') {
-            Compress-Archive -Update -DestinationPath '${{ env.ASSET_NAME }}' -Path 'clockgen_firmware'
+          $FileNameRelease = ($FileNameBase + $FileNameSuffix + ".zip")
+          $FileNameReleasePdb = ($FileNameBase + $FileNameSuffix + "-pdb.zip")
+
+          # create checksum file for release
+          Get-ChildItem -File -Recurse -Path .\release\ |
+            Get-FileHash -Algorithm SHA256 |
+              Select-Object -Property Hash, @{n="Path"; e={ Resolve-Path -Relative -RelativeBasePath .\release\ -LiteralPath $PSItem.Path }} |
+                ForEach-Object -Process { $PSItem.Hash + " " + $PSItem.Path } |
+                  Out-File -FilePath .\checksums.sha256
+
+          # create release zips
+          Compress-Archive -DestinationPath "$FileNameRelease" -Path "LICENSE","checksums.sha256",".\release\*"
+          Compress-Archive -DestinationPath "$FileNameReleasePdb" -Path ".\release-pdb\*"
+
+          # create release
+          gh release view "$ReleaseName"
+
+          if ($LASTEXITCODE -eq 1) {
+            gh release create "$ReleaseName" --title "$ReleaseName" --draft
           }
 
-          if (Test-Path '${{ env.ASSET_NAME }}') {
-            gh release upload '${{ github.ref_name }}' '${{ env.ASSET_NAME }}#${{ env.ASSET_LABEL }}'
-          }
+          gh release upload "$ReleaseName" "$FileNameRelease"
+          gh release upload "$ReleaseName" "$FileNameReleasePdb"

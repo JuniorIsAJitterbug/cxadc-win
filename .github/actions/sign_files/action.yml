@@ -16,10 +16,8 @@ runs:
     - name: Sign
       shell: pwsh
       run: |
-        "${{ inputs.files }}".Split("`n") | `
-          Where-Object { $PSItem.Split("") } | `
+        "${{ inputs.files }}".Split("`n") |
+          Where-Object { $PSItem.Split("") } |
           ForEach-Object {
-            Set-AuthenticodeSignature `
-              -Certificate (Get-Item Cert:\LocalMachine\Root\${{ inputs.code_signing_cert_hash }}) `
-              -FilePath "$($PSItem.Trim())"
+            Set-AuthenticodeSignature -Certificate (Get-Item Cert:\LocalMachine\Root\${{ inputs.code_signing_cert_hash }}) -FilePath "$($PSItem.Trim())"
           }
