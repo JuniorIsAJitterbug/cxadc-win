@@ -17,8 +17,7 @@
 
 #define DEBUG_LOG(str, ...)             _RPTFWN(_CRT_WARN, (L##str L", lasterr=%d, errno=%d\n")__VA_OPT__(,) __VA_ARGS__, GetLastError(), _doserrno)
 #define DEBUG_ERROR(str, ...)           _RPTFWN(_CRT_ERROR, (L##str L", lasterr=%d, errno=%d\n")__VA_OPT__(,) __VA_ARGS__, GetLastError(), _doserrno)
-#define LOG_IF_FAILED(expr)             (FAILED((expr)) ? DEBUG_ERROR(#expr), TRUE : FALSE)
-#define RETURN_HR_IF_FAILED(expr)       do { HRESULT _hr = (expr); if (LOG_IF_FAILED(_hr)) { return _hr; } } while(0)
+#define RETURN_HR_IF_FAILED(expr)       do { HRESULT _hr = (expr); if (FAILED(_hr)) { DEBUG_ERROR(#expr); return _hr; } } while(0)
 
 #define HRESULT_FROM_LASTERROR          HRESULT_FROM_WIN32(GetLastError())
 #define HRESULT_FROM_ERRNO              HRESULT_FROM_WIN32(_doserrno)
