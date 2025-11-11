@@ -160,13 +160,13 @@ BOOL WINAPI cx_wm_initdialog(
     }
 
     // init state/config
-    if (LOG_IF_FAILED(hr = cx_init_prop_data(prop_data)))
+    if (FAILED(hr = cx_init_prop_data(prop_data)))
     {
         goto exit;
     }
 
     // init ctrls
-    if (LOG_IF_FAILED(hr = cx_ctrls_init(dlg, prop_data)))
+    if (FAILED(hr = cx_ctrls_init(dlg, prop_data)))
     {
         goto exit;
     }
@@ -370,6 +370,7 @@ VOID cx_timer_refresh_cb(
     if (prop_data == 0 || FAILED(cx_init_prop_data(prop_data)))
     {
         cx_set_error(dlg, L"Unable to get prop data for device.");
+        return;
     }
 
     if (FAILED(cx_ctrls_refresh(dlg, prop_data)))
@@ -380,11 +381,14 @@ VOID cx_timer_refresh_cb(
 
 HRESULT cx_init_crtdbg()
 {
+#pragma warning(push)
+#pragma warning(disable: 4127 6285) // disable warning about constant for non-debug builds
     if (_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_DEBUG) == -1 ||
         _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG) == -1 ||
         _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_DEBUG) == -1
         )
     {
+#pragma warning(pop)
         return HRESULT_FROM_ERRNO;
     }
 
