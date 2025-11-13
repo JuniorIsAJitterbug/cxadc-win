@@ -10,7 +10,7 @@
 		<CxVersionSemverStr>$(CxVersionMajor).$(CxVersionMinor).$(CxVersionBuild)</CxVersionSemverStr>
 
 		<CxProjectUrl>https://github.com/JuniorIsAJitterbug/cxadc-win</CxProjectUrl>
-		<CxProjectCopyright>Copyright (c) 2024-2025 JuniorIsAJitterbug</CxProjectCopyright>
+		<CxProjectCopyright>Copyright (C) 2024-2025 Jitterbug</CxProjectCopyright>
 	</PropertyGroup>
 
 	<Target Name="GetVersion" BeforeTargets="PrepareForBuild">
