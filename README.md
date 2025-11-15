@@ -53,15 +53,16 @@ The latest release can be downloaded [here](https://github.com/JuniorIsAJitterbu
     ```
 
 ### Capture server
-The local capture script requires additional software.  
+The local capture script requires additional software.
 
-#### Required
-- [curl](https://curl.se/windows/)
+<details>
+<summary>Dependencies</summary>
 
-#### Optional
-- [FLAC](https://ftp.osuosl.org/pub/xiph/releases/flac/)
-- [SoX](https://sourceforge.net/projects/sox/)
-- [FFmpeg](https://www.gyan.dev/ffmpeg/builds/)
+  - [curl](https://curl.se/windows/) (required)
+  - [FLAC](https://ftp.osuosl.org/pub/xiph/releases/flac/) (optional)
+  - [SoX](https://sourceforge.net/projects/sox/) (optional)
+  - [FFmpeg](https://www.gyan.dev/ffmpeg/builds/) (optional)
+</details>
 
 ### Clockgen (optional)
 The clockgen must be updated to work correctly on Windows.  
