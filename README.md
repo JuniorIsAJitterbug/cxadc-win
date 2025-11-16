@@ -12,7 +12,7 @@ This was made for use with the [decode](https://github.com/oyvindln/vhs-decode) 
 
 
 ## Download
-The latest release can be downloaded [here](https://github.com/JuniorIsAJitterbug/cxadc-win).  
+The latest release can be downloaded [here](https://github.com/JuniorIsAJitterbug/cxadc-win/releases).  
 
 
 ## Pre-installation  
