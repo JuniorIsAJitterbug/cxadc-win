@@ -6,6 +6,10 @@ inputs:
     description: Build configuration
     required: true
 
+  platform:
+    description: Target platform
+    required: true
+
   code_signing_cert_hash:
     description: Code signing certificate hash
     required: false
@@ -66,7 +70,7 @@ runs:
     - name: Upload artifacts (bin)
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ inputs.configuration }}-bin-clockgen_firmware
+        name: ${{ inputs.configuration }}-${{ inputs.platform }}-bin-clockgen_firmware
         if-no-files-found: error
         path: |
           .\src\clockgen\out\install\pico_rp2040-${{ inputs.configuration }}\CxadcClockGen.psm1

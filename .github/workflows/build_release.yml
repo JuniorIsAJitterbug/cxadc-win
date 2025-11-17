@@ -103,6 +103,7 @@ jobs:
         if: ${{ inputs.build_components == 'All' || inputs.build_components == 'clockgen_firmware' }}
         with:
           configuration: ${{ matrix.build_configuration }}
+          platform: ${{ inputs.build_platform }}
           code_signing_cert_hash: ${{ inputs.sign_binaries && steps.import_cert.outputs.code_signing_cert_hash || '' }}
 
       - name: Download all artifacts (driver)
