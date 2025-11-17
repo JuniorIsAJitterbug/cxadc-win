@@ -82,5 +82,6 @@
     <None Include="LocalCapture.ps1">
       <Filter>Scripts</Filter>
     </None>
+    <None Include="LICENSE-GPL-3.0" />
   </ItemGroup>
 </Project>

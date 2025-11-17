@@ -45,6 +45,7 @@
     <Text Include="CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="LICENSE-GPL-3.0" />
     <None Include="local-capture.sh" />
     <None Include="LocalCapture.ps1" />
     <None Include="README.md" />
@@ -164,6 +165,8 @@
     </Content>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-  </ImportGroup>
+  <ImportGroup Label="ExtensionTargets" />
+  <ItemGroup>
+    <Content Include="LICENSE-GPL-3.0" CopyToOutputDirectory="Always" />
+  </ItemGroup>
 </Project>

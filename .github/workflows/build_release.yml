@@ -137,6 +137,14 @@ jobs:
           pattern: ${{ matrix.build_configuration }}-clockgen_firmware
           merge-multiple: true
 
+      - name: Download all artifacts (licenses)
+        uses: actions/download-artifact@v4
+        if: ${{ inputs.create_release }}
+        with:
+          path: .\release\license
+          pattern: LICENSE-*
+          merge-multiple: true
+
       - name: Create GitHub Release
         if: ${{ inputs.create_release }}
         env:
@@ -160,15 +168,19 @@ jobs:
           $FileNameRelease = ($FileNameBase + $FileNameSuffix + ".zip")
           $FileNameReleasePdb = ($FileNameBase + $FileNameSuffix + "-pdb.zip")
 
+          # copy project license
+          New-Item -Path .\release\license -ItemType Directory -ErrorAction Ignore
+          Copy-Item -Path .\LICENSE -Destination .\release\license\LICENSE-GPL-2.0
+
           # create checksum file for release
-          Get-ChildItem -File -Recurse -Path .\release\ |
+          Get-ChildItem -File -Recurse -Path .\release\ -Exclude checksums.sha256 |
             Get-FileHash -Algorithm SHA256 |
               Select-Object -Property Hash, @{n="Path"; e={ Resolve-Path -Relative -RelativeBasePath .\release\ -LiteralPath $PSItem.Path }} |
                 ForEach-Object -Process { $PSItem.Hash + " " + $PSItem.Path } |
-                  Out-File -FilePath .\checksums.sha256
+                  Out-File -FilePath .\release\checksums.sha256
 
           # create release zips
-          Compress-Archive -DestinationPath "$FileNameRelease" -Path "LICENSE","checksums.sha256",".\release\*"
+          Compress-Archive -DestinationPath "$FileNameRelease" -Path ".\release\*"
           Compress-Archive -DestinationPath "$FileNameReleasePdb" -Path ".\release-pdb\*"
 
           # create release

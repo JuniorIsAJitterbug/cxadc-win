@@ -26,3 +26,5 @@ add_compile_options(-Wall
         )
 
 add_subdirectory("firmware")
+
+install(FILES ${CMAKE_SOURCE_DIR}/LICENSE-BSD-3-Clause DESTINATION .)

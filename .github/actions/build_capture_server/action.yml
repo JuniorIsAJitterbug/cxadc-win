@@ -48,6 +48,15 @@ runs:
           .\${{ inputs.platform }}\${{ inputs.configuration }}\capture-server.exe
           .\${{ inputs.platform }}\${{ inputs.configuration }}\LocalCapture.ps1
 
+    - name: Upload artifacts (license)
+      uses: actions/upload-artifact@v4
+      with:
+        name: LICENSE-capture-server
+        overwrite: true
+        if-no-files-found: error
+        path: |
+          .\${{ inputs.platform }}\${{ inputs.configuration }}\LICENSE-GPL-3.0
+
     - name: Upload artifacts (pdb)
       uses: actions/upload-artifact@v4
       with:

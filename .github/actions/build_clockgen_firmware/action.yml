@@ -54,6 +54,15 @@ runs:
         path: |
           .\src\clockgen\out\install\pico_rp2040-${{ inputs.configuration }}\firmware.uf2
 
+    - name: Upload artifacts (license)
+      uses: actions/upload-artifact@v4
+      with:
+        name: LICENSE-clockgen_firmware
+        overwrite: true
+        if-no-files-found: error
+        path: |
+          .\src\clockgen\out\install\pico_rp2040-${{ inputs.configuration }}\LICENSE-BSD-3-Clause
+
     - name: Upload artifacts (bin)
       uses: actions/upload-artifact@v4
       with:
