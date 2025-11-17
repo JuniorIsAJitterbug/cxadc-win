@@ -6,7 +6,9 @@
 > ⚠️ **THIS DRIVER IS UNSIGNED** ⚠️  
 > *Due to security restrictions in Windows 10 and 11, **Secure Boot and Driver Signature Enforcement must be disabled** to allow the use of unsigned drivers. Please ensure you understand the potential security risks involved in disabling these features, and remember to re-enable them when you are not actively capturing.*  
 
-This was made for use with the [decode](https://github.com/oyvindln/vhs-decode) projects, see [here](https://github.com/oyvindln/vhs-decode/wiki/CX-Cards) for more information on these cards.  
+This is a Windows port of the [cxadc](https://github.com/happycube/cxadc-linux3) driver for Conexant CX2388x video decoder/encoder chips commonly found on PCI TV-tuner and capture cards. This is intended for use with the [decode](https://github.com/oyvindln/vhs-decode) projects.  
+
+You can find more information about these cards [here](https://github.com/oyvindln/vhs-decode/wiki/CX-Cards).  
 
 ![ffplay](assets/ffplay.gif)
 
