@@ -1,31 +1,12 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 /*
- * This file is from MISRC (https://github.com/Stefan-Olt/MISRC/)
+ * capture-server - Windows port of cxadc_vhs_server
  *
- * Minor changes made by:
  * Copyright (C) 2025 Jitterbug <jitterbug@posteo.co.uk>
  *
- *
- * Original header:
- * MISRC tools
- * Copyright (C) 2024  vrunk11, stefan_o
- *
- * based on:
- * http://web.archive.org/web/20171026083549/https://lo.calho.st/quick-hacks/employing-black-magic-in-the-linux-page-table/
- * Copyright (C) 2017 by Travis Mick
- *
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * Code originally from the MISRC project
+ * Copyright (C) 2017 Travis Mick (http://web.archive.org/web/20171026083549/https://lo.calho.st/quick-hacks/employing-black-magic-in-the-linux-page-table)
+ * Copyright (C) 2024 vrunk11, stefan_o (https://github.com/Stefan-Olt/MISRC)
  */
 
 #pragma once
