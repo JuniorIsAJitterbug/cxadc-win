@@ -208,16 +208,26 @@ class BasebandDeviceData : DeviceData {
     [ValidateNotNullOrEmpty()][boolean] $EnableConversion
 }
 
+class EscapedPath {
+    [string] $Path
+    [string] $EscapedPath
+
+    EscapedPath([string] $Path) {
+        $this.Path = $Path
+        $this.EscapedPath = ("`"" + $Path + "`"")
+    }
+}
+
 class BinaryPaths {
-    [ValidateNotNullOrEmpty()][string] $Server
-    [ValidateNotNullOrEmpty()][string] $Curl
-    [string] $Flac
-    [string] $Sox
-    [string] $FFmpeg
+    [ValidateNotNullOrEmpty()][EscapedPath] $Server
+    [ValidateNotNullOrEmpty()][EscapedPath] $Curl
+    [EscapedPath] $Flac
+    [EscapedPath] $Sox
+    [EscapedPath] $FFmpeg
 }
 
 Class CxCaptureServer {
-    [string] $Socket
+    [EscapedPath] $Socket
     [BinaryPaths] $BinaryPaths
     [string] $BaseUrl = "http://capture-server"
     [boolean] $IsRunning = $false
@@ -225,7 +235,7 @@ Class CxCaptureServer {
     $ServerJob
     $CaptureJobs = @()
 
-    CxCaptureServer([string] $Socket, [BinaryPaths] $BinaryPaths) {
+    CxCaptureServer([EscapedPath] $Socket, [BinaryPaths] $BinaryPaths) {
         $this.Socket = $Socket
         $this.BinaryPaths = $BinaryPaths
     }
@@ -233,8 +243,8 @@ Class CxCaptureServer {
     [void] StartLocalServer() {
         $JobName = "ServerJob"
         $Command = @(
-            $this.BinaryPaths.Server,
-            ("unix:" + $this.Socket)
+            "&", $this.BinaryPaths.Server.EscapedPath,
+            ("unix:" + $this.Socket.EscapedPath)
         ) -join " "
 
         $this.ServerJob = Start-Job -Name $JobName -ScriptBlock {
@@ -248,7 +258,7 @@ Class CxCaptureServer {
     }
 
     [boolean] TestConnection() {
-        if ((Invoke-WebRequest -UnixSocket $this.Socket -Method Get $this.BaseUrl).StatusCode -eq 200) {
+        if ((Invoke-WebRequest -UnixSocket $this.Socket.Path -Method Get $this.BaseUrl).StatusCode -eq 200) {
             return $true
         }
 
@@ -257,7 +267,7 @@ Class CxCaptureServer {
 
     [int] GetOverflows() {
         $Url = $this.BaseUrl + "/stats"
-        $Json = Invoke-WebRequest -Method Get -UnixSocket $this.Socket $Url | ConvertFrom-Json
+        $Json = Invoke-WebRequest -Method Get -UnixSocket $this.Socket.Path $Url | ConvertFrom-Json
         return $Json.overflows
     }
 
@@ -273,7 +283,7 @@ Class CxCaptureServer {
         }
 
         $Url = $this.BaseUrl + "/start?" + ($Params -Join '&')
-        $Json = Invoke-WebRequest -Method Get -UnixSocket $this.Socket $Url | ConvertFrom-Json
+        $Json = Invoke-WebRequest -Method Get -UnixSocket $this.Socket.Path $Url | ConvertFrom-Json
 
         if ($Json.state -eq "Running") {
             $this.IsRunning = $true
@@ -293,7 +303,7 @@ Class CxCaptureServer {
         }
 
         $Url = $this.BaseUrl + "/stop"
-        $Json = Invoke-WebRequest -Method Get -UnixSocket $this.Socket $Url | ConvertFrom-Json
+        $Json = Invoke-WebRequest -Method Get -UnixSocket $this.Socket.Path $Url | ConvertFrom-Json
 
         if ($Json.state -ne "Idle") {
             throw "unable to stop server"
@@ -312,9 +322,9 @@ Class CxCaptureServer {
     [void] CaptureCx([CxDeviceData] $Device) {
         $JobName = "CaptureCxJob" + $Device.Index
         $CurlCommand = @(
-            "&", $this.BinaryPaths.Curl, "-s",
+            "&", $this.BinaryPaths.Curl.EscapedPath, "-s",
             "-X", "GET",
-            "--unix-socket", $this.Socket,
+            "--unix-socket", $this.Socket.EscapedPath,
             "--url", ($this.BaseUrl + "/cxadc?" + $Device.Index),
             "-o"
         )
@@ -328,7 +338,7 @@ Class CxCaptureServer {
             $FlacOut = ($Device.FilePrefix + ".flac")
             $FlacRate = ($Device.EnableResampling) ? $Device.ResampleRate : $Device.Rate
             $FlacCommand = @(
-                "|", "&", $this.BinaryPaths.Flac, "-s", "-f",
+                "|", "&", $this.BinaryPaths.Flac.EscapedPath, "-s", "-f",
                 "-j", $Device.FlacThreadCount
                 ("-" + $Device.CompressionLevel), "-b", 65535, "--lax",
                 ("--sample-rate=" + $FlacRate), "--channels=1", "--bps=8", "--sign=unsigned", "--endian=little",
@@ -345,7 +355,7 @@ Class CxCaptureServer {
 
             if ($Device.UseSox) {
                 $ResamplerCommand = @(
-                    "|", "&", $this.BinaryPaths.Sox,
+                    "|", "&", $this.BinaryPaths.Sox.EscapedPath,
                     "-D",
                     "-t", "raw", "-r", $Device.Rate, "-b", 8, "-c", 1, "-L", "-e", "unsigned-integer",
                     "-",
@@ -354,7 +364,7 @@ Class CxCaptureServer {
                 )
             } else {
                 $ResamplerCommand = @(
-                    "|", "&", $this.BinaryPaths.FFmpeg,
+                    "|", "&", $this.BinaryPaths.FFmpeg.EscapedPath,
                     "-hide_banner", "-y", "-loglevel", "error",
                     "-threads", $Device.FFmpegThreadCount,
                     "-thread_queue_size", 1024,
@@ -385,9 +395,9 @@ Class CxCaptureServer {
         $JobName = "CaptureBasebandJob"
         $CurlOut = ($Device.FilePrefix + ".s24")
         $CurlCommand = @(
-            "&", $this.BinaryPaths.Curl, "-s",
+            "&", $this.BinaryPaths.Curl.EscapedPath, "-s",
             "-X", "GET",
-            "--unix-socket", $this.Socket,
+            "--unix-socket", $this.Socket.EscapedPath,
             "--url", ($this.BaseUrl + "/baseband"),
             "-o"
         )
@@ -400,7 +410,7 @@ Class CxCaptureServer {
             $FFmpegOutHeadSwitchFileType = (($Device.CompressHeadSwitch) ? "flac" : "u8")
             $FFmpegOutHeadSwitch = ($Device.HeadSwitchFileName + "." + $FFmpegOutHeadSwitchFileType)
             $FFmpegCommand = @(
-                "|", "&", $this.BinaryPaths.FFmpeg,
+                "|", "&", $this.BinaryPaths.FFmpeg.EscapedPath,
                 "-hide_banner", "-y", "-loglevel", "error",
                 "-threads", $Device.FFmpegThreadCount,
                 "-ar", $Device.Rate, "-ac", 3, "-f", "s24le",
@@ -498,17 +508,24 @@ if ($Devices.Count -eq 0) {
 $FindBinary = {
     param([string] $Name)
 
-    $Fullname = ($Name + ".exe")
-    $TCResult = (Test-Path (".\" + $Fullname))
+    $FileName = ($Name + ".exe")
+    $ScriptPath = (Join-Path -Path $PSScriptRoot -ChildPath $FileName)
 
-    if ($TCResult -eq $true) {
-        return (".\`"" + $Fullname + "`"")
+    # check .\
+    if ((Test-Path -Path $FileName) -eq $true) {
+        return (Get-Item -Path $FileName).FullName
     }
 
-    $GCResult = (Get-Command $Fullname -ErrorAction SilentlyContinue)
+    # check script path
+    if ((Test-Path -Path $ScriptPath) -eq $true) {
+        return $ScriptPath
+    }
+
+    # check $PATH
+    $GCResult = (Get-Command -Name $FileName -ErrorAction SilentlyContinue)
 
     if ($GCResult -ne $null) {
-        return ("`"" + $GCResult.Path + "`"")
+        return $GCResult.Path
     }
 
     throw ($Name + " not found in path")
@@ -517,27 +534,27 @@ $FindBinary = {
 # check path for binaries
 try {
     $BinaryPaths = [BinaryPaths]@{
-        Server = $FindBinary.Invoke("capture-server")
-        Curl = $FindBinary.Invoke("curl")
+        Server = [EscapedPath]::new($FindBinary.Invoke("capture-server"))
+        Curl = [EscapedPath]::new($FindBinary.Invoke("curl"))
     }
 
     if ($CompressVideo -or $CompressHifi) {
-        $BinaryPaths.Flac = $FindBinary.Invoke("flac")
+        $BinaryPaths.Flac = [EscapedPath]::new($FindBinary.Invoke("flac"))
     }
 
     if (($ResampleVideo -or $ResampleHifi) -and $UseSox) {
-        $BinaryPaths.Sox = $FindBinary.Invoke("sox")
+        $BinaryPaths.Sox = [EscapedPath]::new($FindBinary.Invoke("sox"))
     }
 
     if ($Baseband -or (($ResampleVideo -or $ResampleHifi) -and !$UseSox)) {
-        $BinaryPaths.FFmpeg = $FindBinary.Invoke("ffmpeg")
+        $BinaryPaths.FFmpeg = [EscapedPath]::new($FindBinary.Invoke("ffmpeg"))
     }
 } catch {
     Write-Error $_
     exit
 }
 
-$SocketPath = ((Get-Location).Path + "\.capture-server.sock")
+$SocketPath = [EscapedPath]::new((Join-Path -Path (Get-Location).Path -ChildPath "\.capture-server.sock"))
 $CxCaptureServer = [CxCaptureServer]::new($SocketPath, $BinaryPaths)
 
 try {
