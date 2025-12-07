@@ -83,7 +83,7 @@
     static int win32_file_open_non_blocking(char* file_name, int flags) {
         int fd = _open(file_name, (flags | _O_RDWR));
 
-        if (!DeviceIoControl((HANDLE)_get_osfhandle(fd), CX_IOCTL_IO_NON_BLOCKING_SET, NULL, 0, NULL, 0, NULL, NULL)) {
+        if (fd == -1 || !DeviceIoControl((HANDLE)_get_osfhandle(fd), CX_IOCTL_IO_NON_BLOCKING_SET, NULL, 0, NULL, 0, NULL, NULL)) {
             return -1;
         }
 
