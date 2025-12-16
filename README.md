@@ -51,7 +51,7 @@ The latest release can be downloaded [here](https://github.com/JuniorIsAJitterbu
 1. PowerShell `≥7.4.0` is required, you can download the latest version [here](https://aka.ms/powershell-release?tag=stable)  
 2. Allow the modules and scripts to run
     ```
-    PS> Unblock-File .\CxadcWin.psm1,.\CxadcClockGen.psm,.\LocalCapture.ps1
+    PS> Unblock-File .\CxadcWin.psm1,.\CxadcClockGen.psm1,.\LocalCapture.ps1
     ```
 
 ### Capture server
