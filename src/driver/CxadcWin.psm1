@@ -472,6 +472,8 @@ function Get-CxadcWinDeviceFunction {
         $FunctionAddress = 0x365000
         $Current = Get-CxadcWinRegister -Device $Device -Address $FunctionAddress
 
+        Write-Warning "This may be inaccurate."
+
         [PSCustomObject]@{
             "Video" = ($Current.Value -band 0x01) -ne 0 # Should always be true
             "Audio" = ($Current.Value -band [CxDeviceFunction]::Audio) -ne 0
