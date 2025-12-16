@@ -258,6 +258,10 @@ function Set-CxadcWinConfig {
             $Config.EnableSixDB = $EnableSixDB
         }
 
+        if ($PSBoundParameters.ContainsKey("CenterOffset")) {
+            $Config.CenterOffset = $CenterOffset
+        }
+
         $CimInstance = Get-CimInstance @GetConfigParams -Filter ("InstanceName='{0}'" -f $Device.InstanceName.Replace("\", "\\"))
 
         if ($null -eq $CimInstance) {
