@@ -107,6 +107,11 @@ Device manager may be polluted with `Multimedia Controller` devices, these are u
 ### Configure
 Devices can be configured via the PowerShell module, WMI or Device Manager.
 
+#### Import module
+```
+PS> Import-Module .\CxadcWin.psm1
+```
+
 #### List devices
 ```
 PS> Get-CxadcWinDevice
@@ -170,6 +175,11 @@ Device values are stored in the registry at the following location
 `HKLM\SYSTEM\CurrentControlSet\Enum\PCI\VEN_14F1&DEV_8800&SUBSYS_XXXXXXXX&REV_XX\X&XXXXXXXX&X&XXXXXX\DeviceParameters`
 
 ### Configure clockgen (Optional)
+#### Import module
+```
+PS> Import-Module .\CxadcClockGen.psm1
+```
+
 #### Get device settings
 ```
 PS> Get-CxadcClockGenDevice
