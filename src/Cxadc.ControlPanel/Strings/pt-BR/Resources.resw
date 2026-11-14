@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="AppTitle" xml:space="preserve"><value>Painel de Controle CXADC</value></data>
+  <data name="Subtitle" xml:space="preserve"><value>Driver para Windows e configurações da placa de captura</value></data>
+  <data name="Language" xml:space="preserve"><value>Idioma</value></data>
+  <data name="CardTab" xml:space="preserve"><value>Placa CXADC</value></data>
+  <data name="ClockTab" xml:space="preserve"><value>Clockgen</value></data>
+  <data name="AdvancedTab" xml:space="preserve"><value>Avançado</value></data>
+  <data name="CaptureCard" xml:space="preserve"><value>Placa de captura</value></data>
+  <data name="NoCardFound" xml:space="preserve"><value>Nenhuma placa encontrada</value></data>
+  <data name="Refresh" xml:space="preserve"><value>Atualizar</value></data>
+  <data name="NotChecked" xml:space="preserve"><value>Não verificado</value></data>
+  <data name="CaptureSettings" xml:space="preserve"><value>Configurações de captura</value></data>
+  <data name="VideoMux" xml:space="preserve"><value>Video Mux (0–3)</value></data>
+  <data name="Level" xml:space="preserve"><value>Level (0–31)</value></data>
+  <data name="CenterOffset" xml:space="preserve"><value>Center Offset (0–63)</value></data>
+  <data name="TenBit" xml:space="preserve"><value>Captura em 10 bits</value></data>
+  <data name="SixDb" xml:space="preserve"><value>Ganho +6 dB</value></data>
+  <data name="Apply" xml:space="preserve"><value>Aplicar</value></data>
+  <data name="Reload" xml:space="preserve"><value>Recarregar da placa</value></data>
+  <data name="RawValueHelp" xml:space="preserve"><value>Os valores são exibidos na escala bruta aceita pelo driver do Windows.</value></data>
+  <data name="DriverStatus" xml:space="preserve"><value>Estado do driver e da captura</value></data>
+  <data name="DriverActive" xml:space="preserve"><value>Driver ativo</value></data>
+  <data name="Capturing" xml:space="preserve"><value>Capturando</value></data>
+  <data name="Readers" xml:space="preserve"><value>Leitores</value></data>
+  <data name="Overflows" xml:space="preserve"><value>Estouro/subfluxo</value></data>
+  <data name="LastGp" xml:space="preserve"><value>Último contador GP</value></data>
+  <data name="InitialPage" xml:space="preserve"><value>Página inicial</value></data>
+  <data name="ResetOverflows" xml:space="preserve"><value>Zerar contador de estouro/subfluxo</value></data>
+  <data name="AutoRefreshHelp" xml:space="preserve"><value>O estado é atualizado automaticamente enquanto esta página estiver aberta.</value></data>
+  <data name="Connected" xml:space="preserve"><value>Conectado</value></data>
+  <data name="ConnectedCard" xml:space="preserve"><value>{0} · PCI {1}</value></data>
+  <data name="NoCxadc" xml:space="preserve"><value>Nenhuma placa CXADC detectada. Verifique a instalação do driver e reconecte a placa.</value></data>
+  <data name="ClockDevice" xml:space="preserve"><value>Dispositivo Clockgen</value></data>
+  <data name="NoClockgen" xml:space="preserve"><value>Nenhum Clockgen compatível encontrado</value></data>
+  <data name="ClockOutputs" xml:space="preserve"><value>Saídas de clock</value></data>
+  <data name="ClockConnectHelp" xml:space="preserve"><value>Conecte um Clockgen compatível para ver o número de série e a versão do firmware.</value></data>
+  <data name="Clock0" xml:space="preserve"><value>Clock 0</value></data>
+  <data name="Clock1" xml:space="preserve"><value>Clock 1</value></data>
+  <data name="AdcRate" xml:space="preserve"><value>Taxa de amostragem do ADC</value></data>
+  <data name="ApplyClock" xml:space="preserve"><value>Aplicar configurações do clock</value></data>
+  <data name="ClockDynamicHelp" xml:space="preserve"><value>As taxas disponíveis são lidas do firmware do Clockgen conectado.</value></data>
+  <data name="ClockInfo" xml:space="preserve"><value>Série: {0} · Firmware: {1}</value></data>
+  <data name="RegisterHeading" xml:space="preserve"><value>Acesso aos registradores CX2388x</value></data>
+  <data name="RegisterWarning" xml:space="preserve"><value>O acesso avançado pode alterar o comportamento do hardware. Os endereços devem estar no intervalo permitido pelo driver (0x200000–0x5CFFFF). Alterações na EEPROM podem exigir reinicialização.</value></data>
+  <data name="AddressHex" xml:space="preserve"><value>Endereço (hex)</value></data>
+  <data name="ValueHex" xml:space="preserve"><value>Valor (hex)</value></data>
+  <data name="Read" xml:space="preserve"><value>Ler</value></data>
+  <data name="Write" xml:space="preserve"><value>Gravar</value></data>
+  <data name="FunctionsHeading" xml:space="preserve"><value>Funções da placa (EEPROM)</value></data>
+  <data name="FunctionsWarning" xml:space="preserve"><value>O driver utiliza a função de vídeo. As alterações são gravadas na EEPROM; uma falha pode inutilizar a placa. É necessário reiniciar.</value></data>
+  <data name="VideoRequired" xml:space="preserve"><value>Vídeo (necessário para o cxadc-win)</value></data>
+  <data name="Audio" xml:space="preserve"><value>Áudio</value></data>
+  <data name="Mpeg" xml:space="preserve"><value>MPEG</value></data>
+  <data name="Infrared" xml:space="preserve"><value>Infravermelho (IR)</value></data>
+  <data name="ReadEeprom" xml:space="preserve"><value>Ler da EEPROM</value></data>
+  <data name="WriteEeprom" xml:space="preserve"><value>Gravar alterações na EEPROM</value></data>
+  <data name="Yes" xml:space="preserve"><value>Sim</value></data>
+  <data name="No" xml:space="preserve"><value>Não</value></data>
+  <data name="True" xml:space="preserve"><value>Sim</value></data>
+  <data name="False" xml:space="preserve"><value>Não</value></data>
+  <data name="ChooseCard" xml:space="preserve"><value>Selecione uma placa CXADC primeiro.</value></data>
+  <data name="ChooseClockgen" xml:space="preserve"><value>Selecione um Clockgen primeiro.</value></data>
+  <data name="SelectAllRates" xml:space="preserve"><value>Selecione uma taxa para cada saída de clock.</value></data>
+  <data name="SavedCard" xml:space="preserve"><value>Configurações aplicadas e lidas de volta da placa.</value></data>
+  <data name="LoadedCard" xml:space="preserve"><value>Configurações atuais carregadas da placa.</value></data>
+  <data name="ClockApplied" xml:space="preserve"><value>Taxas do Clockgen aplicadas e lidas de volta.</value></data>
+  <data name="CounterReset" xml:space="preserve"><value>Contador zerado. Valor anterior: {0}</value></data>
+  <data name="RegisterReadResult" xml:space="preserve"><value>0x{0:X6} = 0x{1:X8}</value></data>
+  <data name="RegisterWritten" xml:space="preserve"><value>Gravado 0x{0:X8} em 0x{1:X6}.</value></data>
+  <data name="ConfirmRegisterTitle" xml:space="preserve"><value>Gravar no registrador do hardware?</value></data>
+  <data name="ConfirmRegisterBody" xml:space="preserve"><value>Gravar em um registrador CX2388x arbitrário pode interromper a captura ou alterar o comportamento do hardware. Continue somente se souber a função deste registrador.</value></data>
+  <data name="ConfirmEepromTitle" xml:space="preserve"><value>Alterar a EEPROM da placa?</value></data>
+  <data name="ConfirmEepromBody" xml:space="preserve"><value>Esta ação grava diretamente na EEPROM da placa. Se algo der errado, ela pode ficar inutilizável. É necessário reiniciar. Deseja continuar?</value></data>
+  <data name="FunctionUpdateSuccess" xml:space="preserve"><value>EEPROM atualizada. Reinicie o Windows para aplicar a alteração.</value></data>
+  <data name="OperationFailed" xml:space="preserve"><value>Falha na operação: {0}</value></data>
+</root>

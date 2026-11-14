@@ -1,0 +1,39 @@
+name: Build CXADC Control Panel
+description: Publish the WinUI 3 control panel as a self-contained Windows x64 app
+
+inputs:
+  configuration:
+    description: Build configuration
+    required: true
+
+  platform:
+    description: Target platform
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Publish
+      shell: pwsh
+      run: |
+        dotnet publish .\src\Cxadc.ControlPanel\Cxadc.ControlPanel.csproj `
+          --configuration ${{ inputs.configuration }} `
+          --runtime win-x64 `
+          --self-contained true `
+          -p:WindowsAppSDKSelfContained=true `
+          -p:PublishTrimmed=false `
+          -p:PublishReadyToRun=false `
+          -p:Platform=x64 `
+          --output .\publish\cxadc-control-panel
+
+    - name: Upload panel artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.configuration }}-${{ inputs.platform }}-control-panel
+        if-no-files-found: error
+        path: .\publish\cxadc-control-panel\*

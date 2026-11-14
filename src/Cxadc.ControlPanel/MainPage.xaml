@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Cxadc_ControlPanel.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+    <Grid RowDefinitions="Auto,*" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid Padding="24,20,24,8" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16">
+            <StackPanel Spacing="2">
+                <TextBlock x:Name="PageTitle" Text="CXADC Control Panel" Style="{StaticResource TitleTextBlockStyle}" />
+                <TextBlock x:Name="PageSubtitle" Text="Windows driver and capture card settings" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+            <TextBlock x:Name="LanguageLabel" Grid.Column="1" Text="Language" VerticalAlignment="Center" />
+            <ComboBox x:Name="LanguageComboBox" Grid.Column="2" Width="150" VerticalAlignment="Center" SelectionChanged="LanguageComboBox_SelectionChanged">
+                <ComboBoxItem Content="Português (Brasil)" Tag="pt-BR" />
+                <ComboBoxItem Content="English" Tag="en-US" />
+            </ComboBox>
+        </Grid>
+
+        <TabView x:Name="MainTabs" Grid.Row="1" Padding="16,8,16,16" IsAddTabButtonVisible="False" TabWidthMode="SizeToContent">
+            <TabViewItem x:Name="CardTab" Header="CXADC Card">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="16" Margin="8">
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+                            <ComboBox x:Name="CardComboBox" Header="Capture card" PlaceholderText="No card found" DisplayMemberPath="Path" SelectionChanged="CardComboBox_SelectionChanged" />
+                            <Button x:Name="RefreshCardsButton" Grid.Column="1" Content="Refresh" VerticalAlignment="Bottom" Click="RefreshCardsButton_Click" />
+                            <TextBlock x:Name="CardStatusText" Grid.Column="2" Text="Not checked" VerticalAlignment="Bottom" MinWidth="180" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+                            <Border Padding="20" CornerRadius="10" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                                <StackPanel Spacing="14">
+                                    <TextBlock x:Name="SettingsHeading" Text="Capture settings" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                    <ComboBox x:Name="VideoMuxComboBox" Header="Video Mux (0–3)" SelectedIndex="2">
+                                        <ComboBoxItem Content="0" Tag="0" />
+                                        <ComboBoxItem Content="1" Tag="1" />
+                                        <ComboBoxItem Content="2" Tag="2" />
+                                        <ComboBoxItem Content="3" Tag="3" />
+                                    </ComboBox>
+                                    <NumberBox x:Name="LevelNumberBox" Header="Level (0–31)" Minimum="0" Maximum="31" SpinButtonPlacementMode="Inline" Value="16" />
+                                    <NumberBox x:Name="CenterOffsetNumberBox" Header="Center Offset (0–63)" Minimum="0" Maximum="63" SpinButtonPlacementMode="Inline" Value="0" />
+                                    <CheckBox x:Name="TenBitCheckBox" Content="10-bit capture" />
+                                    <CheckBox x:Name="SixDbCheckBox" Content="+6 dB gain" />
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Button x:Name="ApplyCardButton" Content="Apply" Style="{StaticResource AccentButtonStyle}" Click="ApplyCardButton_Click" />
+                                        <Button x:Name="ReloadCardButton" Content="Reload from card" Click="ReloadCardButton_Click" />
+                                    </StackPanel>
+                                    <TextBlock x:Name="CardHelpText" Text="Values are shown as the raw values accepted by the Windows driver." TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Padding="20" CornerRadius="10" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                                <StackPanel Spacing="12">
+                                    <TextBlock x:Name="StatusHeading" Text="Driver and capture status" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
+                                        <TextBlock x:Name="DriverActiveLabel" Text="Driver active" />
+                                        <TextBlock x:Name="DriverActiveValue" Grid.Column="1" Text="—" />
+                                        <TextBlock x:Name="CapturingLabel" Grid.Row="1" Text="Capturing" />
+                                        <TextBlock x:Name="CapturingValue" Grid.Row="1" Grid.Column="1" Text="—" />
+                                        <TextBlock x:Name="ReadersLabel" Grid.Row="2" Text="Readers" />
+                                        <TextBlock x:Name="ReadersValue" Grid.Row="2" Grid.Column="1" Text="—" />
+                                        <TextBlock x:Name="OverflowsLabel" Grid.Row="3" Text="Over/underflows" />
+                                        <TextBlock x:Name="OverflowsValue" Grid.Row="3" Grid.Column="1" Text="—" />
+                                        <TextBlock x:Name="LastGpLabel" Grid.Row="4" Text="Last GP count" />
+                                        <TextBlock x:Name="LastGpValue" Grid.Row="4" Grid.Column="1" Text="—" />
+                                        <TextBlock x:Name="InitialPageLabel" Grid.Row="5" Text="Initial page" />
+                                        <TextBlock x:Name="InitialPageValue" Grid.Row="5" Grid.Column="1" Text="—" />
+                                    </Grid>
+                                    <Button x:Name="ResetOverflowButton" Content="Reset over/underflow counter" Click="ResetOverflowButton_Click" />
+                                    <TextBlock x:Name="StatusHelpText" Text="Status refreshes automatically while this page is open." TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabViewItem>
+
+            <TabViewItem x:Name="ClockTab" Header="Clockgen">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="16" Margin="8" MaxWidth="900" HorizontalAlignment="Left">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <ComboBox x:Name="ClockGenComboBox" Header="Clockgen device" PlaceholderText="No compatible clockgen found" DisplayMemberPath="DisplayName" SelectionChanged="ClockGenComboBox_SelectionChanged" />
+                            <Button x:Name="RefreshClockButton" Grid.Column="1" Content="Refresh" VerticalAlignment="Bottom" Click="RefreshClockButton_Click" />
+                        </Grid>
+                        <Border Padding="20" CornerRadius="10" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                            <StackPanel Spacing="14">
+                                <TextBlock x:Name="ClockSettingsHeading" Text="Clock outputs" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                <TextBlock x:Name="ClockDeviceInfo" Text="Connect a compatible clockgen to see its serial number and firmware version." TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <ComboBox x:Name="Clock0ComboBox" Header="Clock 0" />
+                                <ComboBox x:Name="Clock1ComboBox" Header="Clock 1" />
+                                <ComboBox x:Name="AdcRateComboBox" Header="ADC sample rate" />
+                                <Button x:Name="ApplyClockButton" Content="Apply clock settings" Style="{StaticResource AccentButtonStyle}" Click="ApplyClockButton_Click" />
+                                <TextBlock x:Name="ClockHelpText" Text="Available rates are read from the connected clockgen firmware." TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </Border>
+                        <TextBlock x:Name="ClockStatusText" Text="" TextWrapping="Wrap" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabViewItem>
+
+            <TabViewItem x:Name="AdvancedTab" Header="Advanced">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="16" Margin="8" MaxWidth="900" HorizontalAlignment="Left">
+                        <Border Padding="20" CornerRadius="10" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                            <StackPanel Spacing="12">
+                                <TextBlock x:Name="RegisterHeading" Text="CX2388x register access" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                <TextBlock x:Name="RegisterWarning" Text="Advanced access can change hardware behavior. Register addresses must be in the driver's allowed range (0x200000–0x5CFFFF). EEPROM changes may require a reboot." TextWrapping="Wrap" Foreground="{ThemeResource SystemFillColorCautionBrush}" />
+                                <Grid ColumnDefinitions="*,*,Auto,Auto" ColumnSpacing="8">
+                                    <TextBox x:Name="RegisterAddressBox" Header="Address (hex)" Text="200000" />
+                                    <TextBox x:Name="RegisterValueBox" Grid.Column="1" Header="Value (hex)" Text="0" />
+                                    <Button x:Name="ReadRegisterButton" Grid.Column="2" Content="Read" VerticalAlignment="Bottom" Click="ReadRegisterButton_Click" />
+                                    <Button x:Name="WriteRegisterButton" Grid.Column="3" Content="Write" VerticalAlignment="Bottom" Click="WriteRegisterButton_Click" />
+                                </Grid>
+                                <TextBlock x:Name="RegisterStatusText" Text="" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                        <Border Padding="20" CornerRadius="10" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                            <StackPanel Spacing="12">
+                                <TextBlock x:Name="FunctionsHeading" Text="Card functions (EEPROM)" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                <TextBlock x:Name="FunctionsWarning" Text="The driver uses the video function. Changes are written to EEPROM; a failure could make the card unusable. A reboot is required." TextWrapping="Wrap" Foreground="{ThemeResource SystemFillColorCautionBrush}" />
+                                <CheckBox x:Name="VideoFunctionCheckBox" Content="Video (required by cxadc-win)" IsEnabled="False" />
+                                <CheckBox x:Name="AudioFunctionCheckBox" Content="Audio" />
+                                <CheckBox x:Name="MpegFunctionCheckBox" Content="MPEG" />
+                                <CheckBox x:Name="IrFunctionCheckBox" Content="Infrared (IR)" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button x:Name="LoadFunctionsButton" Content="Read from EEPROM" Click="LoadFunctionsButton_Click" />
+                                    <Button x:Name="ApplyFunctionsButton" Content="Write changes to EEPROM" Click="ApplyFunctionsButton_Click" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabViewItem>
+        </TabView>
+    </Grid>
+</Page>

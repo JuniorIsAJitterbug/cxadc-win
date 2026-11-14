@@ -1,378 +1,201 @@
-# cxadc-win - CX2388x ADC DMA driver for Windows
-> [!WARNING]  
-> ⚠️ **THIS IS EXPERIMENTAL** ⚠️  
-> *This software is provided "as-is" and without any warranty nor liability. I am not responsible for any instability, security issues, conflicts with anti-virus and anti-cheat software, or any other problems arising from its use. I do not guarantee the accuracy or reliability of any captures made by this software.*
->    
-> ⚠️ **THIS DRIVER IS UNSIGNED** ⚠️  
-> *Due to security restrictions in Windows 10 and 11, **Secure Boot and Driver Signature Enforcement must be disabled** to allow the use of unsigned drivers. Please ensure you understand the potential security risks involved in disabling these features, and remember to re-enable them when you are not actively capturing.*  
+# CXADC Tools / Ferramentas CXADC
 
-This is a Windows port of the [cxadc](https://github.com/happycube/cxadc-linux3) driver for Conexant CX2388x video decoder/encoder chips commonly found on PCI TV-tuner and capture cards. This is intended for use with the [decode](https://github.com/oyvindln/vhs-decode) projects.  
+[English](#english) · [Português brasileiro](#português-brasileiro)
 
-You can find more information about these cards [here](https://github.com/oyvindln/vhs-decode/wiki/CX-Cards).  
+<a id="english"></a>
+## English
 
-![ffplay](assets/ffplay.gif)
+**CXADC Tools** bundles the experimental Windows `cxadc-win` driver, its PowerShell and capture utilities, optional Clockgen firmware, and the **CXADC Control Panel**. The panel is a WinUI 3 desktop app for configuring the CXADC card and compatible Clockgen devices.
 
+This is a Windows port of the [Linux cxadc driver](https://github.com/happycube/cxadc-linux3) for Conexant CX2388x chips used by PCI TV tuner and capture cards. The project is intended for analog video capture workflows such as [vhs-decode](https://github.com/oyvindln/vhs-decode). More information about supported cards is available in the [CX Cards guide](https://github.com/oyvindln/vhs-decode/wiki/CX-Cards).
 
-## Download
-The latest release can be downloaded [here](https://github.com/JuniorIsAJitterbug/cxadc-win/releases).  
+> [!WARNING]
+> This software and driver are experimental and provided without warranty. The driver is unsigned. Windows security policy may prevent it from loading; consult the driver documentation and your Windows version's requirements before installation. The installer does **not** change Secure Boot, test-signing, or driver-signature settings. Use at your own risk.
 
+### Download and install
 
-## Pre-installation  
-1. Disable Secure Boot in your BIOS  
-2. Disable Signature Enforcement
-   <details>
-     <summary>PowerShell (Administrator)</summary>
+Download the latest package from the [releases page](https://github.com/Samuelzin-jgs/cxadc-win-gui/releases). When a `CXADC-Tools-Setup.exe` installer is provided, it installs the panel and utilities, then asks Windows to install the driver. You can also download the driver and tools separately from the release archive.
 
-     ```
-     PS> Set-BcdElement -Element "testsigning" -Type Boolean -Value $true
-     ```
-   </details>
+The installer may need administrator privileges. If Windows rejects the unsigned driver, the panel and other tools can still be installed; follow the driver-specific instructions for your system rather than changing security settings blindly.
 
-   <details>
-     <summary>Command Prompt (Administrator)</summary>
+### CXADC Control Panel
 
-     ```
-     > bcdedit -set testsigning on
-     ```
-   </details>
+The panel provides three areas:
 
+- **CXADC card:** read and apply Video Mux (`0–3`), Level (`0–31`), Center Offset (`0–63`), 10-bit capture, and +6 dB gain; view the driver's status and reset its over/underflow counter.
+- **Clockgen:** detect a compatible device and read its serial number, firmware version, current rates, and supported rate options from the device. Clock 0, Clock 1, and ADC choices are discovered at runtime.
+- **Advanced:** read and write bounded hardware registers and inspect or change EEPROM function flags. EEPROM writes can make a card unusable; use them only when you understand the effect.
 
-## Installation
-1. Open **Device Manager**  
-2. Right click **Multimedia Video Controller**, click **Properties**  
-3. Click **Update Driver...**  
-4. Click **Browse my computer for drivers**  
-5. Browse to the path containing **cxadc-win.inf** and **cxadc-win.sys**, click **Next**  
-6. Click **Install this driver software anyway** when prompted
+The panel supports English and Brazilian Portuguese. CXADC settings are shown in the driver's raw value ranges; the app does not apply an assumed signed Center Offset conversion.
 
+### Driver settings
 
-## Post-installation
-### PowerShell
-1. PowerShell `≥7.4.0` is required, you can download the latest version [here](https://aka.ms/powershell-release?tag=stable)  
-2. Allow the modules and scripts to run
-    ```
-    PS> Unblock-File .\CxadcWin.psm1,.\CxadcClockGen.psm1,.\LocalCapture.ps1
-    ```
+| Setting | PowerShell / WMI property | Values | Default |
+| --- | --- | ---: | ---: |
+| Video mux | `VideoMux` (`vmux`) | `0–3` | `2` |
+| Level | `Level` (`level`) | `0–31` | `16` |
+| Center offset | `CenterOffset` (`center_offset`) | `0–63` | `0` |
+| 10-bit capture | `EnableTenbit` (`tenbit`) | On / Off | Off |
+| +6 dB gain | `EnableSixDB` (`sixdb`) | On / Off | Off |
 
-### Capture server
-The local capture script requires additional software.
+For details about the signal parameters, see the [Linux cxadc documentation](https://github.com/happycube/cxadc-linux3).
 
-<details>
-<summary>Dependencies</summary>
+### PowerShell configuration
 
-  - [curl](https://curl.se/windows/) (required)
-  - [FLAC](https://ftp.osuosl.org/pub/xiph/releases/flac/) (optional)
-  - [SoX](https://sourceforge.net/projects/sox/) (optional)
-  - [FFmpeg](https://www.gyan.dev/ffmpeg/builds/) (optional)
-</details>
+The panel is optional; the driver can also be managed through the included PowerShell module and WMI. Import the module from the extracted tools directory:
 
-### Clockgen (optional)
-The clockgen must be updated to work correctly on Windows.  
-A pre-built firmware containing [these changes](src/clockgen#readme) is included in each release.  
-
-### Disable device functions (optional)
-> [!CAUTION]  
-> This writes data to the EEPROM, if something goes wrong the card may be bricked  
-
-This driver only uses the video function (`14F1:8800`).  
-Device manager may be polluted with `Multimedia Controller` devices, these are unused and can be disabled.  
-
-<details>
-  <summary>View function state</summary>
-
-  ```
-  PS> Get-CxadcWinDeviceFunction -Path \\.\cxadc0
-
-  Video Audio  MPEG    IR
-  ----- -----  ----    --
-   True  True False False
-  ```
-</details>
-
-<details>
-  <summary>Disable all unused functions</summary>
-
-  ```
-  PS> Set-CxadcWinDeviceFunction -Path \\.\cxadc0 -Disable All
-
-  The following action will write data to the EEPROM, if something goes wrong the card may be bricked.
-  Do you take full responsbility and wish to continue?
-  [Y] Yes  [N] No  [S] Suspend  [?] Help (default is "Y"): y
-  WARNING: A reboot is required for changes to apply.
-  ```
-</details>
-
-
-## Usage
-### Configure
-Devices can be configured via the PowerShell module, WMI or Device Manager.
-
-#### Import module
-```
-PS> Import-Module .\CxadcWin.psm1
+```powershell
+Import-Module .\CxadcWin.psm1
+Get-CxadcWinDevice
+Get-CxadcWinConfig -Path \\.\cxadc0
+Get-CxadcWinState -Path \\.\cxadc0
+Set-CxadcWinConfig -Path \\.\cxadc0 -VideoMux 1
 ```
 
-#### List devices
-```
-PS> Get-CxadcWinDevice
+PowerShell 7.4 or later may be required for the included scripts. See `Get-Help .\CxadcWin.psm1 -Full` for the available commands.
 
-Path       InstanceName                                                      Location
-----       ------------                                                      --------
-\\.\cxadc0 PCI\VEN_14F1&DEV_8800&SUBSYS_45534E4F&REV_05\5&69f2177&0&080015_0 07:00.0
-```
+### Clockgen and capture
 
-#### Get config and state of a device
-```
-PS> Get-CxadcWinConfig -Path \\.\cxadc0
+Clockgen support is optional. A Windows-compatible firmware build and its instructions are included with releases when available; see [`src/clockgen`](src/clockgen/README.md). The panel can inspect firmware version and configure supported clock and ADC rates. It does not update firmware.
 
-Active         : True
-CenterOffset   : 0
-EnableSixDB    : False
-EnableTenbit   : False
-InstanceName   : PCI\VEN_14F1&DEV_8800&SUBSYS_45534E4F&REV_05\5&69f2177&0&080015_0
-Level          : 16
-VideoMux       : 2
-PSComputerName :
+`LocalCapture.ps1` is a Windows capture-server utility. Its dependencies and parameters are documented in the script's help and the [capture-server README](src/capture-server/README.md). Depending on the workflow, it can capture CXADC video, a second card's Hi-Fi audio, and Clockgen baseband audio, with optional compression and conversion. **10-bit capture is not supported by `LocalCapture.ps1`.**
 
-PS> Get-CxadcWinState -Path \\.\cxadc0
+Example, capturing from one card:
 
-Active             : True
-InitialPage        : 0
-InstanceName       : PCI\VEN_14F1&DEV_8800&SUBSYS_45534E4F&REV_05\5&69f2177&0&080015_0
-IsCapturing        : False
-LastGpCount        : 0
-OverUnderflowCount : 0
-ReaderCount        : 0
-PSComputerName     :
+```powershell
+.\LocalCapture.ps1 -Name TestCapture -Video 0 -CompressVideo -VideoBaseRate 28636
 ```
 
-#### Change device config
-```
-PS> Set-CxadcWinConfig -Path \\.\cxadc0 -VideoMux 1
+See [Other tools](#other-tools) for cxcvbs and GNU Radio information.
 
-Active         : True
-CenterOffset   : 0
-EnableSixDB    : False
-EnableTenbit   : False
-InstanceName   : PCI\VEN_14F1&DEV_8800&SUBSYS_45534E4F&REV_05\5&69f2177&0&080015_0
-Level          : 16
-VideoMux       : 1
-PSComputerName :
-```
+### Build the control panel
 
-Available parameters  
-See [cxadc-linux3](https://github.com/happycube/cxadc-linux3) for parameter descriptions.  
+Requirements: Windows, .NET 10 SDK, and access to NuGet packages. From the repository root:
 
-Parameter       | PowerShell / WMI Property | Range  | Default 
-----------------|---------------------------|--------|--------
-`vmux`          | `VideoMux`                | `0-2`  | `2`
-`level`         | `Level`                   | `0-31` | `16`
-`tenbit`        | `EnableTenbit`            | `0-1`  | `0`
-`sixdb`         | `EnableSixDB`             | `0-1`  | `0`
-`center_offset` | `CenterOffset`            | `0-63` | `0`
-
-Device values are stored in the registry at the following location  
-`HKLM\SYSTEM\CurrentControlSet\Enum\PCI\VEN_14F1&DEV_8800&SUBSYS_XXXXXXXX&REV_XX\X&XXXXXXXX&X&XXXXXX\DeviceParameters`
-
-### Configure clockgen (Optional)
-#### Import module
-```
-PS> Import-Module .\CxadcClockGen.psm1
+```powershell
+dotnet publish .\src\Cxadc.ControlPanel\Cxadc.ControlPanel.csproj `
+  --configuration Release --runtime win-x64 --self-contained true `
+  -p:WindowsAppSDKSelfContained=true -p:PublishTrimmed=false `
+  -p:PublishReadyToRun=false -p:Platform=x64 `
+  --output .\publish\cxadc-control-panel
 ```
 
-#### Get device settings
-```
-PS> Get-CxadcClockGenDevice
+The output includes the .NET and Windows App SDK runtime, so users do not need to install those runtimes separately. The GitHub Actions release workflow can build the panel and package the combined tools installer.
 
-DevicePath      : \\?\usb#vid_1209&pid_0002&mi_00#7&8abc8b&3&0000#{9ded1fd1-c739-4d2a-a1e5-e060342724de}
-ClockRate0      : 28.63MHz
-ClockRate1      : 28.63MHz
-AdcRate         : 48000
-Serial          : E66118604B118121
-FirmwareVersion : 0
-```
+### Other tools
 
-Get specific output.
-```
-PS> (Get-CxadcClockGenRate).ClockRate0
-28.63MHz
+- [cxcvbs](https://github.com/JuniorIsAJitterbug/cxcvbs): CVBS viewer for use with this driver.
+- [GNU Radio example flowgraphs](https://github.com/tandersn/GNRC-Flowgraphs/tree/main/test_cxadc): sample CXADC workflows. The Windows Video SDL Sink may have issues; see [this discussion](https://lists.gnu.org/archive/html/discuss-gnuradio/2024-11/msg00031.html).
 
-PS> (Get-CxadcClockGenRate).AdcRate
-48000
-```
+### Building the driver
 
-#### Get available options
-```
-PS> Get-CxadcClockGenDevice | Get-CxadcClockGenRateOptions
+The driver build has been tested with Visual Studio 2022 and Windows SDK/WDK 10.0.26100. See the driver project files and workflow for build details.
 
-Output Values
------- ------
-   ADC {48000, 46875}
-Clock0 {20MHz, 28.63MHz, 40MHz, 50MHz}
-Clock1 {20MHz, 28.63MHz, 40MHz, 50MHz}
-```
+### Credits
 
-#### Configure outputs
-```
-PS> Set-CxadcClockGenRate -Output Clock0 -Rate 40mhz
-PS> Set-CxadcClockGenRate -Output Clock1 -Rate 40mhz
-PS> Set-CxadcClockGenRate -Output ADC -Rate 46875
-```  
+Based on the [Linux cxadc driver](https://github.com/happycube/cxadc-linux3). Thanks to the Domesday86 community for testing and support. The Windows driver and related upstream tools retain their respective licenses; see the included license files.
 
-### Capture
-The capture-server is a [Windows port](src/capture-server#readme) of [cxadc_vhs_server](https://github.com/namazso/cxadc_vhs_server).  
-Use `LocalCapture.ps1` to capture video, hifi and baseband audio, with optional resampling and compression.  
+---
 
-![capture-server example](assets/capture-server.gif)
+<a id="português-brasileiro"></a>
+## Português brasileiro
 
-> [!NOTE]  
-> `LocalCapture.ps1` does not support 10-bit captures  
+**CXADC Tools** reúne o driver experimental `cxadc-win` para Windows, utilitários de PowerShell e captura, firmware opcional para Clockgen e o **CXADC Control Panel**. O painel é um aplicativo desktop em WinUI 3 para configurar placas CXADC e dispositivos Clockgen compatíveis.
 
-#### Example: Single card (stock crystal, compressed)
-```
-PS> .\LocalCapture.ps1 -Name TestCapture `
-                       -Video 0 -CompressVideo -VideoBaseRate 28636
-```
+Este projeto é uma versão para Windows do [driver cxadc para Linux](https://github.com/happycube/cxadc-linux3), destinado aos chips Conexant CX2388x encontrados em placas PCI de TV e captura. O projeto atende a fluxos de captura de vídeo analógico, como o [vhs-decode](https://github.com/oyvindln/vhs-decode). Consulte o guia [CX Cards](https://github.com/oyvindln/vhs-decode/wiki/CX-Cards) para mais informações sobre as placas.
 
-<details>
-  <summary>Details</summary>
+> [!WARNING]
+> Este software e o driver são experimentais e fornecidos sem garantia. O driver não tem assinatura. As políticas de segurança do Windows podem impedir seu carregamento; consulte a documentação do driver e os requisitos da sua versão do Windows antes de instalar. O instalador **não** altera Secure Boot, test signing nem as configurações de assinatura de drivers. O uso é por sua conta e risco.
 
-  - Video data is captured and compressed from `\\.\cxadc0` using a sample rate of `28636`
-    - Setting a base rate is required when the crystal/clockgen is not 40MHz
-</details>
+### Download e instalação
 
-<details>
-  <summary>Output files</summary>
+Baixe o pacote mais recente na [página de releases](https://github.com/Samuelzin-jgs/cxadc-win-gui/releases). Quando o instalador `CXADC-Tools-Setup.exe` estiver disponível, ele instala o painel e os utilitários e, em seguida, solicita ao Windows a instalação do driver. Também é possível baixar separadamente o driver e as ferramentas no arquivo da release.
 
-  ```
-  TestCapture-video.flac
-  ```
-</details>
+O instalador pode exigir privilégios de administrador. Se o Windows rejeitar o driver sem assinatura, o painel e as outras ferramentas ainda poderão ser instalados. Siga as instruções específicas do driver para o seu sistema; não altere as configurações de segurança sem entender as consequências.
 
-#### Example: Single card + clockgen audio
-```
-PS> .\LocalCapture.ps1 -Name TestCapture `
-                       -Video 0 `
-                       -Baseband
+### CXADC Control Panel
+
+O painel oferece três áreas:
+
+- **Placa CXADC:** consultar e aplicar Video Mux (`0–3`), Level (`0–31`), Center Offset (`0–63`), captura de 10 bits e ganho de +6 dB; visualizar o estado do driver e zerar o contador de over/underflow.
+- **Clockgen:** detectar um dispositivo compatível e consultar seu número de série, versão do firmware, frequências atuais e opções suportadas. As opções de Clock 0, Clock 1 e ADC são lidas do dispositivo em tempo de execução.
+- **Avançado:** ler e gravar registradores dentro dos limites permitidos e consultar ou alterar flags de funções na EEPROM. Uma gravação na EEPROM pode inutilizar a placa; use esse recurso somente se entender o efeito.
+
+O painel oferece português brasileiro e inglês. As configurações CXADC são exibidas nos intervalos brutos do driver; o aplicativo não presume uma conversão assinada para Center Offset.
+
+### Parâmetros do driver
+
+| Parâmetro | Propriedade PowerShell / WMI | Valores | Padrão |
+| --- | --- | ---: | ---: |
+| Video mux | `VideoMux` (`vmux`) | `0–3` | `2` |
+| Level | `Level` (`level`) | `0–31` | `16` |
+| Center offset | `CenterOffset` (`center_offset`) | `0–63` | `0` |
+| Captura de 10 bits | `EnableTenbit` (`tenbit`) | Ligado / Desligado | Desligado |
+| Ganho +6 dB | `EnableSixDB` (`sixdb`) | Ligado / Desligado | Desligado |
+
+Para entender os parâmetros de sinal, consulte a [documentação do cxadc para Linux](https://github.com/happycube/cxadc-linux3).
+
+### Configuração pelo PowerShell
+
+O painel é opcional: também é possível gerenciar o driver pelo módulo PowerShell incluído e por WMI. Importe o módulo na pasta onde as ferramentas foram extraídas:
+
+```powershell
+Import-Module .\CxadcWin.psm1
+Get-CxadcWinDevice
+Get-CxadcWinConfig -Path \\.\cxadc0
+Get-CxadcWinState -Path \\.\cxadc0
+Set-CxadcWinConfig -Path \\.\cxadc0 -VideoMux 1
 ```
 
-<details>
-  <summary>Details</summary>
+Os scripts incluídos podem exigir PowerShell 7.4 ou posterior. Consulte `Get-Help .\CxadcWin.psm1 -Full` para ver os comandos disponíveis.
 
-  - Video data is captured from `\\.\cxadc0`
-  - Audio is captured from a clockgen device
-</details>
+### Clockgen e captura
 
-<details>
-  <summary>Output files</summary>
+O suporte a Clockgen é opcional. Quando disponível, as releases incluem firmware compatível com Windows e instruções em [`src/clockgen`](src/clockgen/README.md). O painel consulta a versão do firmware e configura as frequências de clock e ADC suportadas. Ele não atualiza o firmware.
 
-  ```
-  TestCapture-video.u8
-  TestCapture-baseband.s24
-  ```
-</details>
+`LocalCapture.ps1` é um utilitário de captura para Windows. Dependências e parâmetros estão na ajuda do script e no [README do capture-server](src/capture-server/README.md). Conforme o fluxo, ele captura vídeo CXADC, áudio Hi-Fi de uma segunda placa e áudio baseband via Clockgen, com opções de compressão e conversão. **O `LocalCapture.ps1` não oferece suporte à captura de 10 bits.**
 
-#### Example: Single card + clockgen audio (compressed and converted)
-```
-PS> .\LocalCapture.ps1 -Name TestCapture `
-                       -Video 0 -CompressVideo `
-                       -Baseband -BasebandRate 46875 -ConvertBaseband
+Exemplo de captura com uma placa:
+
+```powershell
+.\LocalCapture.ps1 -Name TestCapture -Video 0 -CompressVideo -VideoBaseRate 28636
 ```
 
-<details>
-  <summary>Details</summary>
+Consulte [Outras ferramentas](#outras-ferramentas) para informações sobre cxcvbs e GNU Radio.
 
-- Video data is captured and compressed from `\\.\cxadc0`
-- Audio is captured, converted and compressed from a clockgen device with a sample rate of `46875`
-</details>
+### Compilar o painel
 
-<details>
-  <summary>Output files</summary>
+Requisitos: Windows, .NET 10 SDK e acesso aos pacotes NuGet. Na raiz do repositório:
 
-  ```
-  TestCapture-video.flac
-  TestCapture-baseband.flac
-  TestCapture-headswitch.flac
-  ```
-</details>
-
-#### Example: Dual card + clockgen audio (compressed, resampled and converted)
-```
-PS> .\LocalCapture.ps1 -Name TestCapture -AddDate `
-                       -Video 0 -CompressVideo `
-                       -Hifi 1 -CompressHifi -ResampleHifi `
-                       -Baseband -BasebandRate 46875 -ConvertBaseband
+```powershell
+dotnet publish .\src\Cxadc.ControlPanel\Cxadc.ControlPanel.csproj `
+  --configuration Release --runtime win-x64 --self-contained true `
+  -p:WindowsAppSDKSelfContained=true -p:PublishTrimmed=false `
+  -p:PublishReadyToRun=false -p:Platform=x64 `
+  --output .\publish\cxadc-control-panel
 ```
 
-<details>
-  <summary>Details</summary>
+A saída inclui os runtimes do .NET e do Windows App SDK; os usuários não precisam instalá-los separadamente. O workflow de releases do GitHub Actions pode compilar o painel e montar o instalador com as ferramentas.
 
-- Video data is captured and compressed from `\\.\cxadc0`
-- Hifi data is captured, resampled and compressed from `\\.\cxadc1`
-- Audio is captured, converted and compressed from a clockgen device with a sample rate of `46875`
-- A timestamp is added to the file names
-</details>
+### Outras ferramentas
 
-<details>
-  <summary>Output files</summary>
+- [cxcvbs](https://github.com/JuniorIsAJitterbug/cxcvbs): visualizador CVBS compatível com este driver.
+- [Exemplos de fluxos GNU Radio](https://github.com/tandersn/GNRC-Flowgraphs/tree/main/test_cxadc): exemplos de uso do CXADC. O Video SDL Sink pode apresentar problemas no Windows; veja [esta discussão](https://lists.gnu.org/archive/html/discuss-gnuradio/2024-11/msg00031.html).
 
-  ```
-  TestCapture-20250601T1217596850-video.flac
-  TestCapture-20250601T1217596850-hifi.flac
-  TestCapture-20250601T1217596850-baseband.flac
-  TestCapture-20250601T1217596850-headswitch.flac
-  ```
-</details>
+### Compilar o driver
 
-#### Example: View available `LocalCapture.ps1` options
-```
-PS> Get-Help .\LocalCapture-ps1 -Full
-```
+A compilação do driver foi testada com Visual Studio 2022 e Windows SDK/WDK 10.0.26100. Consulte os arquivos do projeto do driver e o workflow para detalhes.
 
+### Créditos
 
-## Other tools
-### CVBS viewer (`cxcvbs`)
-This driver works with a [fork](https://github.com/JuniorIsAJitterbug/cxcvbs) of cxcvbs.  
+Baseado no [driver cxadc para Linux](https://github.com/happycube/cxadc-linux3). Agradecemos à comunidade Domesday86 pelos testes e apoio. O driver para Windows e as ferramentas relacionadas mantêm suas respectivas licenças; consulte os arquivos de licença incluídos.
 
-![cxcvbs example](assets/cxcvbs.gif)
+### Exemplos de tela
 
-#### UltraLock
-> [!IMPORTANT]
-> This may not work if `level` is too high, or with non-stock crystal frequencies  
+![Exemplo do ffplay](assets/ffplay.gif)
 
-You can *"break"* the UltraLock by changing `HTOTAL`.  
+![Exemplo do capture-server](assets/capture-server.gif)
 
-<details>
-  <summary>Set register to max then min</summary>
+![Exemplo do cxcvbs](assets/cxcvbs.gif)
 
-  ```
-  PS> Set-CxadcWinRegister -Path \\.\cxadc0 -Address 0x310120 -Value 0x00017FF
-  PS> Set-CxadcWinRegister -Path \\.\cxadc0 -Address 0x310120 -Value 0x0001000
-  ```
-</details>
-
-Both `SCHERR` and `FCNTR` will be static if successful.  
-
-<details>
-  <summary>Check register values</summary>
-
-  ```
-  PS> Get-CxadcWinRegister -Path \\.\cxadc0 -Address 0x310100,0x310190
-  ```
-</details>
-
-### GNU Radio
-> [!NOTE]  
-> There may be [issues](https://lists.gnu.org/archive/html/discuss-gnuradio/2024-11/msg00031.html) with the `Video SDL Sink` on Windows. (25/02/15)  
-
-This driver works with GNU Radio, see [tandersn/GNRC-Flowgraphs](https://github.com/tandersn/GNRC-Flowgraphs/tree/main/test_cxadc) for example flowgraphs.  
-
-![gnuradio example](assets/gnuradio.gif)
-
-
-## Building
-This has only been tested with VS 2022 and WSDK/WDK 10.0.26100. 
-
-
-## Credits
-This is based on the Linux [cxadc](https://github.com/happycube/cxadc-linux3) driver, without which this would not exist. Thanks to the [Domesday86](https://discord.gg/pVVrrxd) discord for testing.  
+![Exemplo do GNU Radio](assets/gnuradio.gif)

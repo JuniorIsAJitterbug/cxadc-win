@@ -14,6 +14,7 @@ on:
           - capture-server
           - leveladj
           - clockgen_firmware
+          - control-panel
 
       build_configuration:
         description: Build configuration
@@ -106,6 +107,13 @@ jobs:
           platform: ${{ inputs.build_platform }}
           code_signing_cert_hash: ${{ inputs.sign_binaries && steps.import_cert.outputs.code_signing_cert_hash || '' }}
 
+      - name: Build CXADC Control Panel
+        uses: ./.github/actions/build_control_panel
+        if: ${{ inputs.build_components == 'All' || inputs.build_components == 'control-panel' }}
+        with:
+          configuration: ${{ matrix.build_configuration }}
+          platform: ${{ inputs.build_platform }}
+
       - name: Download all artifacts (driver)
         uses: actions/download-artifact@v4
         if: ${{ inputs.create_release }}
@@ -138,6 +146,14 @@ jobs:
           pattern: ${{ matrix.build_configuration }}-clockgen_firmware
           merge-multiple: true
 
+      - name: Download CXADC Control Panel
+        uses: actions/download-artifact@v4
+        if: ${{ inputs.create_release }}
+        with:
+          path: .\release\app
+          pattern: ${{ matrix.build_configuration }}-${{ inputs.build_platform }}-control-panel
+          merge-multiple: true
+
       - name: Download all artifacts (licenses)
         uses: actions/download-artifact@v4
         if: ${{ inputs.create_release }}
@@ -145,6 +161,15 @@ jobs:
           path: .\release\license
           pattern: LICENSE-*
           merge-multiple: true
+
+      - name: Compile CXADC Tools installer
+        if: ${{ inputs.create_release && inputs.build_components == 'All' && matrix.build_configuration == 'Release' }}
+        shell: pwsh
+        run: |
+          choco install innosetup --yes --no-progress
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          & $iscc .\installer\CXADC-Tools.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
 
       - name: Create GitHub Release
         if: ${{ inputs.create_release }}
@@ -193,3 +218,6 @@ jobs:
 
           gh release upload "$ReleaseName" "$FileNameRelease"
           gh release upload "$ReleaseName" "$FileNameReleasePdb"
+          if (Test-Path .\release\CXADC-Tools-Setup.exe) {
+            gh release upload "$ReleaseName" .\release\CXADC-Tools-Setup.exe --clobber
+          }
